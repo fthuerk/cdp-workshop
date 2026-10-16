@@ -1,0 +1,7 @@
+config.env
+*.local
+.DS_Store
+.env
+
+.cursor
+.github

@@ -1,0 +1,7 @@
+station_id,buffer_m,building_count,residential_share_pct,industrial_share_pct,road_length_m,poi_supermarket_count,poi_school_count,ev_charger_count,green_space_share_pct
+TS-101,100,12,68,8,420,1,0,0,14
+TS-101,250,57,61,12,1380,2,1,1,11
+TS-204,100,8,72,4,310,0,1,0,18
+TS-204,250,43,66,7,1190,1,2,0,16
+TS-305,100,5,22,41,280,0,0,2,6
+TS-305,250,29,31,38,980,1,0,4,8

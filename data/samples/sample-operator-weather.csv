@@ -1,0 +1,11 @@
+timestamp,station_id,station_name,temperature_c,relative_humidity_pct,wind_speed_mps,precipitation_mm,pressure_hpa,quality_flag
+2026-01-15T08:00:00Z,GRID-WS-01,Area_North,2.4,86,3.2,0.0,1018.4,OK
+2026-01-15T08:15:00Z,GRID-WS-01,Area_North,2.6,85,3.5,0.0,1018.3,OK
+2026-01-15T08:30:00Z,GRID-WS-01,Area_North,2.8,84,3.7,0.0,1018.2,OK
+2026-01-15T08:45:00Z,GRID-WS-01,Area_North,3.0,83,4.0,0.1,1018.0,OK
+2026-01-15T09:00:00Z,GRID-WS-01,Area_North,3.1,82,4.2,0.1,1017.9,OK
+2026-01-15T08:00:00Z,GRID-WS-02,Area_East,1.9,88,2.8,0.0,1018.7,OK
+2026-01-15T08:15:00Z,GRID-WS-02,Area_East,2.0,87,3.0,0.0,1018.6,OK
+2026-01-15T08:30:00Z,GRID-WS-02,Area_East,2.2,86,3.1,0.0,1018.5,OK
+2026-01-15T08:45:00Z,GRID-WS-02,Area_East,2.4,85,3.4,0.1,1018.3,OK
+2026-01-15T09:00:00Z,GRID-WS-02,Area_East,2.6,84,3.6,0.1,1018.2,OK

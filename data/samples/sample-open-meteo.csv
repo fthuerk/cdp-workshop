@@ -1,0 +1,6 @@
+timestamp,latitude,longitude,temperature_2m_c,relative_humidity_2m_pct,precipitation_mm,wind_speed_10m_mps,shortwave_radiation_wm2,soil_temperature_0cm_c,source_model
+2026-01-15T08:00:00Z,48.2082,16.3738,2.3,87,0.0,3.4,12,1.8,AROME_AUSTRIA
+2026-01-15T09:00:00Z,48.2082,16.3738,3.0,84,0.1,4.1,28,2.0,AROME_AUSTRIA
+2026-01-15T10:00:00Z,48.2082,16.3738,3.8,81,0.0,4.8,55,2.4,AROME_AUSTRIA
+2026-01-15T11:00:00Z,48.2082,16.3738,4.6,78,0.0,5.2,96,2.9,AROME_AUSTRIA
+2026-01-15T12:00:00Z,48.2082,16.3738,5.1,75,0.0,5.6,122,3.3,AROME_AUSTRIA

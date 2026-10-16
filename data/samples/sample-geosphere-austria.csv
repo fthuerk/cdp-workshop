@@ -1,0 +1,6 @@
+timestamp,station_id,station_name,temperature_c,precipitation_mm,wind_speed_mps,snow_depth_cm,pressure_hpa,data_role
+2026-01-15T08:00:00Z,GS-11035,Hohe_Warte,2.1,0.0,3.1,0,1018.6,official_reference
+2026-01-15T09:00:00Z,GS-11035,Hohe_Warte,2.9,0.1,3.9,0,1018.2,official_reference
+2026-01-15T10:00:00Z,GS-11035,Hohe_Warte,3.6,0.0,4.4,0,1017.9,official_reference
+2026-01-15T11:00:00Z,GS-11035,Hohe_Warte,4.4,0.0,4.9,0,1017.5,official_reference
+2026-01-15T12:00:00Z,GS-11035,Hohe_Warte,5.0,0.0,5.3,0,1017.1,official_reference

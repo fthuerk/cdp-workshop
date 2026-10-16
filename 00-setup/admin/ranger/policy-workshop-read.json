@@ -1,0 +1,24 @@
+{
+  "name": "cdp-workshop-hdfs-read-data",
+  "description": "Read workshop sample data under WORKSHOP_ROOT/data",
+  "isEnabled": true,
+  "resources": {
+    "path": {
+      "values": ["/2026_cdp_workshop/data/*"],
+      "isExcludes": false,
+      "isRecursive": true
+    }
+  },
+  "policyItems": [
+    {
+      "accesses": [
+        { "type": "read", "isAllowed": true },
+        { "type": "execute", "isAllowed": true }
+      ],
+      "users": ["{USER}"],
+      "groups": [],
+      "delegateAdmin": false
+    }
+  ],
+  "service": "cm_hdfs"
+}

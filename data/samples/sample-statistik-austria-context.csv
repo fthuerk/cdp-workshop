@@ -1,0 +1,4 @@
+station_id,district_code,population_density_per_km2,household_count,employment_density_index,commercial_share_pct,median_age
+TS-101,90101,4320,18450,1.18,22,41.2
+TS-204,92105,3890,16210,0.94,17,39.8
+TS-305,92307,2140,8450,1.42,36,42.5
