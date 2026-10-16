@@ -1,8 +1,8 @@
-# CDP workshop (Wiener Netze enablement)
+# CDP workshop
 
 Hands-on modules for Cloudera Data Platform, organized as a **sequential curriculum** (not tied to calendar days). Map modules to your schedule as needed.
 
-**Use case:** combine Landis&Gyr field trial data from transformer stations with Wiener Netze weather, public weather/market data, and reference layers into a governed, repeatable data product.
+**Use case:** combine smart-meter field trial data from transformer stations with operator weather stations, public weather/market feeds, and reference layers into a governed, repeatable data product.
 
 ## Quick start
 
