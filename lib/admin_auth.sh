@@ -12,9 +12,12 @@ admin_kinit_hdfs() {
     echo "Run this on an edge node with CM agent, or kinit manually as hdfs superuser." >&2
     exit 1
   fi
-  principal="$(klist -kt "${keytab}" | awk 'NR>3 {print $4; exit}')"
+  # NameNode keytabs list HTTP/* before hdfs/*; HDFS CLI needs the hdfs service principal.
+  principal="$(klist -kt "${keytab}" | awk '/^[[:space:]]+[0-9]/ {print $NF}' | grep -m1 '^hdfs/')"
   if [[ -z "${principal}" ]]; then
-    echo "Could not read principal from ${keytab}" >&2
+    echo "Could not find hdfs/* principal in ${keytab}" >&2
+    echo "Entries:" >&2
+    klist -kt "${keytab}" >&2
     exit 1
   fi
   kinit -kt "${keytab}" "${principal}"
