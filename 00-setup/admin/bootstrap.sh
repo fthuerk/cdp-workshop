@@ -6,6 +6,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${REPO_ROOT}/lib/common.sh"
 load_config
 
+require_admin_hdfs_kinit
 require_cmd hdfs find awk
 
 SAMPLES="${WORKSHOP_LOCAL}/data/samples"

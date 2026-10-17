@@ -1,6 +1,6 @@
 # Module 00 — Admin bootstrap
 
-Run on an **edge node** as a user that can authenticate as HDFS superuser (see `lib/admin_auth.sh`).
+Run on a **CM-managed edge node** (scripts call `kinit` as `hdfs` via the NameNode keytab before HDFS commands).
 
 ## Prerequisites
 
@@ -10,21 +10,17 @@ Run on an **edge node** as a user that can authenticate as HDFS superuser (see `
 
 ## Order of operations
 
-1. Authenticate:
-   ```bash
-   source lib/admin_auth.sh   # or: bash lib/admin_auth.sh
-   ```
-2. Bootstrap shared data:
+1. Bootstrap shared data:
    ```bash
    ./00-setup/admin/bootstrap.sh
    ./00-setup/admin/verify.sh
    ```
-3. Module **01** HDFS lab paths (secret, quota, big file):
+2. Module **01** HDFS lab paths (secret, quota, big file):
    ```bash
    ./01-basics-hdfs/setup/setup.sh
    ./01-basics-hdfs/setup/verify.sh
    ```
-4. **Optional — Ranger** (test in dev first; manual UI fallback in `ranger/README.md`):
+3. **Optional — Ranger** (test in dev first; manual UI fallback in `ranger/README.md`):
    ```bash
    ./00-setup/admin/ranger/apply_policies.sh
    ```

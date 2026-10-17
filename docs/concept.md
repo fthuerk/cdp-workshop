@@ -97,7 +97,7 @@ Module **01-basics-hdfs** introduces the layout and file operations; **03-basics
 - Kerberos-enabled users for each participant  
 - Knox/Hue URLs documented for the cohort  
 - Edge node with Hadoop client configs and this repo at `WORKSHOP_LOCAL`  
-- Trainer: ability to run admin scripts (`lib/admin_auth.sh` or equivalent superuser)
+- Trainer: CM edge node for admin setup scripts (they `kinit` as `hdfs` automatically)
 
 ## Fallback options
 

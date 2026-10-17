@@ -36,7 +36,6 @@ After this module you can:
 ## Admin (before session)
 
 ```bash
-source lib/admin_auth.sh
 ./00-setup/admin/bootstrap.sh
 ./01-basics-hdfs/setup/setup.sh
 ./01-basics-hdfs/setup/verify.sh

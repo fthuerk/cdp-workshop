@@ -31,7 +31,7 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 **Advanced track:** Hive → Spark → Impala → Oozie (deeper patterns on the same use case)  
 **MVP:** end-to-end pipeline with quality checks and governance touchpoints
 
-See [docs/concept.md](docs/concept.md) for learning objectives, dependencies, and fallbacks.
+See [docs/concept.md](docs/concept.md) for learning objectives, dependencies, and fallbacks. Contributors: [docs/simplicity.md](docs/simplicity.md).
 
 ## Repository layout
 

@@ -41,6 +41,14 @@ require_kerberos_ticket() {
   fi
 }
 
+# Admin bootstrap/setup: ticket as hdfs superuser (NameNode keytab on edge node).
+require_admin_hdfs_kinit() {
+  require_cmd kinit
+  # shellcheck source=admin_auth.sh
+  source "${_ws_script_dir}/admin_auth.sh"
+  admin_kinit_hdfs
+}
+
 require_hdfs() {
   require_cmd hdfs
   hdfs dfs -ls "${WORKSHOP_ROOT}" >/dev/null 2>&1 || {
