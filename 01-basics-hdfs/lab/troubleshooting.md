@@ -9,7 +9,7 @@ Wrong username or realm. Use the principal provided by the trainer (`user@REALM`
 - Run `klist` — ticket expired?  
 - Trainer: re-run [bootstrap](../../00-setup/admin/bootstrap.sh) and confirm you can `hdfs dfs -ls` as superuser then as participant.
 
-## `mkdir /user/$USER` fails
+## `mkdir /user/${WORKSHOP_USER}` fails
 
 Home directory creation may be disabled. Ask trainer to add you to `participants.txt` and re-run bootstrap, or use a personal subfolder under `${WORKSHOP_ROOT}/01-hdfs/public/${USER}` (if enabled).
 
@@ -18,7 +18,7 @@ Home directory creation may be disabled. Ask trainer to add you to `participants
 Trash layout varies by CDP version. List recursively:
 
 ```bash
-hdfs dfs -ls -R "/user/${USER}/.Trash"
+hdfs dfs -ls -R "/user/${WORKSHOP_USER:-${USER}}/.Trash"
 ```
 
 Move from the path that ends with `/hosts`.
@@ -29,7 +29,7 @@ You need read permission on `${WORKSHOP_ROOT}/01-hdfs/lab`. Trainer runs [setup/
 
 ## `setrep` rejected
 
-Changing replication may require admin privileges or storage policies. Skip stretch `setrep` and discuss replication conceptually.
+Changing replication on the shared big file may require extra HDFS permissions or storage policies. Ask the trainer to confirm module setup, or observe replication only with `-stat` / `fsck` and discuss the concept as a group.
 
 ## Secret file readable when it should not be
 
@@ -37,4 +37,4 @@ Trainer: re-run [setup/setup.sh](../setup/setup.sh) for `chmod 700` on secret; c
 
 ## Hue shows different paths than CLI
 
-Confirm Hue user matches Kerberos principal (`USER` on edge node). Clear browser cache or re-login via Knox.
+Confirm Hue user matches Kerberos principal (`WORKSHOP_USER` / edge login). Clear browser cache or re-login via Knox.

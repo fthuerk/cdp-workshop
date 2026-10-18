@@ -17,8 +17,8 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 |----|--------|-------|-----------|--------|
 | 00 | [Setup](00-setup/README.md) | — | 15 min | **Ready** |
 | 01 | [Basics: HDFS](01-basics-hdfs/README.md) | Basics | ~75 min | **Ready** |
-| 02 | Basics: YARN | Basics | ~60 min | Planned |
-| 03 | Basics: Hive | Basics | ~75 min | Planned |
+| 02 | [Basics: YARN](02-basics-yarn/README.md) | Basics | ~70 min | **Ready** |
+| 03 | [Basics: Hive](03-basics-hive/README.md) | Basics | ~120 min | Draft (not yet dry-run on a cluster) |
 | 04 | Basics: Spark | Basics | ~90 min | Planned |
 | 05 | Basics: Impala | Basics | ~60 min | Planned |
 | 10 | Advanced: Hive | Advanced | ~90 min | Planned |
@@ -31,7 +31,9 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 **Advanced track:** Hive → Spark → Impala → Oozie (deeper patterns on the same use case)  
 **MVP:** end-to-end pipeline with quality checks and governance touchpoints
 
-See [docs/concept.md](docs/concept.md) for learning objectives, dependencies, and fallbacks. Contributors: [docs/simplicity.md](docs/simplicity.md).
+See [docs/concept.md](docs/concept.md) for learning objectives, dependencies, and fallbacks.
+
+**Authors:** [docs/workshop-guidelines.md](docs/workshop-guidelines.md) (labs and modules) · [docs/simplicity.md](docs/simplicity.md) (scripts)
 
 ## Repository layout
 
@@ -41,7 +43,10 @@ lib/                 # common.sh, admin_auth.sh
 data/samples/        # synthetic CSVs (uploaded to HDFS by bootstrap)
 00-setup/            # shared cluster bootstrap
 01-basics-hdfs/      # lab + trainer + setup scripts
-docs/concept.md      # curriculum concept
+02-basics-yarn/      # YARN lab + setup scripts
+03-basics-hive/      # Hive lab + trainer + setup scripts
+docs/concept.md              # curriculum concept
+docs/workshop-guidelines.md  # how to author labs and modules
 ```
 
 ## On the cluster
@@ -50,4 +55,4 @@ docs/concept.md      # curriculum concept
 2. Admin: `00-setup/admin/bootstrap.sh`, then `01-basics-hdfs/setup/setup.sh`, then each module’s `verify.sh`.
 3. Participants: read module `lab/lab.md` and run commands with a personal Kerberos principal.
 
-Expected command outputs in labs are marked **TODO: capture on cluster** until validated in your environment.
+Labs define success through outcomes and `lab/check.sh`, not fixed sample transcripts.

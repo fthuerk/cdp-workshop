@@ -1,13 +1,13 @@
 # Module 01 — Basics: HDFS
 
-Distributed storage for the grid monitoring use case: explore sample CSVs in `${WORKSHOP_ROOT}/data`, manage your own `/user/$USER` workspace, and understand blocks, replication, trash, and permissions.
+Distributed storage for the grid monitoring use case: explore sample CSVs in `${WORKSHOP_ROOT}/data`, manage your own `/user/${WORKSHOP_USER}` workspace, and understand blocks, replication, trash, and permissions.
 
 **Estimated time:** ~75 minutes (core ~60 min + stretch)
 
 ## Prerequisites
 
 - Module [00-setup](../00-setup/README.md) complete (`check_env.sh` passes)
-- Valid Kerberos ticket: `kinit <your_user>`
+- Valid Kerberos ticket (see [lab/lab.md](lab/lab.md) intro: `WORKSHOP_USER` + `kinit`)
 
 ## Learning goals
 
@@ -31,7 +31,7 @@ After this module you can:
 ## Trainer materials
 
 - [trainer/notes.md](trainer/notes.md) — timing, demos, pitfalls  
-- [trainer/demos.sh](trainer/demos.sh) — secret, quota, snapshot (trainer-only)  
+- [trainer/demos.md](trainer/demos.md) — live demo steps: secret, quota, snapshot (trainer-only)  
 
 ## Admin (before session)
 
@@ -43,4 +43,4 @@ After this module you can:
 
 ## Next module
 
-[02-basics-yarn](../README.md) (planned — see root README)
+[02-basics-yarn](../02-basics-yarn/README.md)

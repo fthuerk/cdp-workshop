@@ -20,7 +20,12 @@ Run on a **CM-managed edge node** (scripts call `kinit` as `hdfs` via the NameNo
    ./01-basics-hdfs/setup/setup.sh
    ./01-basics-hdfs/setup/verify.sh
    ```
-3. **Optional — Ranger** (test in dev first; manual UI fallback in `ranger/README.md`):
+3. Module **03** Hive lab paths (landing folders per station, shared work area with `hive` ACL):
+   ```bash
+   ./03-basics-hive/setup/setup.sh
+   ./03-basics-hive/setup/verify.sh
+   ```
+4. **Optional — Ranger** (test in dev first; manual UI fallback in `ranger/README.md`):
    ```bash
    ./00-setup/admin/ranger/apply_policies.sh
    ```
@@ -28,6 +33,7 @@ Run on a **CM-managed edge node** (scripts call `kinit` as `hdfs` via the NameNo
 ## Reset between cohorts
 
 ```bash
+./03-basics-hive/setup/teardown.sh
 ./01-basics-hdfs/setup/teardown.sh
 ./00-setup/admin/teardown.sh
 ```

@@ -8,7 +8,7 @@
 | 15–20 | Demo Hue File Browser on `data/landisgyr` |
 | 20–50 | Participants: lab sections 1–5 (monitor room) |
 | 50–60 | Section 6 append; section 7 permissions |
-| 60–65 | Live demo: [demos.sh](demos.sh) quota + secret |
+| 60–65 | Live demo: [demos.md](demos.md) sections 1–5, one block at a time |
 | 65–75 | Stretch / Q&A; `check.sh` |
 
 ## Talking points
@@ -20,7 +20,7 @@
 
 ## Demos (trainer only)
 
-Run [demos.sh](demos.sh) from an edge node with your participant-equivalent user for denial demos, or as admin for snapshot.
+From an edge node, follow [demos.md](demos.md) section by section (participant `kinit` for section 1; `source lib/admin_auth.sh` before quota and snapshots).
 
 ## Pitfalls observed in dry runs (local review)
 

@@ -13,6 +13,14 @@ These JSON files are **templates** for Apache Ranger HDFS policies supporting mo
 
 Module setup also sets POSIX permissions so labs work if Ranger is delayed.
 
+## Hive policies for module 03 (manual, Ranger UI)
+
+The JSON templates only cover HDFS. The Hive lab needs these policies in the **Hive** service (adjust names to your deployment; not validated):
+
+1. **Databases and tables:** allow `create`, `select`, `update`, `drop`, `alter`, `index`, `lock` on database `ws_*`, table `*`, column `*` for the workshop users (or group). Participants create `ws_<user>` themselves.  
+2. **URLs:** allow `read` and `write` on the URL `${WORKSHOP_ROOT}/*` (the Hive URL resource is the HDFS path used in `LOCATION`) for the workshop users.  
+3. **HDFS for the `hive` user:** HiveServer2 normally accesses HDFS as `hive`. Allow `read`/`execute` on `${WORKSHOP_ROOT}/data` and `read`/`write`/`execute` on `${WORKSHOP_ROOT}/03-hive/work`. Module setup also adds a POSIX ACL for `hive` on the work folder.
+
 ## REST apply (experimental)
 
 ```bash

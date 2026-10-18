@@ -1,6 +1,6 @@
 # Keep it simple
 
-Workshop tooling should stay boring and obvious.
+Workshop tooling should stay boring and obvious. Lab structure, audience split, and naming: [workshop-guidelines.md](workshop-guidelines.md).
 
 - **Scripts do the next step** — e.g. admin setup runs `kinit` before HDFS commands; participants still `kinit` themselves for labs.
 - **Prefer cluster CLIs** (`hdfs`, `beeline`, `yarn`) over wrappers, SDKs, or extra frameworks.
