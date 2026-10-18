@@ -65,7 +65,7 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 |--------|-------|------------|---------------|------------------|
 | **00-setup** | Environment bootstrap | — | 15 min | Workshop root on HDFS, samples loaded, personal `/user/$USER` |
 | **01-basics-hdfs** | HDFS fundamentals | 00 | ~75 min | Personal workspace; inspect use-case CSVs; replication & trash |
-| **02-basics-yarn** | YARN fundamentals | 01 | ~70 min | Submit MR/Tez/Spark app; compare MR vs Tez; read queue, status, logs |
+| **02-basics-yarn** | YARN fundamentals | 01 | ~80 min | Submit MR/Tez/Spark app; find the AM; compare MR vs Tez; read queue, status, logs |
 | **03-basics-hive** | Hive fundamentals | 01, 02 | ~120 min | External tables and partitions on `data/landisgyr`, ORC/Parquet on HDFS, idempotent loads, managed ACID tables, SQL basics and joins |
 | **04-basics-spark** | Spark on YARN | 02, 03 | ~90 min | PySpark cleanse/join on sample time series |
 | **05-basics-impala** | Impala fundamentals | 03 | ~60 min | Interactive SQL on Hive-metastore tables |

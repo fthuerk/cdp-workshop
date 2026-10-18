@@ -114,7 +114,9 @@ Each numbered section includes:
 3. **Commands** — copy-paste blocks using exported variables.
 4. **Check question** (optional) — ties the step to the grid monitoring use case or platform concept. Answer keys live in `trainer/notes.md`, not in the lab.
 
-Do **not** add “Expected output” placeholders or screenshots TODOs in participant labs. Success is defined by the **visible outcome** (path exists, command fails as intended, query returns rows) and by `check.sh` where applicable.
+Do **not** paste full sample transcripts or “capture on cluster” TODO blocks. Success is defined by what **you** observe in the shell and by `check.sh` where applicable.
+
+**Reading command output** is encouraged when a command prints **no column headers** or dense text: one short sentence or bullet list naming each column/field (exact numbers will differ on your cluster). Keep it local to the step — not a copy of your entire terminal scroll.
 
 Optional UI steps (Hue, Knox) must be labeled **Optional** and must not be required to finish the core lab.
 
@@ -135,8 +137,10 @@ Align section themes with [concept.md — Didactic pattern](concept.md#didactic-
 - Use **real workshop data** under `${WORKSHOP_ROOT}/data/...`; avoid generic toy datasets (`id,name,value`).
 - **Teach exploration:** when finding trash paths, block locations, or log snippets is the learning goal, give listing commands and a placeholder (e.g. `"<path-to-hosts-in-trash>"`) instead of `awk`/`grep` one-liners that compute the answer.
 - Avoid defensive shell noise in labs (`2>&1 || true`, nested pipes purely for pretty output) unless teaching shell itself.
+- **Never more than 3 command lines in a row without a `#` comment.** Longer blocks get a short comment line before each group of up to 3 commands (blank line between groups).
 - Keep blocks **readable aloud** — one logical step per line; no hidden magic.
 - After a block, add a **short outcome cue** when it is not obvious (e.g. “You should see three files in the listing” or “You should get permission denied on the last command”).
+- When output has **no headers**, explain columns right after the block (see `-count`, `-du`, `fsck` in [01-basics-hdfs/lab/lab.md](../01-basics-hdfs/lab/lab.md) section 3).
 
 ---
 

@@ -24,19 +24,21 @@ Only if you have a safe **test queue** with zero capacity; do not disrupt produc
 
 ---
 
-## 3. Kill a long-running job
+## 3. Kill the ApplicationMaster — second attempt
 
-**Goal:** Demonstrate `yarn application -kill`.
+**Goal:** Show that the AM is just a container: if it dies, YARN starts a new attempt and the job continues. Follows [lab section 5](../lab/lab.md), where participants only observe the AM.
 
-Start a deliberately slow job (large pi iteration) in the background, then kill:
+In terminal 1 start a slow job; in terminal 2 find the AM container of attempt 1 (`yarn applicationattempt -list`, `yarn container -list`) and force it down:
 
 ```bash
-hadoop jar "${MAPRED_EXAMPLES_JAR}" pi 16 100000000 &
-# note application_ id from yarn application -list
-yarn application -kill <application_id>
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar pi 16 100000000
+yarn container -signal "<am-container-id>" FORCEFUL_SHUTDOWN
+yarn applicationattempt -list "<application-id>"
 ```
 
-Participants are **not** required to kill jobs in the lab.
+A second attempt appears with a new AM container (`…_000002` in the attempt number, new container ID). Requires Hadoop 3.1+ and permission to signal your own container; otherwise show attempts in the RM UI only.
+
+**Talking point:** Task containers dying is handled by the AM; AM dying is handled by the RM, up to the configured maximum attempts.
 
 ---
 

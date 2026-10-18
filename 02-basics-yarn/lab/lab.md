@@ -98,7 +98,7 @@ yarn application -status "<application-id>"
 yarn logs -applicationId "<application-id>" | tail -50
 ```
 
-The logs can take a minute to appear after the job finishes. Keep the application ID — you need it again in section 6.
+The logs can take a minute to appear after the job finishes. Keep the application ID — you need it again in section 7.
 
 **Check question:** A job fails during the map phase. Where do you look first — the input path in HDFS, the YARN application status, or the container logs? In which order?
 
@@ -106,7 +106,49 @@ Optional: open **Hue → Job Browser** and find the same application.
 
 ---
 
-## 5. Tez on YARN — the same word count
+## 5. The ApplicationMaster — who runs your job
+
+**Goal:** Watch an application while it runs and find its ApplicationMaster, the first container of every YARN application.
+
+The ResourceManager only hands out containers. For every application it first starts one container that runs the application's own coordinator: the **ApplicationMaster (AM)**. The AM asks the ResourceManager for more containers, starts the tasks in them, and tracks their progress. MapReduce, Tez, and Spark each bring their own AM.
+
+You need two terminals on the edge node (same user, valid ticket). In **terminal 1**, start a MapReduce job that runs long enough to watch. The two numbers are the count of map tasks and the samples per task — raise the second number if the job finishes before you are done observing:
+
+```bash
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+  pi 10 50000000
+```
+
+In **terminal 2**, while the job runs, find your application and its attempt. The attempt listing shows the AM container ID and the node it runs on:
+
+```bash
+yarn application -list -appStates RUNNING
+yarn applicationattempt -list "<application-id>"
+```
+
+List the containers of that attempt. Run the command several times while the job progresses:
+
+```bash
+yarn container -list "<application-attempt-id>"
+```
+
+You should see the AM container (`…_000001`) plus map containers that appear and disappear as tasks start and finish. Container listings only work while the application is running.
+
+Open the **tracking URL** from `yarn application -status "<application-id>"` in a browser or with `curl -L` — it is the AM's own web UI, reached through the ResourceManager proxy.
+
+When the job has finished, read the AM's log. It is the container you identified above:
+
+```bash
+yarn logs -applicationId "<application-id>" -containerId "<am-container-id>" -log_files syslog | less
+```
+
+Search the log for lines about containers being requested, assigned, and launched. This is the AM negotiating with the ResourceManager and the NodeManagers.
+
+**Check question:** What does the AM do that the ResourceManager does not? What happens to the running map tasks if the AM container dies?
+
+---
+
+## 6. Tez on YARN — the same word count
 
 **Goal:** Run the **same job on the same file** with Tez, so you can compare it with section 3.
 
@@ -130,11 +172,11 @@ You should see `_SUCCESS` in the output directory and your application in the Te
 
 ---
 
-## 6. Compare — MapReduce vs Tez
+## 7. Compare — MapReduce vs Tez
 
 **Goal:** Put the two runs side by side and find out how they differ in time, resources, and containers.
 
-You now have two finished applications that did the same work. Show the status of each (use the `application_…` IDs from sections 4 and 5) and compare start time, finish time, and the **aggregate resource allocation** (memory and vcore seconds the application held):
+You now have two finished applications that did the same work. Show the status of each (use the `application_…` IDs from sections 4 and 6) and compare start time, finish time, and the **aggregate resource allocation** (memory and vcore seconds the application held):
 
 ```bash
 yarn application -status "<mapreduce-application-id>"
@@ -162,7 +204,7 @@ Optional: open both applications in the **ResourceManager UI** (follow the track
 
 ---
 
-## 7. Spark on YARN — line count
+## 8. Spark on YARN — line count
 
 **Goal:** Run a PySpark job in cluster mode on YARN and count the lines of your smart-meter CSV.
 
@@ -193,7 +235,7 @@ yarn logs -applicationId "<application-id>" | tail -50
 
 ---
 
-## 8. Relate — one platform, three engines
+## 9. Relate — one platform, three engines
 
 **Goal:** Place the three jobs on the same map: same HDFS, same ResourceManager, different engines.
 
@@ -207,18 +249,64 @@ yarn application -list -appStates FINISHED -appTypes MAPREDUCE,TEZ,SPARK
 
 ---
 
+## 10. Optional — ask for more than fits
+
+**Goal:** Raise the memory a MapReduce job requests until YARN can no longer start it, and learn to tell the different "stuck" situations apart.
+
+Every container request carries a memory size. YARN only grants it if the request fits the scheduler limits, your queue, and a node with free memory. Start by looking at what your cluster can offer — note the memory capacity per node and the queue capacity and maximum capacity:
+
+```bash
+yarn node -list -all
+yarn node -status "<node-id>"
+yarn queue -status root.default
+```
+
+First a request that still fits. Run `pi` with larger map and AM containers (`-D` settings go right after the program name). Then compare **aggregate resource allocation** in `yarn application -status` with your `pi` run from section 5:
+
+```bash
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+  pi \
+  -Dmapreduce.map.memory.mb=4096 \
+  -Dyarn.app.mapreduce.am.resource.mb=2048 \
+  2 100000
+```
+
+Now make the **map containers** too large. Multiply the value by 4 each run (16384, 65536, 262144, …) until the job no longer runs normally. Watch from a second terminal with `yarn application -list`:
+
+```bash
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+  pi \
+  -Dmapreduce.map.memory.mb=<memory-mb> \
+  2 100000
+```
+
+Depending on your cluster limits you see one of three outcomes: the job runs, YARN rejects or kills it with a message about the maximum allowed allocation, or the job keeps running at 0% because the map tasks wait forever. In the last case look at `yarn application -status "<application-id>"` (progress and diagnostics), find the AM container with the commands from section 5, then stop the job:
+
+```bash
+yarn application -kill "<application-id>"
+```
+
+Finally make the **AM container** too large and keep the map memory at its default:
+
+```bash
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+  pi \
+  -Dyarn.app.mapreduce.am.resource.mb=<memory-mb> \
+  2 100000
+```
+
+This time the application stays in `ACCEPTED`: no AM was ever started, so no task exists at all. Read the diagnostics in `yarn application -status`, and compare the **Scheduler** page of the ResourceManager UI. Kill the application when you have seen enough.
+
+**Check question:** In which state is the application when the map containers are too large, and in which state when the AM container is too large? How do you tell the two apart from the CLI? Why is a request that does not fit more dangerous on a shared grid-analytics queue than a slow job?
+
+---
+
 ## Stretch (optional)
 
 Watch containers and queues live while a colleague's job runs (quit with `q`):
 
 ```bash
 yarn top
-```
-
-Estimate pi with MapReduce — no input data and no HDFS output, just containers doing work:
-
-```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar pi 2 100000
 ```
 
 - Tez multi-stage: run `orderedwordcount` (same JAR, same arguments, new output path) and compare its vertices with the single-stage `wordcount` in the ResourceManager UI.  

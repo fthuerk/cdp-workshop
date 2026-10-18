@@ -5,9 +5,12 @@ Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different w
 Set your Kerberos identity and paths once for the whole lab. `WORKSHOP_USER` is the short name you use with `kinit` (same account as on the edge node). `HDFS_LAB` points at shared module files on HDFS, including the large block demo file.
 
 ```bash
+# Your identity and Kerberos ticket
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
-export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
+
+# Workshop paths on HDFS (adjust WORKSHOP_ROOT if needed)
+export WORKSHOP_ROOT=/2026_cdp_workshop
 export HDFS_LAB="${WORKSHOP_ROOT}/01-hdfs/lab"
 ```
 
@@ -28,6 +31,8 @@ hdfs dfs -ls "${WORKSHOP_ROOT}"
 hdfs dfs -ls "${WORKSHOP_ROOT}/data"
 hdfs dfs -du -h "${WORKSHOP_ROOT}/data"
 ```
+
+`-ls` columns: permissions, replication, owner, group, size, date, path. `-du` columns: size, size including replicas, path.
 
 Peek at two representative files: smart-meter CSV (start of file) and operator weather (end of file — useful when files are append-only or you want the latest rows):
 
@@ -51,14 +56,19 @@ Your HDFS home is where you can read and write during the workshop. Create it if
 Upload a tiny file from the edge node (`-put`), copy workshop samples into your home (`-cp` within HDFS), then list what you have:
 
 ```bash
+# Create your home and upload a local file from the edge node
 hdfs dfs -mkdir -p "/user/${WORKSHOP_USER}"
 hdfs dfs -put /etc/hosts "/user/${WORKSHOP_USER}/hosts"
+
+# Copy files within HDFS
 hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "/user/${WORKSHOP_USER}/"
 hdfs dfs -cp "${HDFS_LAB}/dummy.txt" "/user/${WORKSHOP_USER}/"
+
+# List the result
 hdfs dfs -ls -h "/user/${WORKSHOP_USER}"
 ```
 
-You should see `hosts`, the Landis&Gyr sample, and `dummy.txt`. The big block demo stays under `${HDFS_LAB}` so everyone shares one copy.
+You should see `hosts`, the Landis&Gyr sample, and `dummy.txt`. The big block demo file stays under `${HDFS_LAB}`.
 
 ---
 
@@ -68,19 +78,23 @@ You should see `hosts`, the Landis&Gyr sample, and `dummy.txt`. The big block de
 
 HDFS reports both **logical file size** and **space with replication** — important when many replicas exist on disk.
 
-Count files and directories under your home, then inspect one CSV (name, block count, replication factor, owner):
+Count entries under your home, then print a few metadata fields for one CSV:
 
 ```bash
 hdfs dfs -count -h "/user/${WORKSHOP_USER}"
-hdfs dfs -stat "%n blocks=%b repl=%r owner=%o" "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
+hdfs dfs -stat "%n size=%y repl=%r owner=%o" "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
 ```
 
-Compare per-file usage with a single summary line for the whole directory (`-du` vs `-du -s`):
+`-count` prints no header. Columns: **directories, files, size, path** (e.g. `1  3  2.1 K  /user/your_name`). `-stat` prints the fields from your format string: name, size in bytes, replication, owner.
+
+Compare per-file usage with one summary line for the whole directory:
 
 ```bash
 hdfs dfs -du -h "/user/${WORKSHOP_USER}"
 hdfs dfs -du -s -h "/user/${WORKSHOP_USER}"
 ```
+
+`-du` also has no header. Columns: **file size, size including all replicas, path**. With `-s` you get one total line for the directory.
 
 **Check question:** What is the difference between `-du` and `-du -s`? Why does total size with replication matter for capacity planning?
 
@@ -97,16 +111,20 @@ Start with human-readable size, then `fsck` to see block boundaries and which Da
 ```bash
 hdfs dfs -ls -h "${HDFS_LAB}/bigfile_192mb.bin"
 hdfs fsck "${HDFS_LAB}/bigfile_192mb.bin" -files -blocks -locations
-hdfs dfs -stat "%n blocks=%b repl=%r" "${HDFS_LAB}/bigfile_192mb.bin"
+hdfs dfs -stat "%n size=%y repl=%r block_size=%b" "${HDFS_LAB}/bigfile_192mb.bin"
 ```
+
+In the `fsck` output, look for the number of blocks and the DataNodes listed for each block. `-stat` shows size, replication, and the block size in bytes (`%b`).
 
 Lower replication to 2 and wait until the cluster applies it (`-w`). Compare summarized disk usage and replication in `-stat` before and after:
 
 ```bash
 hdfs dfs -setrep -w 2 "${HDFS_LAB}/bigfile_192mb.bin"
 hdfs dfs -du -s -h "${HDFS_LAB}/bigfile_192mb.bin"
-hdfs dfs -stat "%n blocks=%b repl=%r" "${HDFS_LAB}/bigfile_192mb.bin"
+hdfs dfs -stat "%n size=%y repl=%r block_size=%b" "${HDFS_LAB}/bigfile_192mb.bin"
 ```
+
+`repl=` should now be 2, and the second `-du` column should shrink while the file size stays the same.
 
 **Check question:** How many blocks does `bigfile_192mb.bin` use? Where are replicas reported? How did `-du -s` change after `-setrep`?
 
@@ -144,21 +162,30 @@ Confirm `dummy.txt` is gone from your home listing. Optionally look in `.Trash` 
 
 ## 6. Download and append
 
-**Goal:** Round-trip a file to the edge node and append locally sourced lines.
+**Goal:** Round-trip a file to the edge node and append a new measurement row.
 
-Pipelines often land corrections or small batches on an edge node before pushing bytes back into HDFS.
+Pipelines often land late or corrected readings on an edge node before pushing them into HDFS. HDFS files cannot be edited in place, but you can append to the end.
 
-Copy the CSV to `/tmp` (suffix with your username so shared edge nodes do not clash), check line count, append a marker line locally, then extend the HDFS file without re-uploading the whole object:
+First download the CSV (suffix with your username so shared edge nodes do not clash) and count its lines:
 
 ```bash
+# Download the file and count its lines
 hdfs dfs -get "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv" "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}"
 wc -l "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}"
-echo "# appended from edge node" >> "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}"
-hdfs dfs -appendToFile "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}" "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
+```
+
+Create a small local file with one new reading that matches the CSV columns (the next 15-minute value for station `TS-305`), then append only that file to the HDFS copy:
+
+```bash
+# One new row in the same column layout as the CSV
+echo "2026-01-15T09:15:00Z,TS-305,LG-TS-305-C,L3,266.5,52.1,228.3,413.9,0.975,50.00,84.8,OK,,ONLINE" > "/tmp/new-reading.${WORKSHOP_USER}.csv"
+
+# Append it to the file in HDFS and look at the end
+hdfs dfs -appendToFile "/tmp/new-reading.${WORKSHOP_USER}.csv" "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
 hdfs dfs -tail "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
 ```
 
-The last lines of the HDFS file should include your appended comment.
+The last line of the HDFS file should be your `09:15` reading, and the file has one more row than your local download.
 
 ---
 
@@ -171,11 +198,16 @@ HDFS exposes POSIX-style permission bits on paths (and your cluster may also enf
 Inspect your home directory entry, tighten permissions on your own tree (`750` — owner full, group read/execute, others none), then look at the workshop `secret` path without expecting read access:
 
 ```bash
+# Your home directory: show, then restrict
 hdfs dfs -ls -d "/user/${WORKSHOP_USER}"
 hdfs dfs -chmod 750 "/user/${WORKSHOP_USER}"
+
+# The protected directory and file
 hdfs dfs -ls -d "${WORKSHOP_ROOT}/01-hdfs/secret"
 hdfs dfs -cat "${WORKSHOP_ROOT}/01-hdfs/secret/secret.txt"
 ```
+
+The permission string (e.g. `drwxr-x---`) reads: type, then `rwx` for owner, group, others. After `chmod 750` you should see `rwxr-x---`.
 
 You should **not** be able to read `secret.txt` — expect permission denied (POSIX, Ranger, or both). That is how sensitive grid data should behave when you have no grant.
 
@@ -185,15 +217,38 @@ You should **not** be able to read `secret.txt` — expect permission denied (PO
 
 ## Stretch (optional)
 
-Merge many small files in one dataset folder into one local file (`-getmerge`), and show checksum metadata for a single file:
+**Merge a dataset folder into one local file.** Data often arrives as many part files. `-getmerge` concatenates all files of an HDFS folder into a single file on the edge node, which is handy for a quick look with normal Linux tools:
 
 ```bash
 hdfs dfs -getmerge "${WORKSHOP_ROOT}/data/awattar/" "/tmp/awattar-merged.${WORKSHOP_USER}.csv"
-hdfs dfs -checksum "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+wc -l "/tmp/awattar-merged.${WORKSHOP_USER}.csv"
+head -3 "/tmp/awattar-merged.${WORKSHOP_USER}.csv"
 ```
 
-- Hue: upload a small text file to `/user/${WORKSHOP_USER}` and download it again.  
-- Knox/NameNode UI: locate block information for the big file (use the URL from your workshop handout).
+Compare the line count with the individual files in `hdfs dfs -ls` of that folder.
+
+**Check whether two HDFS files are identical.** `-checksum` prints one fingerprint per file without reading it back to your terminal. Equal checksums mean equal content; this is how you verify copies (for example after a `distcp`). Output is `path  algorithm  checksum`.
+
+Make a fresh copy of the CSV and compare it with the original and with your appended file from section 6:
+
+```bash
+# Fresh copy of the original
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "/user/${WORKSHOP_USER}/landisgyr-copy.csv"
+
+# Original vs. fresh copy
+hdfs dfs -checksum "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+hdfs dfs -checksum "/user/${WORKSHOP_USER}/landisgyr-copy.csv"
+
+# Your appended file from section 6
+hdfs dfs -checksum "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
+```
+
+The first two checksums should match. The third should differ because you appended a row.
+
+**Optional (UI):**
+
+- Hue: upload a small text file to `/user/${WORKSHOP_USER}` and download it again.
+- NameNode UI: locate block information for the big file (use the URL from your workshop handout).
 
 ---
 

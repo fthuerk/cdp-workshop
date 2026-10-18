@@ -38,13 +38,13 @@ fi
 if hdfs dfs -test -e "${USER_HOME}/wordcount-tez/_SUCCESS" 2>/dev/null; then
   pass "Tez word count output"
 else
-  fail_msg "Missing ${USER_HOME}/wordcount-tez/_SUCCESS — redo lab section 5"
+  fail_msg "Missing ${USER_HOME}/wordcount-tez/_SUCCESS — redo lab section 6"
 fi
 
 if hdfs dfs -test -e "${USER_HOME}/linecount-spark/_SUCCESS" 2>/dev/null; then
   pass "Spark line count output"
 else
-  fail_msg "Missing ${USER_HOME}/linecount-spark/_SUCCESS — redo lab section 7"
+  fail_msg "Missing ${USER_HOME}/linecount-spark/_SUCCESS — redo lab section 8"
 fi
 
 if [[ ${fail} -ne 0 ]]; then

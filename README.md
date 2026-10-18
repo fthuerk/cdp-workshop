@@ -17,7 +17,7 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 |----|--------|-------|-----------|--------|
 | 00 | [Setup](00-setup/README.md) | — | 15 min | **Ready** |
 | 01 | [Basics: HDFS](01-basics-hdfs/README.md) | Basics | ~75 min | **Ready** |
-| 02 | [Basics: YARN](02-basics-yarn/README.md) | Basics | ~70 min | **Ready** |
+| 02 | [Basics: YARN](02-basics-yarn/README.md) | Basics | ~80 min | **Ready** |
 | 03 | [Basics: Hive](03-basics-hive/README.md) | Basics | ~120 min | Draft (not yet dry-run on a cluster) |
 | 04 | Basics: Spark | Basics | ~90 min | Planned |
 | 05 | Basics: Impala | Basics | ~60 min | Planned |

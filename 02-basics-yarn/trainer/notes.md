@@ -1,6 +1,6 @@
 # Trainer notes — Module 02 YARN
 
-## Suggested timing (~70 min)
+## Suggested timing (~80 min)
 
 | Minutes | Activity |
 |---------|----------|
@@ -8,20 +8,36 @@
 | 10–15 | Demo `yarn node -list`; optional RM UI |
 | 15–22 | Participants: sections 1–2 (nodes, queues, list) |
 | 22–35 | Sections 3–4 MapReduce wordcount + status/logs |
-| 35–42 | Section 5 Tez wordcount (same file) |
-| 42–52 | Section 6 MR vs Tez comparison; collect numbers on the whiteboard |
-| 52–62 | Section 7 Spark linecount |
-| 62–70 | Section 8 relate + `check.sh` |
+| 35–45 | Section 5 ApplicationMaster (two terminals, running `pi`) |
+| 45–52 | Section 6 Tez wordcount (same file) |
+| 52–60 | Section 7 MR vs Tez comparison; collect numbers on the whiteboard |
+| 60–68 | Section 8 Spark linecount |
+| 68–73 | Section 9 relate + `check.sh` |
+| 73–80 | Section 10 (optional, fast groups) or debrief; otherwise run it as a group demo |
 
 ## Check-question talking points
 
 1. **Full cluster (section 1):** Apps queue; back-pressure affects SLA for daily grid batch loads.  
 2. **Workshop queue (section 2):** Dedicated queue prevents one tenant from starving others; document the queue name on the whiteboard.  
 3. **Failed map (section 4):** Check input path and HDFS ACLs first, then YARN status (`yarn application -status`), then container logs.  
-4. **MR vs Tez (section 6):** see below.  
-5. **Shared platform (section 8):** Without shared YARN/HDFS the pilot CSVs would be copied per engine; governance (Ranger) and lineage would have to be maintained per silo.
+4. **ApplicationMaster (section 5):** The RM only schedules containers; the AM is per-application code that negotiates containers, launches tasks via NodeManagers, retries failed tasks, and reports progress. Putting it in a container keeps the RM small and lets each engine bring its own logic. If the AM container dies, YARN starts a new attempt (`yarn.resourcemanager.am.max-attempts`, MapReduce AM recovers completed tasks); if all attempts fail, the application fails. If a task container dies, only the AM reruns that task.  
+5. **MR vs Tez (section 7):** see below.  
+6. **Requests that do not fit (section 10):** see below.  
+7. **Shared platform (section 9):** Without shared YARN/HDFS the pilot CSVs would be copied per engine; governance (Ranger) and lineage would have to be maintained per silo.
 
-## MR vs Tez comparison (section 6)
+## Requests that do not fit (section 10)
+
+Three situations, all with a "stuck" job — make participants name them:
+
+| Request | Result | How it looks |
+|---------|--------|--------------|
+| Above scheduler maximum (`yarn.scheduler.maximum-allocation-mb`) | Rejected or killed immediately | Console error about invalid resource request / maximum allowed allocation |
+| AM larger than what the queue or any node can give | `ACCEPTED`, never starts | No attempt/AM container; diagnostics mention the AM not yet activated or waiting for resources |
+| Map containers larger than free capacity, but within scheduler maximum | AM `RUNNING`, job stays at 0% | AM container exists, no map containers; maps wait |
+
+The exact outcome depends on your cluster limits, so **check them before the session** (scheduler maximum, node size, workshop queue capacity and maximum capacity) and have the winning values ready (for example one that is just above the scheduler maximum). The ×4 sequence in the lab usually crosses the limit within 3–4 runs. Pending requests hold no resources, so a stuck job does not block others, but remind participants to `-kill` it. Leftover `QuasiMonteCarlo_…` directories from killed jobs are listed in troubleshooting.
+
+## MR vs Tez comparison (section 7)
 
 Both runs do the same word count on the same file. Collect each participant's numbers on the whiteboard and discuss the spread.
 
@@ -44,10 +60,12 @@ If numbers look odd (Tez slower, large variance): another participant's job was 
 | Issue | Mitigation |
 |-------|------------|
 | Example JAR paths differ | Lab hardcodes the CDP parcel paths; verify `hadoop-mapreduce-examples.jar` and `tez-examples.jar` on the edge node before the session and tell participants the right path |
-| Tez JAR missing on older layouts | Skip sections 5–6; show the comparison from the RM UI using a Hive query on Tez instead |
+| Tez JAR missing on older layouts | Skip sections 6–7; show the comparison from the RM UI using a Hive query on Tez instead |
 | `-show_application_log_info` unsupported | Older client: participants count containers in the RM UI (application → attempt → containers) |
 | Output dir exists | Troubleshooting lists the `-rm -r` commands; remind after failed reruns |
-| Spark cluster mode | Lab uses **cluster** deploy mode: driver output is only in `yarn logs` — that is intentional (section 7) |
+| Spark cluster mode | Lab uses **cluster** deploy mode: driver output is only in `yarn logs` — that is intentional (section 8) |
+| `pi` finishes before participants can inspect the AM | Tell them to raise the second number (samples per map) or start it in terminal 1 before reading section text |
+| `yarn container -signal` unavailable | AM-kill demo needs Hadoop 3.1+; otherwise show attempts in the RM UI only |
 | No sample CSV in home | Gate: module 01 check or quick `-cp` from `${WORKSHOP_ROOT}/data/landisgyr/…` |
 
 ## Admin

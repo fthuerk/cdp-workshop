@@ -114,6 +114,70 @@ If snapshots are disabled cluster-wide, skip this section and mention HDFS snaps
 
 ---
 
+## 6. Find a block on a DataNode and lose it
+
+**Goal:** Show that a file is just block files on DataNode disks, and that HDFS heals itself when a replica disappears.
+
+Needs SSH/root access to a DataNode host and the ability to restart a DataNode (Cloudera Manager). Use the shared big file; do this **after** participants finished lab section 4, and not during a lab run.
+
+**Step 1 — Find the blocks and their locations** (any edge node, `hdfs` or participant ticket):
+
+```bash
+hdfs fsck "${HDFS_LAB}/bigfile_192mb.bin" -files -blocks -locations
+```
+
+Pick the first block. In the output, note:
+
+- the block ID, e.g. `blk_1073741830_1006` (the number after `blk_` is what you search for)
+- the block pool, e.g. `BP-123456-10.0.0.1-1700000000000`
+- the DataNode addresses holding replicas, e.g. `DatanodeInfoWithStorage[10.0.0.11:9866,...]`
+
+**Step 2 — Log in to one of those DataNodes** and find the block file:
+
+```bash
+ssh <datanode_host>
+hdfs getconf -confKey dfs.datanode.data.dir    # may show a CM placeholder; otherwise use the CM config page
+find /dfs/dn -name 'blk_1073741830*'            # replace /dfs/dn with a data dir, and the ID with yours
+```
+
+You get two files: `blk_<id>` (the data) and `blk_<id>_<genstamp>.meta` (checksums), under `.../current/BP-.../current/finalized/subdirN/subdirM/`. Show the size (about 128 MB for the first block) with `ls -lh`, and `head -c 200` to show it is raw file content.
+
+**Step 3 — Delete the replica on this one DataNode:**
+
+```bash
+rm <path>/blk_1073741830 <path>/blk_1073741830_1006.meta
+```
+
+The file is still fully readable, because the other replicas exist:
+
+```bash
+hdfs dfs -cat "${HDFS_LAB}/bigfile_192mb.bin" | wc -c
+```
+
+**Step 4 — Make the NameNode notice.** The DataNode only learns about the missing file through its directory scanner (default every 6 hours) or when it restarts and sends a full block report. For the demo, restart that DataNode in Cloudera Manager (HDFS → Instances → DataNode → Restart).
+
+**Step 5 — Watch HDFS heal:**
+
+```bash
+hdfs fsck "${HDFS_LAB}/bigfile_192mb.bin" -files -blocks -locations
+```
+
+Right after the restart you should see `Under replicated` (fewer replicas than the replication factor). Repeat after a minute or two: the NameNode has copied the block to another DataNode, `Under replicated blocks` is back to 0, and the location list shows a new node. Run `hdfs fsck / | tail -20` for the cluster summary (`Status: HEALTHY`).
+
+**Talking points:**
+
+- Block = ordinary file on the DataNode's local file system; the NameNode only keeps the mapping file → blocks → DataNodes.
+- With replication 3, losing one replica costs nothing; with replication 1 the block would be `MISSING` and the file corrupt.
+- Connects to lab section 4: lowering replication with `-setrep` reduces this safety margin.
+
+If you lowered replication in the lab (`-setrep -w 2`), the numbers above use 2 instead of 3. Optionally reset it afterwards:
+
+```bash
+hdfs dfs -setrep -w 3 "${HDFS_LAB}/bigfile_192mb.bin"
+```
+
+---
+
 ## Timing hint
 
 See [notes.md](notes.md) for where these fit in the ~75 minute session (typically after lab sections 1–7).

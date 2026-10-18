@@ -43,6 +43,23 @@ If nodes are `RUNNING` and the job is still waiting after a few minutes, ask you
 - Use the full `application_…` ID from `yarn application -list`.  
 - Only the submitting user can read their logs — check `klist` and `WORKSHOP_USER`.
 
+## `yarn container -list` is empty
+
+Container listings only work while the application is running. Start a longer `pi` job (raise the second number) and run the command while it is in state `RUNNING`.
+
+## Leftover `QuasiMonteCarlo_…` directories in your home
+
+Killed or failed `pi` runs leave their temporary directory behind. Remove them:
+
+```bash
+hdfs dfs -ls "/user/${WORKSHOP_USER}"
+hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/<QuasiMonteCarlo-directory>"
+```
+
+## My oversized job is still waiting
+
+Kill it so it does not block your queue: `yarn application -kill "<application-id>"`. List your own applications with `yarn application -list -appStates ACCEPTED,RUNNING`.
+
 ## `yarn logs -show_application_log_info` prints no containers
 
 The application must be `FINISHED` and its logs aggregated (wait a minute). If the option is not recognized on your client version, list containers in the ResourceManager UI instead (application → attempt → containers).
