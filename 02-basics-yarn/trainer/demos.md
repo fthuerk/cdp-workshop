@@ -44,6 +44,6 @@ A second attempt appears with a new AM container (`…_000002` in the attempt nu
 
 ## 4. Link back to HDFS lab data
 
-**Goal:** Reinforce one copy of pilot CSVs on HDFS consumed by many engines.
+**Goal:** Reinforce one copy of the data on HDFS consumed by many engines.
 
-Show `${WORKSHOP_ROOT}/data/landisgyr/…` in File Browser and the same path under `/user/<participant>/` in a running Spark app env (Spark UI → Environment).
+Show `${WORKSHOP_ROOT}/02-yarn/input/` in File Browser, then the same path as the input argument in a running Spark app (Spark UI → Environment) and as the input of the MapReduce app in the RM UI.

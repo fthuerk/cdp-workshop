@@ -17,10 +17,10 @@ WS_USER="${WORKSHOP_USER:-${USER}}"
 USER_HOME="/user/${WS_USER}"
 YARN_LAB="${WORKSHOP_ROOT}/02-yarn"
 
-if hdfs dfs -test -e "${USER_HOME}/sample-landisgyr-data.csv" 2>/dev/null; then
-  pass "Landis&Gyr copy in home"
+if hdfs dfs -test -e "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" 2>/dev/null; then
+  pass "Shared input text available"
 else
-  fail_msg "Missing ${USER_HOME}/sample-landisgyr-data.csv — complete HDFS lab section 2"
+  fail_msg "Missing ${YARN_LAB}/input/die-verwandlung-kapitel-1.txt — ask your instructor"
 fi
 
 if hdfs dfs -test -e "${YARN_LAB}/assets/spark_linecount.py" 2>/dev/null; then

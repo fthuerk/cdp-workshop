@@ -16,6 +16,7 @@ fail=0
 check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
 
 check hdfs dfs -test -e "${ASSETS}/spark_linecount.py"
+check hdfs dfs -test -e "${MODULE_ROOT}/input/die-verwandlung-kapitel-1.txt"
 
 if yarn node -list 2>/dev/null | grep -q RUNNING; then
   echo "[PASS] yarn node -list shows RUNNING nodes"

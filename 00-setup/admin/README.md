@@ -40,6 +40,17 @@ Run on a **CM-managed edge node** (scripts call `kinit` as `hdfs` via the NameNo
 
 Scripts are idempotent where possible; teardown removes workshop-created paths only under `${WORKSHOP_ROOT}`.
 
+
+## kinit with hdfs system user
+
+```bash
+export KRB5CCNAME="${KRB5CCNAME:-/tmp/krb5cc_cdp_workshop_admin}"
+keytab="$(find /run/cloudera-scm-agent/process -path '*-hdfs-NAMENODE/hdfs.keytab' -print -quit)"
+principal="$(klist -kt "${keytab}" | awk '/^[[:space:]]+[0-9]/ {print $NF}' | grep -m1 '^hdfs/')"
+kinit -kt "${keytab}" "${principal}"
+klist
+```
+
 ## Troubleshooting
 
 | Symptom | Action |

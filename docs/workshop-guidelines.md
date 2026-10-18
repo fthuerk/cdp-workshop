@@ -50,6 +50,17 @@ NN-short-name/           # e.g. 01-basics-hdfs, 03-basics-hive
 
 Module **00-setup** is shared bootstrap; later modules depend on it but do not repeat full environment setup.
 
+### Labs are independent
+
+Every lab must be runnable **on its own**, in any order, by someone who skipped or only half-finished earlier modules.
+
+- A lab may rely on: the **general bootstrap** (`00-setup`: workshop root, sample data under `${WORKSHOP_ROOT}/data`) and **its own `setup/setup.sh`** (shared module paths, scripts, demo files).
+- A lab must **not** rely on files, tables, or state that a participant created in another lab (for example a file in `/user/${WORKSHOP_USER}` from the HDFS lab).
+- If a step needs something from an earlier lab, **repeat it briefly** in the current lab at the point of use (for example one `hdfs dfs -cp` from `${WORKSHOP_ROOT}/data/...` into the home directory) — make it idempotent (`-cp -f`, `mkdir -p`, `-rm -f`).
+- Do not write “complete lab X first” in lab text, README prerequisites, `check.sh` messages, or troubleshooting. Concept order is only a **recommended learning sequence** (see the “Depends on” column in [concept.md](concept.md)), not a technical dependency.
+- `check.sh` verifies only outcomes of **its own** lab. Its failure hints point to sections of the same lab.
+- A module’s own `setup.sh` must prepare everything shared that the lab needs; it must not assume another module’s `setup.sh` ran, except `00-setup`.
+
 ---
 
 ## Naming: repo folder vs HDFS paths
@@ -161,7 +172,7 @@ Include:
 
 - One-line tie to the **grid monitoring use case**
 - **Estimated time** (core + optional stretch)
-- **Prerequisites** (prior modules, valid ticket — link to 00-setup)
+- **Prerequisites** (`00-setup` complete, valid ticket — link to 00-setup; **no** other modules, see [Labs are independent](#labs-are-independent))
 - **Learning goals** (3–6 bullets, observable skills)
 - **Flow** table: concept (trainer) → lab → stretch → self-check
 - Link to **trainer** materials for the instructor
@@ -207,6 +218,7 @@ Do not duplicate the full lab in `demos.md`; extend or dramatize it.
 Before marking a module **Ready** in the root README:
 
 - [ ] Folder layout matches the skeleton above.
+- [ ] Lab runs standalone: only `00-setup` and this module’s `setup.sh` are assumed; anything from earlier labs is repeated briefly in the lab.
 - [ ] HDFS module slug under `${WORKSHOP_ROOT}` documented in lab intro.
 - [ ] `lab/lab.md` uses `WORKSHOP_USER` + standard opening exports.
 - [ ] No participant-facing `config.env` or bootstrap references.

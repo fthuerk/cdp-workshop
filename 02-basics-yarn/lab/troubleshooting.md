@@ -6,11 +6,13 @@ Wrong username or realm. Use the principal provided by your instructor (`user@RE
 
 ## `Input path does not exist`
 
-Complete [HDFS lab section 2](../../01-basics-hdfs/lab/lab.md) so `/user/${WORKSHOP_USER}/sample-landisgyr-data.csv` exists. All three jobs read that file. For Spark, also check the shared script:
+All three jobs read the shared text file. Check that it and the Spark script exist:
 
 ```bash
-hdfs dfs -ls "${YARN_LAB}/assets"
+hdfs dfs -ls "${YARN_LAB}/input" "${YARN_LAB}/assets"
 ```
+
+If a file is missing, ask your instructor to run the module setup.
 
 ## `Output directory ... already exists`
 

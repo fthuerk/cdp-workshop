@@ -11,16 +11,20 @@ require_cmd hdfs
 
 MODULE_ROOT="${WORKSHOP_ROOT}/02-yarn"
 ASSETS="${MODULE_ROOT}/assets"
-LOCAL_SCRIPT="${WORKSHOP_LOCAL}/02-basics-yarn/assets/spark_linecount.py"
+INPUT="${MODULE_ROOT}/input"
+LOCAL_ASSETS="${WORKSHOP_LOCAL}/02-basics-yarn/assets"
 
-hdfs dfs -mkdir -p "${ASSETS}"
+hdfs dfs -mkdir -p "${ASSETS}" "${INPUT}"
 
-if [[ ! -f "${LOCAL_SCRIPT}" ]]; then
-  log_err "Missing ${LOCAL_SCRIPT} — set WORKSHOP_LOCAL to the repo on the edge node"
-  exit 1
-fi
+for f in spark_linecount.py die-verwandlung-kapitel-1.txt; do
+  if [[ ! -f "${LOCAL_ASSETS}/${f}" ]]; then
+    log_err "Missing ${LOCAL_ASSETS}/${f} — set WORKSHOP_LOCAL to the repo on the edge node"
+    exit 1
+  fi
+done
 
-hdfs dfs -put -f "${LOCAL_SCRIPT}" "${ASSETS}/spark_linecount.py"
+hdfs dfs -put -f "${LOCAL_ASSETS}/spark_linecount.py" "${ASSETS}/spark_linecount.py"
+hdfs dfs -put -f "${LOCAL_ASSETS}/die-verwandlung-kapitel-1.txt" "${INPUT}/die-verwandlung-kapitel-1.txt"
 
 hdfs dfs -chmod -R 755 "${MODULE_ROOT}" 2>/dev/null || true
 

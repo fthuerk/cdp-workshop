@@ -59,7 +59,7 @@ Module **20** ties the pipeline together: parameterized runs, quality gates, Ran
 
 ## Module catalog
 
-Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only shop may shorten Hive depth).
+Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only shop may shorten Hive depth). “Depends on” is the recommended **learning order** only — every lab is technically independent and needs just the `00-setup` bootstrap plus its own `setup/setup.sh` (see [workshop-guidelines.md](workshop-guidelines.md#labs-are-independent)).
 
 | Module | Title | Depends on | Est. duration | Hands-on outcome |
 |--------|-------|------------|---------------|------------------|

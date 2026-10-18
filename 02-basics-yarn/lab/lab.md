@@ -1,8 +1,8 @@
 # YARN hands-on lab
 
-Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need `sample-landisgyr-data.csv` in your HDFS home from the [HDFS lab](../../01-basics-hdfs/lab/lab.md).
+Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path.
 
-Set your Kerberos identity and paths once for the whole lab. `WORKSHOP_USER` is the short name you use with `kinit` (same account as on the edge node). `YARN_LAB` points at shared module files on HDFS (the Spark script).
+Set your Kerberos identity and paths once for the whole lab. `WORKSHOP_USER` is the short name you use with `kinit` (same account as on the edge node). `YARN_LAB` points at shared module files on HDFS (the input text all jobs read, and the Spark script).
 
 ```bash
 export WORKSHOP_USER=<your_username>
@@ -11,7 +11,7 @@ export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
 export YARN_LAB="${WORKSHOP_ROOT}/02-yarn"
 ```
 
-YARN does not store data — HDFS does. YARN decides which **applications** (MapReduce, Tez, Spark) get **containers** (CPU and memory) on which worker nodes. Every job in this lab reads and writes the HDFS paths you already know.
+YARN does not store data — HDFS does. YARN decides which **applications** (MapReduce, Tez, Spark) get **containers** (CPU and memory) on which worker nodes. Every job in this lab reads from and writes to HDFS.
 
 ---
 
@@ -57,27 +57,36 @@ If your instructor assigned a workshop queue, run `yarn queue -status` again wit
 
 ## 3. MapReduce on YARN — word count
 
-**Goal:** Run a classic MapReduce job on the smart-meter CSV in your HDFS home.
+**Goal:** Run a classic MapReduce job: count how often each word occurs in a text.
 
-The Hadoop examples JAR ships with every cluster. Submit the `wordcount` example against the file you copied in the HDFS lab; the output directory must not exist yet:
+Word count needs running text — in a CSV every row would be a single "word". All jobs in this lab therefore read the same text: the first chapter of Franz Kafka's *Die Verwandlung* (public domain), shared under `${YARN_LAB}/input`. Look at the file first:
+
+```bash
+hdfs dfs -ls -h "${YARN_LAB}/input"
+hdfs dfs -cat "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" | head -5
+```
+
+The Hadoop examples JAR ships with every cluster. Submit the `wordcount` example; the output directory in your HDFS home must not exist yet:
 
 ```bash
 hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   wordcount \
-  "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv" \
+  "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
   "/user/${WORKSHOP_USER}/wordcount-mr"
 ```
 
 The JAR path above is the CDP parcel default — ask your instructor if it differs on your cluster. While the job runs, the console prints the YARN application ID (`application_…`) and the map/reduce progress.
 
-List the output directory and look at the first result lines:
+List the output directory. Each line of the result file is a word, a tab, and its count. Show the ten most frequent words by sorting on the count (second column, descending):
 
 ```bash
 hdfs dfs -ls "/user/${WORKSHOP_USER}/wordcount-mr"
-hdfs dfs -cat "/user/${WORKSHOP_USER}/wordcount-mr/part-r-00000" | head -20
+hdfs dfs -cat "/user/${WORKSHOP_USER}/wordcount-mr/part-r-00000" | sort -k2 -nr | head -10
 ```
 
-You should see a `_SUCCESS` marker and at least one `part-r-*` file.
+You should see a `_SUCCESS` marker and at least one `part-r-*` file, and common German words such as `der`, `die`, and `und` at the top.
+
+**Check question:** `Gregor` and `Gregor,` appear as two different words. Why? What does that tell you about the job's definition of a "word"?
 
 ---
 
@@ -152,12 +161,12 @@ Search the log for lines about containers being requested, assigned, and launche
 
 **Goal:** Run the **same job on the same file** with Tez, so you can compare it with section 3.
 
-Hive runs on Tez in the next module. Here you call Tez directly through its examples JAR. The `wordcount` example does the same work as the MapReduce one: it reads your smart-meter CSV and counts words. Only the engine differs:
+Hive runs on Tez in the next module. Here you call Tez directly through its examples JAR. The `wordcount` example does the same work as the MapReduce one: it reads the same text and counts words. Only the engine differs:
 
 ```bash
 yarn jar /opt/cloudera/parcels/CDH/lib/tez/tez-examples.jar \
   wordcount \
-  "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv" \
+  "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
   "/user/${WORKSHOP_USER}/wordcount-tez"
 ```
 
@@ -206,7 +215,7 @@ Optional: open both applications in the **ResourceManager UI** (follow the track
 
 ## 8. Spark on YARN — line count
 
-**Goal:** Run a PySpark job in cluster mode on YARN and count the lines of your smart-meter CSV.
+**Goal:** Run a PySpark job in cluster mode on YARN and count the lines of the same text.
 
 In cluster mode the Spark driver runs inside a YARN container, so your terminal only shows submission progress — the job output lives in the YARN logs. The script `spark_linecount.py` is shared on HDFS:
 
@@ -214,7 +223,7 @@ In cluster mode the Spark driver runs inside a YARN container, so your terminal 
 spark-submit --master yarn --deploy-mode cluster \
   --name "linecount-${WORKSHOP_USER}" \
   "${YARN_LAB}/assets/spark_linecount.py" \
-  "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv" \
+  "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
   "/user/${WORKSHOP_USER}/linecount-spark"
 ```
 
@@ -224,7 +233,11 @@ Read the result from HDFS:
 hdfs dfs -cat "/user/${WORKSHOP_USER}/linecount-spark/part-*"
 ```
 
-You should see one line `line_count=…`. The number includes the comment line you appended in the HDFS lab.
+You should see one line `line_count=…`. Compare it with the line count of the file itself:
+
+```bash
+hdfs dfs -cat "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" | wc -l
+```
 
 Find the application and read its driver log, as in section 4:
 
@@ -245,7 +258,7 @@ Compare all your finished applications side by side (type, queue, run time):
 yarn application -list -appStates FINISHED -appTypes MAPREDUCE,TEZ,SPARK
 ```
 
-**Check question:** All three jobs read the same CSV in your home. What would break or get duplicated if Hive, Spark, and MapReduce ran on separate clusters instead of sharing YARN and HDFS?
+**Check question:** All three jobs read the same text file in `${YARN_LAB}/input`. What would break or get duplicated if Hive, Spark, and MapReduce ran on separate clusters instead of sharing YARN and HDFS?
 
 ---
 

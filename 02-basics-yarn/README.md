@@ -1,13 +1,13 @@
 # Module 02 — Basics: YARN
 
-Resource management for the grid monitoring use case: submit batch jobs that read the same HDFS files you explored in module 01, then follow applications through queues, status, and logs on the cluster.
+Resource management for the grid monitoring use case: submit batch jobs (word count on a short public-domain text, line count in Spark) on YARN, then follow applications through queues, status, and logs on the cluster.
 
 **Estimated time:** ~80 minutes (core ~65 min + optional section and stretch)
 
 ## Prerequisites
 
 - Module [00-setup](../00-setup/README.md) complete (`check_env.sh` passes)
-- Module [01-basics-hdfs](../01-basics-hdfs/README.md) complete — especially `/user/${WORKSHOP_USER}/sample-landisgyr-data.csv` and a valid Kerberos ticket (`WORKSHOP_USER` + `kinit`)
+- Valid Kerberos ticket (see [lab/lab.md](lab/lab.md) intro: `WORKSHOP_USER` + `kinit`)
 
 ## Learning goals
 
@@ -43,9 +43,6 @@ After this module you can:
 ./02-basics-yarn/setup/setup.sh
 ./02-basics-yarn/setup/verify.sh
 ```
-
-(HDFS module setup from module 01 should already be in place.)
-
 ## Next module
 
 [03-basics-hive](../03-basics-hive/README.md)

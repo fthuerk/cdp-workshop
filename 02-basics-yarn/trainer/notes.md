@@ -23,7 +23,7 @@
 4. **ApplicationMaster (section 5):** The RM only schedules containers; the AM is per-application code that negotiates containers, launches tasks via NodeManagers, retries failed tasks, and reports progress. Putting it in a container keeps the RM small and lets each engine bring its own logic. If the AM container dies, YARN starts a new attempt (`yarn.resourcemanager.am.max-attempts`, MapReduce AM recovers completed tasks); if all attempts fail, the application fails. If a task container dies, only the AM reruns that task.  
 5. **MR vs Tez (section 7):** see below.  
 6. **Requests that do not fit (section 10):** see below.  
-7. **Shared platform (section 9):** Without shared YARN/HDFS the pilot CSVs would be copied per engine; governance (Ranger) and lineage would have to be maintained per silo.
+7. **Shared platform (section 9):** Without shared YARN/HDFS the same input files (and later the pilot CSVs) would be copied per engine; governance (Ranger) and lineage would have to be maintained per silo.
 
 ## Requests that do not fit (section 10)
 
@@ -66,7 +66,9 @@ If numbers look odd (Tez slower, large variance): another participant's job was 
 | Spark cluster mode | Lab uses **cluster** deploy mode: driver output is only in `yarn logs` — that is intentional (section 8) |
 | `pi` finishes before participants can inspect the AM | Tell them to raise the second number (samples per map) or start it in terminal 1 before reading section text |
 | `yarn container -signal` unavailable | AM-kill demo needs Hadoop 3.1+; otherwise show attempts in the RM UI only |
-| No sample CSV in home | Gate: module 01 check or quick `-cp` from `${WORKSHOP_ROOT}/data/landisgyr/…` |
+| Input text missing | `setup.sh` uploads `assets/die-verwandlung-kapitel-1.txt` to `${WORKSHOP_ROOT}/02-yarn/input`; re-run it with `WORKSHOP_LOCAL` set |
+| Why not the use-case CSV? | Word count on a CSV counts every row as one "word" (no spaces). The text is a deliberate exception to the "real workshop data" rule — say so. The text is public domain (Kafka, *Die Verwandlung*, Project Gutenberg #22367, chapter I) |
+| Words with punctuation counted separately | Intended: the example tokenizes on whitespace only — talking point in section 3 |
 
 ## Admin
 
