@@ -18,8 +18,12 @@ Module setup also sets POSIX permissions so labs work if Ranger is delayed.
 The JSON templates only cover HDFS. The Hive lab needs these policies in the **Hive** service (adjust names to your deployment; not validated):
 
 1. **Databases and tables:** allow `create`, `select`, `update`, `drop`, `alter`, `index`, `lock` on database `ws_*`, table `*`, column `*` for the workshop users (or group). Participants create `ws_<user>` themselves.  
-2. **URLs:** allow `read` and `write` on the URL `${WORKSHOP_ROOT}/*` (the Hive URL resource is the HDFS path used in `LOCATION`) for the workshop users.  
-3. **HDFS for the `hive` user:** HiveServer2 normally accesses HDFS as `hive`. Allow `read`/`execute` on `${WORKSHOP_ROOT}/data` and `read`/`write`/`execute` on `${WORKSHOP_ROOT}/03-hive/work`. Module setup also adds a POSIX ACL for `hive` on the work folder.
+2. **HDFS for participants:** the lab uses the **default external location** only (no `LOCATION` clauses). Participants copy files into `/warehouse/tablespace/external/hive/ws_<user>.db/<table>`, so allow `read`/`write`/`execute` for the workshop users on `/warehouse/tablespace/external/hive/ws_*` (recursive), and read on `${WORKSHOP_ROOT}/data` and `${WORKSHOP_ROOT}/03-hive/landing`. Hive itself writes there as the `hive` user, which already has access to the warehouse.  
+3. **No URL policy needed** for module 03, because tables never set a custom location (this comes in a later lab).
+
+## Hive / Impala policies for module 05 (manual, Ranger UI)
+
+Same pattern as module 03: `ws_*` database/table privileges and URL access for `${WORKSHOP_ROOT}/05-impala/work/*`. If Impala has a separate Ranger service, grant `SELECT` (and `CREATE` on `ws_*`) for workshop users. HDFS ACL on `${WORKSHOP_ROOT}/05-impala/work` is prepared by `05-basics-impala/setup/setup.sh`.
 
 ## REST apply (experimental)
 

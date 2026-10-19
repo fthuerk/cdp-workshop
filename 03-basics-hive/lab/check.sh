@@ -18,7 +18,8 @@ fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
 DB="ws_${WS_USER}"
-HIVE_WORK="${WORKSHOP_ROOT}/03-hive/work/${WS_USER}"
+# default external warehouse folder of your database (same default as in the lab)
+HIVE_EXT="${HIVE_EXT:-/warehouse/tablespace/external/hive/${DB}.db}"
 
 # Run SQL in your database; print the last output line (empty if the query failed).
 sql() {
@@ -33,10 +34,10 @@ expect() { # description, actual, expected, hint
 source_rows="$(hdfs dfs -cat "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" 2>/dev/null | wc -l | tr -d ' ')"
 source_rows=$(( source_rows - 1 ))
 
-if hdfs dfs -test -e "${HIVE_WORK}/landisgyr/sample-landisgyr-data.csv" 2>/dev/null; then
-  pass "CSV copy in ${HIVE_WORK}/landisgyr"
+if hdfs dfs -test -e "${HIVE_EXT}/landisgyr_csv/sample-landisgyr-data.csv" 2>/dev/null; then
+  pass "CSV copy in ${HIVE_EXT}/landisgyr_csv"
 else
-  fail_msg "Missing ${HIVE_WORK}/landisgyr/sample-landisgyr-data.csv - redo lab section 1"
+  fail_msg "Missing ${HIVE_EXT}/landisgyr_csv/sample-landisgyr-data.csv - redo lab section 1"
 fi
 
 expect "landisgyr_csv rows" "$(sql 'SELECT COUNT(*) FROM landisgyr_csv')" "${source_rows}" "lab sections 1-2"

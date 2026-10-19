@@ -20,7 +20,7 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 | 02 | [Basics: YARN](02-basics-yarn/README.md) | Basics | ~80 min | **Ready** |
 | 03 | [Basics: Hive](03-basics-hive/README.md) | Basics | ~120 min | Draft (not yet dry-run on a cluster) |
 | 04 | Basics: Spark | Basics | ~90 min | Planned |
-| 05 | Basics: Impala | Basics | ~60 min | Planned |
+| 05 | [Basics: Impala](05-basics-impala/README.md) | Basics | ~45 min | Draft (not yet dry-run on a cluster) |
 | 10 | Advanced: Hive | Advanced | ~90 min | Planned |
 | 11 | Advanced: Spark | Advanced | ~90 min | Planned |
 | 12 | Advanced: Impala | Advanced | ~60 min | Planned |
@@ -45,6 +45,7 @@ data/samples/        # synthetic CSVs (uploaded to HDFS by bootstrap)
 01-basics-hdfs/      # lab + trainer + setup scripts
 02-basics-yarn/      # YARN lab + setup scripts
 03-basics-hive/      # Hive lab + trainer + setup scripts
+05-basics-impala/    # Impala lab + trainer + setup scripts
 docs/concept.md              # curriculum concept
 docs/workshop-guidelines.md  # how to author labs and modules
 ```

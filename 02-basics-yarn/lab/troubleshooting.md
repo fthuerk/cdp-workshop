@@ -24,9 +24,30 @@ hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/wordcount-tez"
 hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/linecount-spark"
 ```
 
-## `hadoop-mapreduce-examples.jar` or `tez-examples.jar` not found
+## An example JAR is not found
 
-The parcel path differs on your cluster. Ask your instructor for the correct JAR location and use it in the same command.
+This affects `hadoop-mapreduce-examples.jar` and `tez-examples-*.jar`. The parcel path differs on your cluster. Ask your instructor for the correct JAR location and use it in the same command. List the usual places with:
+
+```bash
+ls /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/ | grep examples
+ls /opt/cloudera/parcels/CDH/lib/tez/bin/
+```
+
+## The many-small-files folder is missing or empty
+
+Check `hdfs dfs -count "${YARN_LAB}/input-many"`. If it does not exist, ask your instructor to run the module setup.
+
+## The first Tez run is much slower than MapReduce
+
+Expected. A cold Tez job starts its ApplicationMaster and distributes the Tez libraries (about 1 GB) to the nodes first. Run it a second time — that is part of the exercise.
+
+## Tez: `ClassNotFoundException` or `NoClassDefFoundError`
+
+The Tez jars are not on your client classpath. Run the `export HADOOP_CLASSPATH=…` line from lab section 6 in the **same terminal** before `yarn jar` — it is not remembered in a new terminal.
+
+## Tez: job fails while starting the ApplicationMaster
+
+The Tez configuration did not point to the Tez libraries for the containers (`tez.lib.uris`). Check that `/opt/cloudera/parcels/CDH/lib/tez/conf` is part of `HADOOP_CLASSPATH`, then ask your instructor.
 
 ## Application stays in `ACCEPTED`
 

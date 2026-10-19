@@ -10,9 +10,13 @@ Wrong username or realm. Use the principal provided by your instructor (`user@RE
 - Check `echo "${HS2_URL}"` — it must be the JDBC URL from your handout, including any `principal=…` part.  
 - Still failing: ask your instructor whether HiveServer2 is up.
 
-## `${hivevar:ws_user}` shows up literally in an error
+## `${ws_user}` shows up literally in an error (Beeline)
 
 You started Beeline without the `--hivevar` options. Quit (`!quit`) and start it again with the command from [lab section 0](lab.md#0-orient--connect-and-create-your-database). Variables only exist in the session you started them in.
+
+## Hue: asks for a value again, or the query fails with an empty or wrong path
+
+The variables belong to the editor tab. Fill in the `ws_user` field below the editor again (a new tab or a reloaded page starts empty), and check them with the test statement from the [Hue section of the lab](lab.md#optional--use-hue-instead-of-beeline-and-hdfs). A typo in `ws_user` shows up as a wrong database name.
 
 ## `Table not found` or `Database does not exist`
 
@@ -26,15 +30,30 @@ You ran a `CREATE` twice. Drop the table and create it again — for an **extern
 DROP TABLE meter_orc;
 ```
 
-If a table sits on top of files you want to start over with, also remove the folder content with `hdfs dfs -rm -r -skipTrash` on that table's folder under `${HIVE_WORK}`.
+If a table sits on top of files you want to start over with, also remove the files in that table's folder with `hdfs dfs -rm -skipTrash "${HIVE_EXT}/<table>/*"` (the folder itself belongs to the table).
 
 ## `Permission denied: user=hive, access=WRITE, inode=…`
 
-HiveServer2 writes your table data as the `hive` service user, and it cannot write into your folder. Check that the folder is below `${HIVE_WORK}` (not your home) and ask your instructor to run the module setup again — it grants the `hive` user access to the shared work area. Trainers: see [setup/setup.sh](../setup/setup.sh).
+You cannot write into the table folder under `HIVE_EXT` (for example `hdfs dfs -cp` fails with permission denied). Check with `hdfs dfs -ls -d "${HIVE_EXT}"` that the folder exists and that `WORKSHOP_USER` is your own name, then ask your instructor — an HDFS policy for the workshop users on `ws_*` folders is missing. Trainers: see [ranger README](../../00-setup/admin/ranger/README.md).
 
 ## `user … does not have [ALL] privilege on [hdfs://…]` or `[CREATE] on [ws_…]`
 
-Ranger does not allow your user to use that location or database. The location must be inside `${WORKSHOP_ROOT}`. Ask your instructor — a Ranger policy for the workshop group is missing. Trainers: see [ranger README](../../00-setup/admin/ranger/README.md), section module 03.
+Ranger does not allow your user to create objects in that database. Check that the database is named `ws_<your_username>` and ask your instructor — a Hive policy for the workshop group is missing. Trainers: see [ranger README](../../00-setup/admin/ranger/README.md), section module 03.
+
+## CTAS with `CREATE EXTERNAL TABLE … AS SELECT` is rejected
+
+Some Hive versions do not allow `AS SELECT` for external tables. Create the table with the column list and fill it with an insert instead:
+
+```sql
+CREATE EXTERNAL TABLE meter_orc (
+  ts_utc STRING, station_id STRING, active_power_kw DOUBLE, reactive_power_kvar DOUBLE,
+  voltage_v DOUBLE, current_a DOUBLE, transformer_load_pct DOUBLE,
+  quality_flag STRING, event_code STRING, comm_status STRING
+) STORED AS ORC;
+INSERT INTO meter_orc SELECT * FROM meter_csv;
+```
+
+Do the same for `meter_parquet` with `STORED AS PARQUET`. Everything after that works unchanged.
 
 ## `FAILED: SemanticException … Attempt to do update or delete on table … that is not transactional`
 
@@ -51,8 +70,8 @@ The table property `skip.header.line.count` is set to skip one line **per file**
 ## `SHOW PARTITIONS` is empty or `MSCK REPAIR` adds nothing
 
 - Folder names must look exactly like `station_id=TS-101` (no spaces, correct spelling).  
-- The folders must be **inside** the table `LOCATION` (`${HIVE_WORK}/landisgyr_by_station`).  
-- Check with `hdfs dfs -ls -R "${HIVE_WORK}/landisgyr_by_station"`.
+- The folders must be **inside** the table folder (`${HIVE_EXT}/landisgyr_by_station`).  
+- Check with `hdfs dfs -ls -R "${HIVE_EXT}/landisgyr_by_station"`.
 
 ## `hive: command not found` (`orcfiledump`)
 
@@ -72,7 +91,7 @@ The first query in a session can take up to a minute while a Tez session starts.
 
 ## `MERGE` fails with a cardinality violation
 
-More than one source row matched the same target row. Check `landisgyr_changes` — you should have exactly two data rows (and one header). Look for a second file in `${HIVE_WORK}/landisgyr_changes`.
+More than one source row matched the same target row. Check `landisgyr_changes` — you should have exactly two data rows (and one header). Look for a second file in `${HIVE_EXT}/landisgyr_changes`.
 
 ## Your username contains `-` or `.`
 

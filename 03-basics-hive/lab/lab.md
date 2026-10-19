@@ -2,14 +2,14 @@
 
 Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need two terminals on the edge node: one for `beeline` (SQL) and one for `hdfs` (files). Sections 1–6 are about **external tables** and files, sections 7–8 about **managed tables**, sections 9–11 about everyday SQL.
 
-Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit` (same account as on the edge node). `HIVE_LAB` holds shared module files on HDFS (prepared landing data). `HIVE_WORK` is your own folder for table data — every table you create in this lab points into it. `HS2_URL` is the HiveServer2 JDBC URL from your workshop handout.
+Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit` (same account as on the edge node). `HIVE_LAB` holds shared module files on HDFS (prepared landing data). `HIVE_EXT` is the folder where Hive keeps the data of your **external** tables: the default external warehouse location, with one sub-folder per database. You never set a table location in this lab — Hive creates a folder per table below `HIVE_EXT`, and you copy files into it. `HS2_URL` is the HiveServer2 JDBC URL from your workshop handout.
 
 ```bash
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
 export HIVE_LAB="${WORKSHOP_ROOT}/03-hive"
-export HIVE_WORK="${HIVE_LAB}/work/${WORKSHOP_USER}"
+export HIVE_EXT="/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db"   # adjust if needed
 export HS2_URL="<jdbc-url-from-your-handout>"
 ```
 
@@ -17,59 +17,81 @@ Hive stores **no data itself**: the Metastore keeps table definitions (names, co
 
 ---
 
+## Optional — use Hue instead of Beeline and `hdfs`
+
+You can run most of this lab in the Hue web UI (URL from your handout). Beeline and the terminal stay the reference; use Hue if you prefer a browser.
+
+**SQL in Hue.** Open **Editor → Hive** and paste the `sql` blocks of the lab unchanged. You do not need `--hivevar` in Hue: the lab SQL uses the variable `${ws_user}`, and as soon as the editor contains such a placeholder, Hue shows an **input field** for it below the editor and fills in your value when it runs the statement. It is the only variable in this lab: type your `WORKSHOP_USER` into the field.
+
+Run a test statement, type your username into the field that appears, and run it again:
+
+```sql
+SELECT '${ws_user}', 'ws_${ws_user}';
+```
+
+The second column is the name of your database.
+
+Notes:
+
+- The fields belong to the editor tab: they apply to every statement in the tab, and a new tab or a reloaded page needs them again.  
+- Run a statement with **Ctrl+Enter** (the play button). Hue runs the statement under the cursor; select several statements to run them one after another.  
+- Pick your database `ws_<your_username>` in the database list on the left (or run `USE`) once section 0 has created it.
+
+**Files in Hue.** Open **Files** (File Browser). Click the path at the top to type a path such as `/warehouse/tablespace/external/hive/ws_<your_username>.db`. Then:
+
+- Tick a file or folder, then **Actions → Copy**, and choose the target folder — this replaces `hdfs dfs -cp`. Copy a whole `station_id=…` folder the same way.  
+- Click a file name to see its content (like `-cat`; ORC and Parquet look unreadable, which is the point). The listing shows size and owner (like `-ls` and `-du`).  
+- Tick a file and **Delete forever** (not *Move to trash*) replaces `-rm -skipTrash`.
+
+**What still needs a terminal:** the `heredoc` that creates the correction file in section 6 (in Hue: **New → File**, paste the three lines, save as `landisgyr-changes.csv` in the `landisgyr_changes` table folder), `hive --orcfiledump` and `strings` in section 4, `yarn application -list` in section 11, and `beeline -f` in the stretch. The `bash` blocks in the other sections all have the File Browser equivalents above.
+
+---
+
 ## 0. Orient — connect and create your database
 
 **Goal:** Open a Beeline session with your variables and create a database that is yours alone.
 
-Start Beeline in the first terminal. The `--hivevar` options define variables you can use in SQL as `${hivevar:name}`, so you never type your username or paths by hand:
+Start Beeline in the first terminal. The `--hivevar` options define variables you can use in SQL as `${name}` (in Hue the same placeholders become input fields, see above), so you never type your username by hand:
 
 ```bash
 beeline -u "${HS2_URL}" \
-  --hivevar ws_user="${WORKSHOP_USER}" \
-  --hivevar ws_root="${WORKSHOP_ROOT}" \
-  --hivevar ws_work="${HIVE_WORK}"
+  --hivevar ws_user="${WORKSHOP_USER}"
 ```
 
 Everything in the following blocks marked `sql` goes into this Beeline session. See what exists, create your database, and look at where Hive will put its data:
 
 ```sql
 SHOW DATABASES;
-CREATE DATABASE IF NOT EXISTS ws_${hivevar:ws_user};
-USE ws_${hivevar:ws_user};
+CREATE DATABASE IF NOT EXISTS ws_${ws_user};
+USE ws_${ws_user};
 SELECT current_database(), current_user();
-DESCRIBE DATABASE EXTENDED ws_${hivevar:ws_user};
+DESCRIBE DATABASE EXTENDED ws_${ws_user};
 ```
 
-Note the two locations in the `DESCRIBE` output: one for **external** tables and one for **managed** tables. You will see in sections 1 and 7 why they are separate.
+Note the two locations in the `DESCRIBE` output: one for **external** tables and one for **managed** tables. You will see in sections 1 and 7 why they are separate. The external location is the folder `HIVE_EXT` you exported above.
 
-In the second terminal, create your work folder. Hive tables in this lab keep their files here:
+In the second terminal, check that the folder exists and is still empty, and look at the shared landing data you use in section 3:
 
 ```bash
-hdfs dfs -mkdir -p "${HIVE_WORK}"
+hdfs dfs -ls "${HIVE_EXT}"
 hdfs dfs -ls "${HIVE_LAB}"
 ```
 
-You should see `landing` and `work`.
+You should see no tables yet in `HIVE_EXT`, and `landing` in `HIVE_LAB`.
 
 **Check question:** Which component knows that a table named `landisgyr_csv` exists — HDFS or the Metastore? Where is the data?
 
-Optional: open **Hue → Editor → Hive** and run `SHOW DATABASES;` there too.
+Optional: run the same statements in **Hue → Editor → Hive** (see [the Hue section above](#optional--use-hue-instead-of-beeline-and-hdfs)).
 
 ---
 
 ## 1. External table over a CSV copy
 
-**Goal:** Copy a smart-meter CSV into your own folder and put an external table on top of it.
+**Goal:** Create an external table, copy a smart-meter CSV into its folder, and query it.
 
-A table `LOCATION` is a **folder**, and Hive reads every file in it. You copy the file into a folder you own so the table has a folder of its own. In the second terminal:
+An external table is a table definition on top of files that you manage yourself. Hive reads **every file in the table's folder**. Without a `LOCATION` clause that folder is created for you under `HIVE_EXT`, named like the table. (Choosing your own location comes in a later lab.)
 
-```bash
-hdfs dfs -mkdir -p "${HIVE_WORK}/landisgyr"
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${HIVE_WORK}/landisgyr/"
-hdfs dfs -ls "${HIVE_WORK}/landisgyr"
-```
-
-Now define the table. Hive maps CSV fields **by position**, not by header name — so you can choose your own column names. Timestamps stay `STRING` for now (section 2 shows why), and the header line is skipped with a table property:
+Define the table. Hive maps CSV fields **by position**, not by header name — so you can choose your own column names. Timestamps stay `STRING` for now (section 2 shows why), and the header line is skipped with a table property:
 
 ```sql
 CREATE EXTERNAL TABLE landisgyr_csv (
@@ -90,11 +112,18 @@ CREATE EXTERNAL TABLE landisgyr_csv (
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '${hivevar:ws_work}/landisgyr'
 TBLPROPERTIES ('skip.header.line.count'='1');
 ```
 
-Query it. The first statement only reads the file; the second needs a real job (watch the Tez progress in Beeline):
+Switch to the second terminal. Hive has created the table folder — it is empty. Copy the CSV from the shared workshop data into it:
+
+```bash
+hdfs dfs -ls "${HIVE_EXT}"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_csv/"
+hdfs dfs -ls "${HIVE_EXT}/landisgyr_csv"
+```
+
+Query the table. The first statement only reads the file; the second needs a real job (watch the Tez progress in Beeline):
 
 ```sql
 SELECT * FROM landisgyr_csv LIMIT 5;
@@ -108,12 +137,12 @@ DESCRIBE FORMATTED landisgyr_csv;
 SHOW CREATE TABLE landisgyr_csv;
 ```
 
-You should see `EXTERNAL_TABLE` and a location that points into your `HIVE_WORK` folder.
+You should see `EXTERNAL_TABLE` and a location that is the `landisgyr_csv` folder you just copied the file into.
 
 The table **is** the folder. Drop a second file into it, and query again without telling Hive anything:
 
 ```bash
-hdfs dfs -cp "${HIVE_WORK}/landisgyr/sample-landisgyr-data.csv" "${HIVE_WORK}/landisgyr/second-copy.csv"
+hdfs dfs -cp "${HIVE_EXT}/landisgyr_csv/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_csv/second-copy.csv"
 ```
 
 ```sql
@@ -123,7 +152,7 @@ SELECT COUNT(*) FROM landisgyr_csv;
 The count doubles. Remove the extra file and count again:
 
 ```bash
-hdfs dfs -rm -skipTrash "${HIVE_WORK}/landisgyr/second-copy.csv"
+hdfs dfs -rm -skipTrash "${HIVE_EXT}/landisgyr_csv/second-copy.csv"
 ```
 
 ```sql
@@ -138,7 +167,7 @@ SELECT COUNT(*) FROM landisgyr_csv;
 
 **Goal:** See what Hive does when the table definition does not match the file, and what `DROP TABLE` does to external data.
 
-Define a second table on the **same folder** with wrong types: a timestamp that is not in Hive's format, and a number column that contains `L1`/`L2`/`L3`. It also declares only five of the fourteen columns:
+Define a second table with wrong types: a timestamp that is not in Hive's format, and a number column that contains `L1`/`L2`/`L3`. It also declares only five of the fourteen columns. Copy the CSV into its folder, like in section 1, and query it:
 
 ```sql
 CREATE EXTERNAL TABLE landisgyr_wrong (
@@ -150,9 +179,14 @@ CREATE EXTERNAL TABLE landisgyr_wrong (
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '${hivevar:ws_work}/landisgyr'
 TBLPROPERTIES ('skip.header.line.count'='1');
+```
 
+```bash
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_wrong/"
+```
+
+```sql
 SELECT * FROM landisgyr_wrong LIMIT 5;
 ```
 
@@ -162,17 +196,19 @@ Now drop that table and check the files:
 
 ```sql
 DROP TABLE landisgyr_wrong;
+SHOW TABLES;
 ```
 
 ```bash
-hdfs dfs -ls "${HIVE_WORK}/landisgyr"
+hdfs dfs -ls "${HIVE_EXT}"
+hdfs dfs -ls "${HIVE_EXT}/landisgyr_wrong"
 ```
 
-```sql
-SELECT COUNT(*) FROM landisgyr_csv;
-```
+The table is gone, but the folder and the CSV are still on HDFS: dropping an **external** table removes only the metadata. Remove the leftover folder yourself:
 
-The CSV is still there and `landisgyr_csv` still works: dropping an **external** table removes only the metadata.
+```bash
+hdfs dfs -rm -r -skipTrash "${HIVE_EXT}/landisgyr_wrong"
+```
 
 **Check question:** A nightly job reads a column as `INT`, but the source system starts sending `1.5`. What does Hive do — and how would you notice?
 
@@ -191,15 +227,7 @@ hdfs dfs -cat "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-101/*" | h
 
 Compare the rows with the original CSV: the `station_id` column is gone. In a partitioned table the value lives in the **folder name**, not in the file.
 
-Create your table folder and copy **only one** station into it:
-
-```bash
-hdfs dfs -mkdir -p "${HIVE_WORK}/landisgyr_by_station"
-hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-101" "${HIVE_WORK}/landisgyr_by_station/"
-hdfs dfs -ls -R "${HIVE_WORK}/landisgyr_by_station"
-```
-
-Define the table. `station_id` is declared in `PARTITIONED BY`, not in the column list. Recent CDP versions can discover new folders in the background; the property below switches that off so you can see the manual steps:
+Define the table first. `station_id` is declared in `PARTITIONED BY`, not in the column list. Recent CDP versions can discover new folders in the background; the property below switches that off so you can see the manual steps:
 
 ```sql
 CREATE EXTERNAL TABLE landisgyr_by_station (
@@ -220,18 +248,25 @@ CREATE EXTERNAL TABLE landisgyr_by_station (
 PARTITIONED BY (station_id STRING)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '${hivevar:ws_work}/landisgyr_by_station'
 TBLPROPERTIES ('discover.partitions'='false');
+```
 
+Now copy **only one** station into the table folder, and query:
+
+```bash
+hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-101" "${HIVE_EXT}/landisgyr_by_station/"
+hdfs dfs -ls -R "${HIVE_EXT}/landisgyr_by_station"
+```
+
+```sql
 SHOW PARTITIONS landisgyr_by_station;
 SELECT COUNT(*) FROM landisgyr_by_station;
 ```
 
-The folder holds data, but you should see no partitions and a count of `0`. The files exist on HDFS; the Metastore does not know about them yet. Register the partition:
+The folder holds data, but you should see no partitions and a count of `0`. The files exist on HDFS; the Metastore does not know about them yet. Register the partition. Without a `LOCATION` clause Hive uses the folder `station_id=TS-101` inside the table folder — exactly where you copied the files:
 
 ```sql
-ALTER TABLE landisgyr_by_station ADD PARTITION (station_id='TS-101')
-  LOCATION '${hivevar:ws_work}/landisgyr_by_station/station_id=TS-101';
+ALTER TABLE landisgyr_by_station ADD PARTITION (station_id='TS-101');
 
 SHOW PARTITIONS landisgyr_by_station;
 SELECT station_id, COUNT(*) FROM landisgyr_by_station GROUP BY station_id;
@@ -240,8 +275,8 @@ SELECT station_id, COUNT(*) FROM landisgyr_by_station GROUP BY station_id;
 Two more stations arrive. Copy them into the table folder and query again:
 
 ```bash
-hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-204" "${HIVE_WORK}/landisgyr_by_station/"
-hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-305" "${HIVE_WORK}/landisgyr_by_station/"
+hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-204" "${HIVE_EXT}/landisgyr_by_station/"
+hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-305" "${HIVE_EXT}/landisgyr_by_station/"
 ```
 
 ```sql
@@ -301,7 +336,7 @@ Run `EXPLAIN EXTENDED` again for the unfiltered query and compare how many folde
 
 **Goal:** Store the same rows in three formats and look inside the files to see how columnar storage differs from text.
 
-Fifteen rows are too few to see any difference. Build the data in three steps. First a CSV table with jittered copies of the meter rows (15 × 1000 = 15,000 rows):
+Fifteen rows are too few to see any difference. Build the data in two steps. First a CSV table with jittered copies of the meter rows (15 × 1000 = 15,000 rows):
 
 ```sql
 CREATE EXTERNAL TABLE meter_csv (
@@ -317,8 +352,7 @@ CREATE EXTERNAL TABLE meter_csv (
   comm_status STRING
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-STORED AS TEXTFILE
-LOCATION '${hivevar:ws_work}/meter_csv';
+STORED AS TEXTFILE;
 
 INSERT INTO meter_csv
 SELECT ts_utc, station_id,
@@ -332,42 +366,24 @@ FROM landisgyr_csv
 LATERAL VIEW explode(split(space(999), ' ')) r AS i;
 ```
 
-Then two tables with the same columns, stored as ORC and as Parquet, filled from `meter_csv` so every format holds identical data:
+Now the ORC and Parquet versions. Instead of writing out the column list again, use **CTAS** (`CREATE TABLE AS SELECT`): the new table takes its columns and types from the query, and Hive writes the query result in the file format you name — create and load in one statement. Both tables are filled from `meter_csv`, so every format holds identical data:
 
 ```sql
-CREATE EXTERNAL TABLE meter_orc (
-  ts_utc STRING,
-  station_id STRING,
-  active_power_kw DOUBLE,
-  reactive_power_kvar DOUBLE,
-  voltage_v DOUBLE,
-  current_a DOUBLE,
-  transformer_load_pct DOUBLE,
-  quality_flag STRING,
-  event_code STRING,
-  comm_status STRING
-)
-STORED AS ORC
-LOCATION '${hivevar:ws_work}/meter_orc';
+CREATE EXTERNAL TABLE meter_orc STORED AS ORC AS
+SELECT * FROM meter_csv;
 
-CREATE EXTERNAL TABLE meter_parquet (
-  ts_utc STRING,
-  station_id STRING,
-  active_power_kw DOUBLE,
-  reactive_power_kvar DOUBLE,
-  voltage_v DOUBLE,
-  current_a DOUBLE,
-  transformer_load_pct DOUBLE,
-  quality_flag STRING,
-  event_code STRING,
-  comm_status STRING
-)
-STORED AS PARQUET
-LOCATION '${hivevar:ws_work}/meter_parquet';
-
-INSERT INTO meter_orc SELECT * FROM meter_csv;
-INSERT INTO meter_parquet SELECT * FROM meter_csv;
+CREATE EXTERNAL TABLE meter_parquet STORED AS PARQUET AS
+SELECT * FROM meter_csv;
 ```
+
+Look at what CTAS derived from the query. The column names and types match `meter_csv`, but the storage section is different:
+
+```sql
+SHOW CREATE TABLE meter_orc;
+DESCRIBE FORMATTED meter_parquet;
+```
+
+You should see `EXTERNAL_TABLE`, the same ten columns, and ORC or Parquet input/output formats instead of the text format.
 
 Check the row counts, then switch to the second terminal. Compare how much space each format needs, and list the files Hive wrote:
 
@@ -378,8 +394,8 @@ UNION ALL SELECT 'parquet', COUNT(*) FROM meter_parquet;
 ```
 
 ```bash
-hdfs dfs -du -h "${HIVE_WORK}"
-hdfs dfs -ls "${HIVE_WORK}/meter_csv" "${HIVE_WORK}/meter_orc" "${HIVE_WORK}/meter_parquet"
+hdfs dfs -du -h "${HIVE_EXT}"
+hdfs dfs -ls "${HIVE_EXT}/meter_csv" "${HIVE_EXT}/meter_orc" "${HIVE_EXT}/meter_parquet"
 ```
 
 Same rows, different sizes. Now look inside, starting with the text file. Use the file name from the listing:
@@ -406,7 +422,7 @@ hdfs dfs -cat "<parquet-file>" | tail -c 2000 | strings
 
 You should see `PAR1` and, among the readable fragments, your column names and values like `TS-101`.
 
-**Check question:** Why are `event_code` and `comm_status` almost free in ORC while `current_a` is not? Which format would you pick for a curated table that analysts query by a few columns — and why would you keep the CSV only in the landing area?
+**Check question:** CTAS gave you ORC and Parquet tables in one statement. Which parts of the table definition did Hive take from the query, and which did you have to say yourself? Why are `event_code` and `comm_status` almost free in ORC while `current_a` is not? Which format would you pick for a curated table that analysts query by a few columns — and why would you keep the CSV only in the landing area?
 
 ---
 
@@ -432,7 +448,7 @@ SELECT COUNT(*) FROM meter_orc;
 ```
 
 ```bash
-hdfs dfs -ls "${HIVE_WORK}/meter_orc"
+hdfs dfs -ls "${HIVE_EXT}/meter_orc"
 ```
 
 The count doubled and there is a second file. `INSERT INTO` **appends**. Replace the table content instead:
@@ -443,7 +459,7 @@ SELECT COUNT(*) FROM meter_orc;
 ```
 
 ```bash
-hdfs dfs -ls "${HIVE_WORK}/meter_orc"
+hdfs dfs -ls "${HIVE_EXT}/meter_orc"
 ```
 
 You should be back at 15,000 rows with a single file.
@@ -471,8 +487,7 @@ CREATE EXTERNAL TABLE meter_part (
   comm_status STRING
 )
 PARTITIONED BY (station_id STRING)
-STORED AS ORC
-LOCATION '${hivevar:ws_work}/meter_part';
+STORED AS ORC;
 
 SET hive.exec.dynamic.partition.mode=nonstrict;
 
@@ -540,7 +555,7 @@ SHOW PARTITIONS meter_part;
 ```
 
 ```bash
-hdfs dfs -ls "${HIVE_WORK}/meter_part"
+hdfs dfs -ls "${HIVE_EXT}/meter_part"
 ```
 
 The partition disappears from queries, but the folder is still on HDFS because the table is external. Let Hive scan the folder again:
@@ -557,7 +572,7 @@ ALTER TABLE meter_part DROP PARTITION (station_id = 'TS-204');
 ```
 
 ```bash
-hdfs dfs -rm -r -skipTrash "${HIVE_WORK}/meter_part/station_id=TS-204"
+hdfs dfs -rm -r -skipTrash "${HIVE_EXT}/meter_part/station_id=TS-204"
 ```
 
 ```sql
@@ -575,7 +590,13 @@ FROM landisgyr_csv;
 SELECT station_id, COUNT(*) FROM meter_part GROUP BY station_id;
 ```
 
-**Merge by rewriting.** A correction file arrives for `TS-101`: one corrected reading (`08:45`) and one new reading (`09:15`). Create the file locally, with a header like the original CSV, and put it into its own folder:
+**Merge by rewriting.** A correction file arrives for `TS-101`: one corrected reading (`08:45`) and one new reading (`09:15`). First create a table for it. `LIKE` copies the column definitions and settings of `landisgyr_csv` — including the skipped header line, so the file you create next needs a header too:
+
+```sql
+CREATE EXTERNAL TABLE landisgyr_changes LIKE landisgyr_csv;
+```
+
+Create the file locally, with a header like the original CSV, and put it into the folder of the new table:
 
 ```bash
 cat > "/tmp/landisgyr-changes.csv.${WORKSHOP_USER}" <<'EOF'
@@ -583,16 +604,12 @@ timestamp,station_id,device_id,phase,active_power_kw,reactive_power_kvar,voltage
 2026-01-15T08:45:00Z,TS-101,LG-TS-101-A,L1,203.9,38.8,229.0,318.0,0.980,49.99,68.9,OK,,ONLINE
 2026-01-15T09:15:00Z,TS-101,LG-TS-101-A,L1,199.5,38.1,229.6,313.0,0.981,50.00,67.4,OK,,ONLINE
 EOF
-hdfs dfs -mkdir -p "${HIVE_WORK}/landisgyr_changes"
-hdfs dfs -put -f "/tmp/landisgyr-changes.csv.${WORKSHOP_USER}" "${HIVE_WORK}/landisgyr_changes/"
+hdfs dfs -put -f "/tmp/landisgyr-changes.csv.${WORKSHOP_USER}" "${HIVE_EXT}/landisgyr_changes/"
 ```
 
-`LIKE` copies the column definitions and settings of `landisgyr_csv` — including the skipped header line, which is why the file has one:
+Check what the table returns:
 
 ```sql
-CREATE EXTERNAL TABLE landisgyr_changes LIKE landisgyr_csv
-LOCATION '${hivevar:ws_work}/landisgyr_changes';
-
 SELECT * FROM landisgyr_changes;
 ```
 
@@ -629,7 +646,7 @@ You should see six readings for `TS-101`: the `08:45` flag is now `OK` and `09:1
 
 **Goal:** Create a managed table and find out what is different from an external one — location, ownership, and transactions.
 
-A **managed** table belongs to Hive: Hive decides where the files go, and `DROP TABLE` deletes them. In CDP, managed tables are **transactional** (ACID) ORC tables by default. Create one from your CSV table (CTAS = create table as select):
+A **managed** table belongs to Hive: Hive decides where the files go, and `DROP TABLE` deletes them. In CDP, managed tables are **transactional** (ACID) ORC tables by default. Create one from your CSV table (CTAS, as in section 4 — this time without `EXTERNAL`):
 
 ```sql
 CREATE TABLE landisgyr_managed AS
@@ -811,7 +828,7 @@ SELECT COALESCE(event_code, 'NONE') AS event, COUNT(*) FROM landisgyr_v GROUP BY
 
 **Goal:** Combine meter readings with reference data, market prices, and weather — and spot a join that multiplies rows.
 
-Create three small external tables directly on the **shared** workshop folders. You only define metadata; nothing is copied, and you cannot change these files:
+Create three small external tables for the reference data, market prices, and operator weather. As in section 1, each table gets an empty folder under `HIVE_EXT`; you fill it in the second terminal after the `CREATE` statements:
 
 ```sql
 CREATE EXTERNAL TABLE stations (
@@ -824,7 +841,6 @@ CREATE EXTERNAL TABLE stations (
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '${hivevar:ws_root}/data/basemap'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
 CREATE EXTERNAL TABLE market_prices (
@@ -837,7 +853,6 @@ CREATE EXTERNAL TABLE market_prices (
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '${hivevar:ws_root}/data/awattar'
 TBLPROPERTIES ('skip.header.line.count'='1');
 
 CREATE EXTERNAL TABLE weather_operator (
@@ -853,8 +868,21 @@ CREATE EXTERNAL TABLE weather_operator (
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '${hivevar:ws_root}/data/operator_weather'
 TBLPROPERTIES ('skip.header.line.count'='1');
+```
+
+Copy one shared CSV into each table folder and check that the tables return rows:
+
+```bash
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/basemap/sample-basemap-at-locations.csv" "${HIVE_EXT}/stations/"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv" "${HIVE_EXT}/market_prices/"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv" "${HIVE_EXT}/weather_operator/"
+```
+
+```sql
+SELECT * FROM stations;
+SELECT * FROM market_prices LIMIT 3;
+SELECT * FROM weather_operator LIMIT 3;
 ```
 
 **Inner join.** Add the district to each station's peak load. Rows without a match on either side disappear:
@@ -956,24 +984,24 @@ Run SQL non-interactively. Save a statement with a variable to a file and run it
 
 ```bash
 cat > "/tmp/station-summary.sql.${WORKSHOP_USER}" <<'EOF'
-USE ws_${hivevar:ws_user};
-SELECT station_id, COUNT(*) AS readings FROM meter_part WHERE station_id = '${hivevar:station}' GROUP BY station_id;
+USE ws_${ws_user};
+SELECT station_id, COUNT(*) AS readings FROM meter_part WHERE station_id = '${station}' GROUP BY station_id;
 EOF
 beeline -u "${HS2_URL}" --hivevar ws_user="${WORKSHOP_USER}" --hivevar station=TS-305 \
   -f "/tmp/station-summary.sql.${WORKSHOP_USER}"
 ```
 
-- Join three ways: `landisgyr_v` + `stations` + the OpenStreetMap context (`${WORKSHOP_ROOT}/data/openstreetmap`, filter `buffer_m = 250`) to relate peak load to the share of industrial area.  
+- Join three ways: `landisgyr_v` + `stations` + the OpenStreetMap context (a new external table for `${WORKSHOP_ROOT}/data/openstreetmap`, copied the same way as in section 10; filter `buffer_m = 250`) to relate peak load to the share of industrial area.  
 - Schema change on an external table: `ALTER TABLE landisgyr_csv ADD COLUMNS (note STRING);` — what do old rows show? Does the CSV change?  
 - Parquet footer with a proper tool: `parquet-tools meta "<parquet-file>"` (if it is on your `PATH`).  
-- Clean up: `DROP DATABASE ws_${hivevar:ws_user} CASCADE;` and then list `${HIVE_WORK}` — which data is gone, which is still there?  
+- Clean up: `DROP DATABASE ws_${ws_user} CASCADE;` and then list `${HIVE_EXT}` and the warehouse folder of your managed tables (`DESCRIBE DATABASE` shows both) — which data is gone, which is still there?  
 - Hue: run one of the join queries in the Hive editor and open the query in **Job Browser**.
 
 ---
 
 ## Self-check
 
-From the repo root on the edge node, run the module check script (uses your Kerberos ticket, `HS2_URL`, and your HDFS work folder):
+From the repo root on the edge node, run the module check script (uses your Kerberos ticket, `HS2_URL`, and your table folders under `HIVE_EXT`):
 
 ```bash
 ./03-basics-hive/lab/check.sh

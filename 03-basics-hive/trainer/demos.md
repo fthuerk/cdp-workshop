@@ -1,6 +1,6 @@
 # Trainer live demos — Hive
 
-Run **one section at a time** on an edge node while participants watch. Participant tables live in `ws_<user>` databases with data under `${WORKSHOP_ROOT}/03-hive/work/<user>`.
+Run **one section at a time** on an edge node while participants watch. Participant tables live in `ws_<user>` databases with data under `/warehouse/tablespace/external/hive/ws_<user>.db/<table>`.
 
 ```bash
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust from config.env
@@ -53,15 +53,16 @@ SHOW COMPACTIONS;
 
 **Goal:** Show the difference in files, not only in words.
 
-Use `demo_managed` from section 1 and a new external table on a folder that holds a CSV copy. With the admin ticket, list both locations first:
+Use `demo_managed` from section 1 and a new external table with a CSV copy in its folder. With the admin ticket, list both locations first:
 
 ```sql
-CREATE EXTERNAL TABLE demo_ext LIKE landisgyr_csv LOCATION '<some-folder-with-the-csv>';
+CREATE EXTERNAL TABLE demo_ext LIKE landisgyr_csv;
 DESCRIBE FORMATTED demo_ext;
 ```
 
 ```bash
-hdfs dfs -ls "<some-folder-with-the-csv>"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "<demo_ext-table-location>"
+hdfs dfs -ls "<demo_ext-table-location>"
 hdfs dfs -ls "<managed-table-location>"
 ```
 
@@ -72,7 +73,7 @@ DROP TABLE demo_ext;
 DROP TABLE demo_managed;
 ```
 
-The CSV folder is unchanged; the managed table folder is gone (or in trash, depending on trash settings).
+The external table folder and its CSV are unchanged; the managed table folder is gone (or in trash, depending on trash settings).
 
 **Optional:** `external.table.purge`. Set it on a throw-away external table and drop it:
 
@@ -98,7 +99,7 @@ INSERT INTO meter_orc SELECT * FROM meter_csv LIMIT 10;
 Repeat the statement several times, then:
 
 ```bash
-hdfs dfs -ls "${HIVE_LAB}/work/<demo_user>/meter_orc"
+hdfs dfs -ls "/warehouse/tablespace/external/hive/ws_<demo_user>.db/meter_orc"
 ```
 
 Every run added a file. Fix with a rewrite (`INSERT OVERWRITE … SELECT * FROM meter_csv`) or, for ORC, merge the files of the table:

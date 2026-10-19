@@ -68,7 +68,7 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 | **02-basics-yarn** | YARN fundamentals | 01 | ~80 min | Submit MR/Tez/Spark app; find the AM; compare MR vs Tez; read queue, status, logs |
 | **03-basics-hive** | Hive fundamentals | 01, 02 | ~120 min | External tables and partitions on `data/landisgyr`, ORC/Parquet on HDFS, idempotent loads, managed ACID tables, SQL basics and joins |
 | **04-basics-spark** | Spark on YARN | 02, 03 | ~90 min | PySpark cleanse/join on sample time series |
-| **05-basics-impala** | Impala fundamentals | 03 | ~60 min | Interactive SQL on Hive-metastore tables |
+| **05-basics-impala** | Impala fundamentals | 00 | ~45 min | Interactive SQL; Hive vs Impala timing; UPDATE/DELETE errors on external tables |
 | **10-advanced-hive** | Hive modeling & performance | 03 | ~90 min | Partitions, CTAS, file format comparison on use case |
 | **11-advanced-spark** | Spark pipelines | 04, 10 | ~90 min | Multi-source alignment, derived features |
 | **12-advanced-impala** | Impala for analytics | 05, 11 | ~60 min | Aggregations, KPIs for pilot sensors |

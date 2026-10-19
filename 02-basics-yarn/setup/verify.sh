@@ -17,6 +17,18 @@ check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
 
 check hdfs dfs -test -e "${ASSETS}/spark_linecount.py"
 check hdfs dfs -test -e "${MODULE_ROOT}/input/die-verwandlung-kapitel-1.txt"
+check hdfs dfs -test -e "${MODULE_ROOT}/input-many/part-000"
+
+for jar in \
+  /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+  /opt/cloudera/parcels/CDH/lib/tez/bin/tez-examples-*.jar; do
+  if compgen -G "${jar}" >/dev/null; then
+    echo "[PASS] example JAR on edge node: ${jar}"
+  else
+    echo "[FAIL] example JAR not found on edge node: ${jar} — adjust the path in lab/lab.md"
+    fail=1
+  fi
+done
 
 if yarn node -list 2>/dev/null | grep -q RUNNING; then
   echo "[PASS] yarn node -list shows RUNNING nodes"

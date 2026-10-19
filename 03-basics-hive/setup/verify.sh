@@ -11,12 +11,10 @@ require_cmd hdfs awk
 
 MODULE_ROOT="${WORKSHOP_ROOT}/03-hive"
 LANDING="${MODULE_ROOT}/landing/landisgyr_by_station"
-WORK="${MODULE_ROOT}/work"
 
 fail=0
 check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
 
-check hdfs dfs -test -d "${WORK}"
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/basemap/sample-basemap-at-locations.csv"
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
@@ -38,13 +36,9 @@ else
   fail=1
 fi
 
-if hdfs dfs -getfacl "${WORK}" 2>/dev/null | grep -q 'user:hive:rwx'; then
-  echo "[PASS] hive user has rwx ACL on ${WORK}"
-else
-  echo "[WARN] no hive ACL on ${WORK} - fine if HiveServer2 runs as the end user or Ranger grants hive access"
-fi
+check hdfs dfs -test -d /warehouse/tablespace/external/hive
 
-echo "[INFO] Not checked here: Ranger Hive policies (database ws_*, URL access to ${WORKSHOP_ROOT}). See 00-setup/admin/ranger/README.md"
+echo "[INFO] Not checked here: Ranger policies for ws_* (Hive: create/all on database ws_*; HDFS: rwx for workshop users on /warehouse/tablespace/external/hive/ws_*). See 00-setup/admin/ranger/README.md"
 
 if [[ ${fail} -ne 0 ]]; then exit 1; fi
 echo "03-basics-hive setup verify complete."

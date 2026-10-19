@@ -20,7 +20,7 @@ Run on a **CM-managed edge node** (scripts call `kinit` as `hdfs` via the NameNo
    ./01-basics-hdfs/setup/setup.sh
    ./01-basics-hdfs/setup/verify.sh
    ```
-3. Module **03** Hive lab paths (landing folders per station, shared work area with `hive` ACL):
+3. Module **03** Hive lab paths (landing folders per station; participants work in the default Hive warehouse, see the Ranger README):
    ```bash
    ./03-basics-hive/setup/setup.sh
    ./03-basics-hive/setup/verify.sh

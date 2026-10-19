@@ -161,16 +161,24 @@ Search the log for lines about containers being requested, assigned, and launche
 
 **Goal:** Run the **same job on the same file** with Tez, so you can compare it with section 3.
 
-Hive runs on Tez in the next module. Here you call Tez directly through its examples JAR. The `wordcount` example does the same work as the MapReduce one: it reads the same text and counts words. Only the engine differs:
+Hive runs on Tez in the Hive module. Here you call Tez directly through its examples JAR. The `wordcount` example does the same work as the MapReduce one: it reads the same text and counts words. Only the engine differs.
+
+A Tez client needs the Tez configuration (it tells Tez where the Tez libraries for the containers are) and the Tez jars on its classpath. Set them once in this terminal:
 
 ```bash
-yarn jar /opt/cloudera/parcels/CDH/lib/tez/tez-examples.jar \
+export HADOOP_CLASSPATH="/opt/cloudera/parcels/CDH/lib/tez/conf:/opt/cloudera/parcels/CDH/lib/tez/bin/*:/opt/cloudera/parcels/CDH/lib/tez/*"
+```
+
+Submit the job. The JAR file name contains the Tez version of your cluster, so the `*` in the path stands for it:
+
+```bash
+yarn jar /opt/cloudera/parcels/CDH/lib/tez/bin/tez-examples-*.jar \
   wordcount \
   "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
   "/user/${WORKSHOP_USER}/wordcount-tez"
 ```
 
-Again the JAR path is the CDP parcel default — ask your instructor if it differs. Note the application ID in the console output, then check the output and list Tez applications. Look at the application type column:
+If the shell reports more than one match or `No such file`, ask your instructor for the exact JAR path. Note the application ID in the console output, then check the output and list Tez applications. Look at the application type column:
 
 ```bash
 hdfs dfs -ls "/user/${WORKSHOP_USER}/wordcount-tez"
@@ -183,33 +191,50 @@ You should see `_SUCCESS` in the output directory and your application in the Te
 
 ## 7. Compare — MapReduce vs Tez
 
-**Goal:** Put the two runs side by side and find out how they differ in time, resources, and containers.
+**Goal:** Run the same word count on **many small files** with both engines and see how many containers each one needs.
 
-You now have two finished applications that did the same work. Show the status of each (use the `application_…` IDs from sections 4 and 6) and compare start time, finish time, and the **aggregate resource allocation** (memory and vcore seconds the application held):
+On the single file in sections 3 and 6 the two engines do about the same work, and a cold Tez job is often not faster: Tez first has to start its ApplicationMaster and make the Tez libraries (about 1 GB) available on the worker nodes. Tez pays off when there is a lot to do — for example many small files, which is also the typical situation in a data lake.
 
-```bash
-yarn application -status "<mapreduce-application-id>"
-yarn application -status "<tez-application-id>"
-```
-
-Now list the containers each application used. The first container of every application (`…_000001`) is its ApplicationMaster:
+The shared folder `${YARN_LAB}/input-many` holds the same text, cut into about 100 small files. Look at it:
 
 ```bash
-yarn logs -applicationId "<mapreduce-application-id>" -show_application_log_info
-yarn logs -applicationId "<tez-application-id>" -show_application_log_info
+hdfs dfs -count "${YARN_LAB}/input-many"
+hdfs dfs -ls "${YARN_LAB}/input-many" | head -5
 ```
 
-Collect your numbers:
+Run word count with MapReduce and with Tez on that **folder**. Use the same terminal as in section 6 for the Tez command, and note the `real` time that `time` prints:
 
-| | MapReduce | Tez |
-|---|-----------|-----|
-| Elapsed time | | |
-| Containers (incl. ApplicationMaster) | | |
-| Aggregate resource allocation | | |
+```bash
+hdfs dfs -rm -r -f -skipTrash "/user/${WORKSHOP_USER}/wordcount-mr-many" "/user/${WORKSHOP_USER}/wordcount-tez-many"
+time hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+  wordcount "${YARN_LAB}/input-many" "/user/${WORKSHOP_USER}/wordcount-mr-many"
+time yarn jar /opt/cloudera/parcels/CDH/lib/tez/bin/tez-examples-*.jar \
+  wordcount "${YARN_LAB}/input-many" "/user/${WORKSHOP_USER}/wordcount-tez-many"
+```
 
-Optional: open both applications in the **ResourceManager UI** (follow the tracking URL from `-status`). For MapReduce you see separate map and reduce tasks; for Tez you see one DAG with vertices. Compare the two views.
+Run the Tez job a **second time**. The first run had the one-time cost of distributing the Tez libraries to the nodes; the second one shows what Tez costs when it is warm. Remove its output first:
 
-**Check question:** Which engine finished faster on this small file, and which used fewer containers? Which of the differences you measured would grow with a multi-stage job on a large dataset — and why does that matter for Hive?
+```bash
+hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/wordcount-tez-many"
+time yarn jar /opt/cloudera/parcels/CDH/lib/tez/bin/tez-examples-*.jar \
+  wordcount "${YARN_LAB}/input-many" "/user/${WORKSHOP_USER}/wordcount-tez-many"
+```
+
+Now count the containers of each application. List the applications, then list the containers of the MapReduce run and of the last Tez run. The first container of every application (`…_000001`) is its ApplicationMaster:
+
+```bash
+yarn application -list -appStates FINISHED -appTypes MAPREDUCE,TEZ
+yarn logs -applicationId "<application-id>" -show_application_log_info
+```
+
+Optionally also read the aggregate resource allocation with `yarn application -status "<application-id>"`. Fill in your table:
+
+| | MapReduce | Tez (first run) | Tez (second run) |
+|---|-----------|-----------------|------------------|
+| Elapsed time | `real` of `time` | `real` of `time` | `real` of `time` |
+| Containers | number of container IDs in the `yarn logs` listing | same | same |
+
+**Check question:** Why does MapReduce need so many containers for this input, and what does Tez do instead with the many small files? Why was the first Tez run slower than the second? What does this mean for a data lake that receives thousands of small files per day — and which HDFS concept from the first lab is involved?
 
 ---
 
@@ -217,20 +242,38 @@ Optional: open both applications in the **ResourceManager UI** (follow the track
 
 **Goal:** Run a PySpark job in cluster mode on YARN and count the lines of the same text.
 
-In cluster mode the Spark driver runs inside a YARN container, so your terminal only shows submission progress — the job output lives in the YARN logs. The script `spark_linecount.py` is shared on HDFS:
+In cluster mode the Spark driver runs inside a YARN container, so your terminal only shows submission progress — the job output lives in the YARN logs. The script `spark_linecount.py` is shared on HDFS. `spark-submit` treats a path **without a scheme** as a **local** file on the machine you submit from. You can submit the script from either place — try both.
+
+**8a. Script on HDFS.** Use an `hdfs://` URI. YARN fetches the script directly from HDFS, so it works from any node:
 
 ```bash
 spark-submit --master yarn --deploy-mode cluster \
-  --name "linecount-${WORKSHOP_USER}" \
-  "${YARN_LAB}/assets/spark_linecount.py" \
+  --name "linecount-hdfs-${WORKSHOP_USER}" \
+  "hdfs://${YARN_LAB}/assets/spark_linecount.py" \
   "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
   "/user/${WORKSHOP_USER}/linecount-spark"
 ```
 
-Read the result from HDFS:
+**8b. Script on the local disk.** Copy the script from HDFS to your current node first, then submit the local path. `spark-submit` uploads it to the `.sparkStaging` directory in HDFS (watch for the `Uploading resource file:...` line in the output) and YARN ships it to the containers:
+
+```bash
+hdfs dfs -get "${YARN_LAB}/assets/spark_linecount.py" /tmp/spark_linecount.py
+ls -l /tmp/spark_linecount.py
+
+spark-submit --master yarn --deploy-mode cluster \
+  --name "linecount-local-${WORKSHOP_USER}" \
+  /tmp/spark_linecount.py \
+  "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
+  "/user/${WORKSHOP_USER}/linecount-spark-local"
+```
+
+Without the first step, the same command fails with `FileNotFoundException: File file:/tmp/spark_linecount.py does not exist` — the local path only exists on the node where you created it.
+
+Read the results from HDFS — both runs should print the same value:
 
 ```bash
 hdfs dfs -cat "/user/${WORKSHOP_USER}/linecount-spark/part-*"
+hdfs dfs -cat "/user/${WORKSHOP_USER}/linecount-spark-local/part-*"
 ```
 
 You should see one line `line_count=…`. Compare it with the line count of the file itself:
@@ -322,7 +365,7 @@ Watch containers and queues live while a colleague's job runs (quit with `q`):
 yarn top
 ```
 
-- Tez multi-stage: run `orderedwordcount` (same JAR, same arguments, new output path) and compare its vertices with the single-stage `wordcount` in the ResourceManager UI.  
+- Tez multi-stage: run `orderedwordcount` (same JAR and `HADOOP_CLASSPATH` as in section 6, same arguments, new output path) and compare its vertices with the single-stage `wordcount` in the ResourceManager UI.  
 - ResourceManager UI: open one finished application and find its containers and the node each ran on.  
 - Hue: browse `/user/${WORKSHOP_USER}/wordcount-mr` in File Browser.
 

@@ -28,7 +28,7 @@ If you run short, shorten sections 9–10 (they are the most "self-service") and
 3. **INT vs 1.5 (2):** Hive returns `NULL`, no error. Notice it with a `COUNT(*)` vs `COUNT(col)` comparison, `WHERE col IS NULL` counts, or a quality gate that compares row counts and null rates between runs.  
 4. **Missing `dt=` partition (3):** The Metastore does not know the new folder. Fix with `ALTER TABLE … ADD PARTITION` (explicit, cheap, best in pipelines) or `MSCK REPAIR TABLE` (scans all folders; fine for small tables, slow for thousands of partitions). Mention background discovery (`discover.partitions`) as the managed alternative.  
    **Pruning (3, first question):** Only the query filtering on the partition column (`station_id = …`) reads a subset; with two years of daily data it must be partitioned by date, and the query must filter on that column. A filter on a normal column (`quality_flag`) reads every partition — Hive needs the partition column in the `WHERE` clause (or a join/predicate Hive can resolve statically). Stress that pruning needs a literal or expression on the partition column; a filter on a derived value (e.g. `ts_utc` when partitioned by `dt`) does not prune.  
-5. **ORC columns (4):** `event_code` and `comm_status` have very few distinct values, so dictionary + run-length encoding shrinks them to almost nothing; `current_a` is a high-cardinality double, so it stays large. Columnar storage compresses each column on its own. Analysts reading a few columns read only those streams. Keep CSV only for landing (exchange format, human-readable, what source systems deliver).  
+5. **ORC columns and CTAS (4):** CTAS takes column names and types from the query; the participant chooses the table type (`EXTERNAL`), the file format (`STORED AS`), and — by default — the folder.  `event_code` and `comm_status` have very few distinct values, so dictionary + run-length encoding shrinks them to almost nothing; `current_a` is a high-cardinality double, so it stays large. Columnar storage compresses each column on its own. Analysts reading a few columns read only those streams. Keep CSV only for landing (exchange format, human-readable, what source systems deliver).  
 6. **Why UPDATE fails (5):** HDFS files are immutable (append only, no in-place edit) and an external table has no transaction metadata, so Hive has no way to track row versions. After a retry with `INSERT INTO` the table contains the data twice — silent duplicates.  
 7. **Why OVERWRITE is safe (6):** The result depends only on the source, not on what was there. A dynamic partition overwrite only replaces partitions that appear in the `SELECT`; a station that is in the table but not in the source keeps its **stale** partition. Fix: overwrite explicit partitions, or drop partitions that should disappear.  
 8. **Owner of raw vs curated (7):** Raw landing data: external — files are owned by the ingestion process, other engines (Spark, Impala) read them, and dropping a table must not delete source data. Curated tables only Hive writes: managed/ACID — Hive controls layout, updates, compaction, and cleanup; nobody should touch the files directly.  
@@ -48,16 +48,19 @@ If you run short, shorten sections 9–10 (they are the most "self-service") and
 
 | Issue | Mitigation |
 |-------|------------|
-| HiveServer2 runs queries as `hive` (impersonation off, the CDP default) and cannot write to participant folders | `setup.sh` creates `${WORKSHOP_ROOT}/03-hive/work` with a default ACL for `hive`. If ACLs are disabled, use a Ranger HDFS policy for `hive` on that path |
-| `CREATE DATABASE` / `CREATE TABLE … LOCATION` denied | Ranger Hive policies needed — see [ranger README](../../00-setup/admin/ranger/README.md): create on `ws_*`, all on `ws_*` tables, URL access for `${WORKSHOP_ROOT}/*` |
+| Participants cannot `hdfs dfs -cp` into `/warehouse/tablespace/external/hive/ws_<user>.db/<table>` (folders are created by Hive as `hive`) | Ranger HDFS policy: `read`/`write`/`execute` on `/warehouse/tablespace/external/hive/ws_*` for the workshop users. Test with a normal participant account before the session |
+| `CREATE DATABASE` / `CREATE TABLE` denied | Ranger Hive policies needed — see [ranger README](../../00-setup/admin/ranger/README.md): create on `ws_*`, all on `ws_*` tables. No URL policy needed: the lab never sets a `LOCATION` |
+| Warehouse path differs on your cluster | `DESCRIBE DATABASE EXTENDED` shows it; adjust `HIVE_EXT` in the lab intro (and `check.sh` reads `HIVE_EXT` if exported) |
 | Managed table files not readable by participants | Intentional (owner `hive`). Lab handles both outcomes; show the files yourself in [demos.md](demos.md) |
 | Background partition discovery makes `MSCK REPAIR` step look "automatic" | Lab sets `discover.partitions=false` on the partitioned table. If your version ignores the property, tell participants to run the query right after the copy |
 | Strict managed tables: `CREATE TABLE … STORED AS TEXTFILE` silently becomes an external table (HMS translation) | Lab only creates managed ORC/ACID tables via CTAS. Mention it if somebody tries a managed text table |
+| Hue variables | The lab SQL uses the single plain variable `${ws_user}`: Hive resolves them from `--hivevar` in Beeline, and Hue shows an input field for each placeholder. Hue's syntax `${name=default}` pre-fills a field — use it in a saved query if you want to prepare an editor tab for the room. Keep it to this one variable; the default external location is derived from the database name |
 | First query slow (Tez session start) | Run one query yourself before the room starts; warn participants once |
 | 15+ participants run Section 4/6 inserts at the same time | Queue capacity: check `yarn queue -status` (module 02). Stagger by 1–2 min or use a workshop queue |
 | `hive --orcfiledump` not on PATH, or noisy log output | Troubleshooting has the fallback; the sizes from `-du` are enough for the point |
 | `parquet-tools` not installed | Lab uses `strings` on the footer; `parquet-tools meta` is only a stretch item |
 | `INSERT OVERWRITE` from the same table partition | Works on non-ACID tables (Hive writes to a staging folder and swaps). If it fails on your version, use a temp table: `CREATE TABLE tmp AS SELECT …`, overwrite from it, drop it |
+| CTAS for **external** tables (section 4) is rejected on older Hive versions | Troubleshooting has the create-plus-insert fallback. Plain `CREATE TABLE … AS SELECT` without `EXTERNAL` would create a managed ACID table in CDP — useful contrast for section 7: same CTAS, different table type |
 | `UPDATE` error text differs per version | The message always mentions that the table is not transactional |
 
 ## Ranger and permissions summary
@@ -65,14 +68,14 @@ If you run short, shorten sections 9–10 (they are the most "self-service") and
 Participants need (details for admins in the [ranger README](../../00-setup/admin/ranger/README.md)):
 
 1. Create database and tables named `ws_<user>` / inside it (Hive policy on `ws_*`).  
-2. Read access for `hive` on `${WORKSHOP_ROOT}/data` (POSIX default is enough) and read/write on `${WORKSHOP_ROOT}/03-hive/work`.  
-3. Hive URL policy for `${WORKSHOP_ROOT}/*` so `LOCATION` clauses are accepted.  
+2. Read/write/execute on `/warehouse/tablespace/external/hive/ws_*` (HDFS policy) so they can copy, list, and delete files in their table folders; read on `${WORKSHOP_ROOT}/data` and `${WORKSHOP_ROOT}/03-hive/landing`.  
+3. No Hive URL policy: custom `LOCATION` clauses are left for a later lab.  
 4. Compaction needs no extra permission (it runs inside the Metastore).
 
 ## Admin
 
-Run [setup/setup.sh](../setup/setup.sh) after bootstrap: it splits the Landis&Gyr sample into one folder per station under `${WORKSHOP_ROOT}/03-hive/landing/` and prepares the shared work area. Participant databases (`ws_<user>`) are **not** removed by [setup/teardown.sh](../setup/teardown.sh) — drop them as a Hive admin.
+Run [setup/setup.sh](../setup/setup.sh) after bootstrap: it splits the Landis&Gyr sample into one folder per station under `${WORKSHOP_ROOT}/03-hive/landing/` (nothing else; participant data lives in the default Hive warehouse). Participant databases (`ws_<user>`) and their external table folders are **not** removed by [setup/teardown.sh](../setup/teardown.sh) — drop the databases as a Hive admin and delete leftover folders under `/warehouse/tablespace/external/hive/ws_<user>.db`.
 
 ## After module
 
-Preview module 04 (Spark): Spark reads the same Parquet/ORC files and external tables through the Metastore — the folders you built in `${HIVE_WORK}` are the input. Advanced Hive (module 10) builds on sections 3, 4, and 6: partition design, bucketing, window functions and ranking, and performance tuning.
+Preview module 04 (Spark): Spark reads the same Parquet/ORC files and external tables through the Metastore — the folders you built under `${HIVE_EXT}` are the input. The later lab on table locations (`LOCATION` clause) comes after this module. Advanced Hive (module 10) builds on sections 3, 4, and 6: partition design, bucketing, window functions and ranking, and performance tuning.

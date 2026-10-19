@@ -10,7 +10,7 @@
 | 22–35 | Sections 3–4 MapReduce wordcount + status/logs |
 | 35–45 | Section 5 ApplicationMaster (two terminals, running `pi`) |
 | 45–52 | Section 6 Tez wordcount (same file) |
-| 52–60 | Section 7 MR vs Tez comparison; collect numbers on the whiteboard |
+| 52–60 | Section 7 many small files (MR vs Tez cold vs Tez warm); collect numbers on the whiteboard |
 | 60–68 | Section 8 Spark linecount |
 | 68–73 | Section 9 relate + `check.sh` |
 | 73–80 | Section 10 (optional, fast groups) or debrief; otherwise run it as a group demo |
@@ -21,7 +21,7 @@
 2. **Workshop queue (section 2):** Dedicated queue prevents one tenant from starving others; document the queue name on the whiteboard.  
 3. **Failed map (section 4):** Check input path and HDFS ACLs first, then YARN status (`yarn application -status`), then container logs.  
 4. **ApplicationMaster (section 5):** The RM only schedules containers; the AM is per-application code that negotiates containers, launches tasks via NodeManagers, retries failed tasks, and reports progress. Putting it in a container keeps the RM small and lets each engine bring its own logic. If the AM container dies, YARN starts a new attempt (`yarn.resourcemanager.am.max-attempts`, MapReduce AM recovers completed tasks); if all attempts fail, the application fails. If a task container dies, only the AM reruns that task.  
-5. **MR vs Tez (section 7):** see below.  
+5. **Many small files (section 7):** see below.  
 6. **Requests that do not fit (section 10):** see below.  
 7. **Shared platform (section 9):** Without shared YARN/HDFS the same input files (and later the pilot CSVs) would be copied per engine; governance (Ranger) and lineage would have to be maintained per silo.
 
@@ -37,29 +37,29 @@ Three situations, all with a "stuck" job — make participants name them:
 
 The exact outcome depends on your cluster limits, so **check them before the session** (scheduler maximum, node size, workshop queue capacity and maximum capacity) and have the winning values ready (for example one that is just above the scheduler maximum). The ×4 sequence in the lab usually crosses the limit within 3–4 runs. Pending requests hold no resources, so a stuck job does not block others, but remind participants to `-kill` it. Leftover `QuasiMonteCarlo_…` directories from killed jobs are listed in troubleshooting.
 
-## MR vs Tez comparison (section 7)
+## MR vs Tez: many small files (section 7)
 
-Both runs do the same word count on the same file. Collect each participant's numbers on the whiteboard and discuss the spread.
+**Be honest about cold Tez.** On the single file (sections 3 and 6) a cold direct Tez job is often **slower** than MapReduce: the `yarn jar` client starts a new Tez session and AM every time, and the first run on a node distributes the Tez library tarball (`tez.tar.gz`, ~1.2 GB on this parcel). Do not promise a speed-up there. Hive hides this cost with pre-started sessions (and container reuse across queries).
 
-What participants usually see on a small file:
+**Many small files (section 7).** The same word count runs on a folder of ~100 small files (same text, 6 lines each):
 
-- **ApplicationMaster:** both engines start one AM container (`…_000001`) — start-up cost is similar, so elapsed time is close and can even favour MapReduce on a tiny input. Say this openly; do not oversell Tez on a 1-stage toy job.  
-- **Containers:** MapReduce launches separate containers for map and reduce tasks; Tez runs tasks in a DAG and can **reuse containers** within the application, so container count is often lower.  
-- **Aggregate resource allocation:** reflects how long containers were held (MB-seconds, vcore-seconds). Compare it with elapsed time.  
-- **UI view:** MapReduce shows jobs with map/reduce tasks; Tez shows one DAG with vertices.
+- **MapReduce:** one map task per file (a split never spans files) → ~100 map containers, each paying JVM start-up for a few lines of text. Console output shows `Launched map tasks` ≈ number of files.  
+- **Tez:** the input is read with **grouped splits** (`tez.grouping.min-size` / `max-size`), so small files are combined into very few tasks — here usually one or a handful, since the whole input is far below the grouping size. Containers are also reused between tasks.  
+- **Expected pattern (not yet measured on this cluster):** MapReduce needs ~100+ containers; Tez needs a handful. The first Tez run is slowest (library localization), the second Tez run is clearly faster than the first and normally faster than MapReduce. If participants run at the same time the numbers vary widely — collect them on the whiteboard and discuss why.  
+- **Link to the HDFS lab and Hive:** many small files mean many blocks and NameNode entries (HDFS lab) and, for MapReduce, many tasks. Tez split grouping is the reason Hive on Tez copes better with small files, but compaction and sensible file sizes (Hive module) remain the real fix.
 
-Where the gap grows (and why Hive moved to Tez):
+The text data and the cut-up files are synthetic on purpose; say so when a participant asks why this is not the smart-meter CSV.
 
-- **Multi-stage jobs:** MapReduce chains jobs and writes intermediate results to HDFS between them; Tez runs the whole DAG in one application and streams between vertices. Use the stretch task (`orderedwordcount`, 3 vertices) as the live example.  
-- **Interactive latency:** fewer container start-ups per query.
-
-If numbers look odd (Tez slower, large variance): another participant's job was queued, or the first Tez run paid for localizing the Tez libraries. Re-running once usually removes the effect — a good talking point about measuring on shared clusters.
+If numbers look odd (Tez slower on both runs, large variance): other jobs queued ahead, or the Tez client is not picking up the cluster Tez configuration (`tez.lib.uris`) — check the `HADOOP_CLASSPATH` line from section 6.
 
 ## Pitfalls
 
 | Issue | Mitigation |
 |-------|------------|
-| Example JAR paths differ | Lab hardcodes the CDP parcel paths; verify `hadoop-mapreduce-examples.jar` and `tez-examples.jar` on the edge node before the session and tell participants the right path |
+| Example JAR paths differ | Lab hardcodes the CDP 7.3 parcel paths (`lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar`, `lib/tez/bin/tez-examples-*.jar`; the Tez JAR name contains the version, e.g. `0.9.1.7.3.2.20000-258`). `setup/verify.sh` checks both on the edge node — run it before the session |
+| Section 7 outcome not measured | Do one dry run: MapReduce vs Tez (cold) vs Tez (warm) on `${WORKSHOP_ROOT}/02-yarn/input-many`. Adjust the file count in `setup.sh` (`split -l 6`) if the contrast is too small (fewer lines per file → more files) |
+| Tez split grouping outcome | Tez native `wordcount` should group the small files; confirm the Tez container count after the dry run and adjust the talking points if grouping is configured differently on your cluster |
+| Tez direct run not tested | The `HADOOP_CLASSPATH` line in section 6 (Tez conf + `lib/tez/bin/*` + `lib/tez/*`) was derived from the parcel layout and has **not** been run end to end. Do one run with a participant account first; if it needs more jars, extend the line in the lab |
 | Tez JAR missing on older layouts | Skip sections 6–7; show the comparison from the RM UI using a Hive query on Tez instead |
 | `-show_application_log_info` unsupported | Older client: participants count containers in the RM UI (application → attempt → containers) |
 | Output dir exists | Troubleshooting lists the `-rm -r` commands; remind after failed reruns |

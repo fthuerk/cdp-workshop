@@ -17,7 +17,7 @@ After this module you can:
 - List cluster nodes and interpret queue / capacity scheduler basics
 - Submit MapReduce, Tez, and Spark applications on YARN against workshop data
 - Find the ApplicationMaster of a running application and explain what it does
-- Compare the same job on MapReduce and Tez by elapsed time, containers, and resource allocation
+- Compare the same job on MapReduce and Tez on many small files by elapsed time and container count
 - Explain why an application stays `ACCEPTED` or waits at 0% when its container requests do not fit
 - Track application state with the YARN CLI and retrieve container logs
 - Relate YARN failures (rejected, failed, killed) to what you will see in Hive and Spark labs

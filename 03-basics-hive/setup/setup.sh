@@ -11,7 +11,6 @@ require_cmd hdfs awk sort mktemp
 
 MODULE_ROOT="${WORKSHOP_ROOT}/03-hive"
 LANDING="${MODULE_ROOT}/landing/landisgyr_by_station"
-WORK="${MODULE_ROOT}/work"
 SOURCE="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
 
 if ! hdfs dfs -test -e "${SOURCE}"; then
@@ -36,14 +35,10 @@ for station in $(awk -F, 'NR > 1 && $2 != "" {print $2}' "${tmp}/all.csv" | sort
   log_info "Landing folder station_id=${station}"
 done
 
-# Work area: every participant creates /work/<user>. HiveServer2 usually runs queries as the
-# hive service user, so hive needs rwx on the work tree (default ACL is inherited by subfolders).
-hdfs dfs -mkdir -p "${WORK}"
 hdfs dfs -chmod 755 "${MODULE_ROOT}"
 hdfs dfs -chmod -R 755 "${MODULE_ROOT}/landing"
-hdfs dfs -chmod 1777 "${WORK}"
-hdfs dfs -setfacl -m user:hive:rwx,default:user:hive:rwx "${WORK}" \
-  || log_warn "setfacl failed - enable HDFS ACLs or grant the hive user access to ${WORK} (Ranger)"
 
 log_info "Hive module setup complete under ${MODULE_ROOT}"
-log_warn "Ranger: workshop users need Hive policies - see 00-setup/admin/ranger/README.md (module 03)"
+# Participants create ws_<user> databases and tables with the default external location and copy
+# files into /warehouse/tablespace/external/hive/ws_<user>.db/<table>. That needs Ranger policies.
+log_warn "Ranger: workshop users need Hive and HDFS policies for ws_* - see 00-setup/admin/ranger/README.md (module 03)"
