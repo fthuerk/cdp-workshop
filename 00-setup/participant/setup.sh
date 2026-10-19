@@ -3,7 +3,7 @@
 # using your own Kerberos ticket. Use this when no trainer/admin can run bootstrap.sh.
 #
 # Usage: setup.sh [--root HDFS_DIR] [--modules "02 03 04 06 07"] [--remove]
-#   --root     workshop location on HDFS (default: /user/<you>/cdp_workshop)
+#   --root     workshop location on HDFS (default: /user/<kerberos user>/cdp_workshop)
 #   --modules  module setup scripts to run after the data upload (default: all)
 #   --remove   delete the workshop location again (and exit)
 set -euo pipefail
@@ -12,8 +12,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck source=../../lib/common.sh
 source "${REPO_ROOT}/lib/common.sh"
 
-WS_USER="${WORKSHOP_USER:-${USER}}"
-ROOT="/user/${WS_USER}/cdp_workshop"
+ROOT=""
 MODULES="02 03 04 06 07"
 REMOVE=0
 
@@ -29,6 +28,13 @@ done
 
 require_cmd hdfs klist
 require_kerberos_ticket
+
+# User name = Kerberos principal without instance and realm (alice/admin@REALM -> alice).
+principal="$(klist 2>/dev/null | awk '/Default principal/ {print $3; exit}')"
+WS_USER="${WORKSHOP_USER:-${principal%%[/@]*}}"
+[[ -n "${WS_USER}" ]] || { log_err "Cannot determine the user from the Kerberos ticket (run klist)"; exit 1; }
+ROOT="${ROOT:-/user/${WS_USER}/cdp_workshop}"
+log_info "Kerberos principal ${principal} -> user ${WS_USER}, workshop location ${ROOT}"
 
 if [[ "${REMOVE}" == "1" ]]; then
   [[ "${ROOT}" == "/" || "${ROOT}" == "/user" || "${ROOT}" == "/user/${WS_USER}" ]] \
