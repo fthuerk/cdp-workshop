@@ -29,9 +29,10 @@ done
 require_cmd hdfs klist
 require_kerberos_ticket
 
-# User name = Kerberos principal without instance and realm (alice/admin@REALM -> alice).
+# User name = Kerberos principal without instance and realm, lower case (alice/admin@REALM -> alice).
 principal="$(klist 2>/dev/null | awk '/Default principal/ {print $3; exit}')"
 WS_USER="${WORKSHOP_USER:-${principal%%[/@]*}}"
+WS_USER="$(printf '%s' "${WS_USER}" | tr '[:upper:]' '[:lower:]')"   # HDFS home dirs are lower case
 [[ -n "${WS_USER}" ]] || { log_err "Cannot determine the user from the Kerberos ticket (run klist)"; exit 1; }
 ROOT="${ROOT:-/user/${WS_USER}/cdp_workshop}"
 log_info "Kerberos principal ${principal} -> user ${WS_USER}, workshop location ${ROOT}"
