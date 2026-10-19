@@ -27,7 +27,8 @@ printf 'Do not share — workshop secret marker\n' | hdfs dfs -put -f - "${SECRE
 
 # Space quota below one 128 MB block × replication so uploads fail predictably
 hdfs dfsadmin -clrSpaceQuota "${QUOTA}" 2>/dev/null || true
-hdfs dfsadmin -setSpaceQuota 1m "${QUOTA}"
+hdfs dfsadmin -setSpaceQuota 1m "${QUOTA}" \
+  || log_warn "Could not set space quota (needs HDFS superuser); the quota_reached exercise will not fail as described"
 
 # POSIX baseline (Ranger optional)
 hdfs dfs -chmod 755 "${MODULE_ROOT}" "${LAB}" 2>/dev/null || true

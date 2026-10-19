@@ -9,6 +9,7 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 | Role | Start here |
 |------|------------|
 | Participant | [00-setup](00-setup/README.md) → run `participant/check_env.sh` after `kinit` |
+| Participant, no admin access to the platform | [00-setup](00-setup/README.md#path-b-no-trainer-access-to-the-platform-self-service) → run `00-setup/participant/setup.sh`, then use the `WORKSHOP_ROOT` it prints |
 | Trainer / admin | Copy `config.env.example` → `config.env`, then [00-setup/admin](00-setup/admin/README.md) |
 
 ## Module catalog
