@@ -1,8 +1,8 @@
 # Impala hands-on lab
 
-Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need **two terminals** on the edge node: one for `impala-shell` and one for `beeline` (Hive) in section 4 only.
+Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need **two terminals** on the edge node: one for `impala-shell` and one for `beeline` (Hive) in sections 4 and 5 only.
 
-Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_WORK` is your folder for table data. `IMPALA_OPTS` is how you reach the Impala coordinator (from your handout). `HS2_URL` is the HiveServer2 JDBC URL (same handout — only for the Hive comparison in section 4).
+Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_WORK` is your folder for table data. `IMPALA_OPTS` is how you reach the Impala coordinator (from your handout). `HS2_URL` is the HiveServer2 JDBC URL (same handout — only for the Hive comparison in sections 4 and 5).
 
 ```bash
 export WORKSHOP_USER=<your_username>
@@ -131,7 +131,45 @@ You should get a small result set in seconds, with no MapReduce-style progress l
 
 ---
 
-## 3. Same query in Impala and Hive — speed
+## 3. Table statistics — COMPUTE STATS
+
+**Goal:** Give the Impala planner row counts and column statistics, and see the difference in `SHOW` output and the query plan.
+
+Impala picks join order and memory estimates from statistics stored in the Metastore. A new external table has none. Check:
+
+```sql
+SHOW TABLE STATS impala_meter;
+SHOW COLUMN STATS impala_meter;
+EXPLAIN SELECT station_id, COUNT(*) FROM impala_meter GROUP BY station_id;
+```
+
+You should see `#Rows = -1` (unknown), `-1` distinct values per column, and `cardinality=unavailable` in the plan.
+
+Compute the statistics (Impala scans the table once):
+
+```sql
+COMPUTE STATS impala_meter;
+```
+
+Check again:
+
+```sql
+SHOW TABLE STATS impala_meter;
+SHOW COLUMN STATS impala_meter;
+EXPLAIN SELECT station_id, COUNT(*) FROM impala_meter GROUP BY station_id;
+```
+
+Now `#Rows` should be **15,000**, `#Distinct Values` is filled in for each column, and the plan shows a real `cardinality=`.
+
+Statistics do **not** update themselves when files change. After new data lands (as in section 6), re-run `COMPUTE STATS`; for big tables use `COMPUTE INCREMENTAL STATS` on partitioned tables, or `COMPUTE STATS ... TABLESAMPLE` to save time.
+
+**Hive comparison:** Hive keeps its own statistics in the same Metastore (`ANALYZE TABLE ... COMPUTE STATISTICS [FOR COLUMNS]`, see the Hive lab). Use `COMPUTE STATS` for Impala planning; do not assume Hive-gathered statistics are enough.
+
+**Check question:** Which statement tells you whether the planner has row counts for a table — and what value means "unknown"?
+
+---
+
+## 4. Same query in Impala and Hive — speed
 
 **Goal:** Run one heavy scan twice and compare wall-clock time and what happens on YARN.
 
@@ -171,7 +209,7 @@ You should see a **Tez** application for the Hive query and **no** comparable ba
 
 ---
 
-## 4. Row-level UPDATE and DELETE — errors on Hive tables
+## 5. Row-level UPDATE and DELETE — errors on Hive tables
 
 **Goal:** See that neither Impala nor Hive can patch rows in place on this **external** table, and read the error messages.
 
@@ -210,7 +248,7 @@ Hive should fail with an error that the table is **not transactional** (often `S
 
 ---
 
-## 5. New file on disk — refresh metadata
+## 6. New file on disk — refresh metadata
 
 **Goal:** See that Impala (and Hive) trust the Metastore until you tell them files changed.
 
@@ -251,7 +289,7 @@ You should be back at **15,000** rows.
 
 ## Stretch (optional)
 
-- Hue: run section 3’s aggregation in **Editor → Impala** and compare with **Editor → Hive**.  
+- Hue: run section 4’s aggregation in **Editor → Impala** and compare with **Editor → Hive**.  
 - `EXPLAIN` the aggregation in Impala and compare with `EXPLAIN` in Hive — notice Impala’s plan without YARN stages.  
 - Create a tiny **managed transactional** table in Hive (`TBLPROPERTIES ('transactional'='true')`), insert a few rows, `UPDATE` one row successfully in Hive, then try the same `UPDATE` in Impala and compare errors.
 

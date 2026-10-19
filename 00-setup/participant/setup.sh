@@ -13,7 +13,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "${REPO_ROOT}/lib/common.sh"
 
 ROOT=""
-MODULES="02 03 04 06 07"
+MODULES="02 03 04 05 06 07"
 REMOVE=0
 
 while [[ $# -gt 0 ]]; do
@@ -77,5 +77,5 @@ In every lab, use this instead of the default:
   export WORKSHOP_ROOT=${ROOT}
 
 Limits of the self-service path: no HDFS space quota (module 02 quota exercise), and no Ranger
-policies (the Ranger-based steps in modules 02, 04, 06 and 07 depend on what your account may do).
+policies (the Ranger-based steps in modules 02, 04, 05, 06 and 07 depend on what your account may do).
 MSG

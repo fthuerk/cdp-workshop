@@ -49,4 +49,4 @@ After this module you can:
 
 ## Next module
 
-[05-basics-spark](../README.md) (planned — see root README)
+[05-basics-spark](../05-basics-spark/README.md)

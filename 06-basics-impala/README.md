@@ -46,4 +46,4 @@ After this module you can:
 
 ## Next module
 
-[05-basics-spark](../README.md) (planned — see root README)
+[07-lakehouse-iceberg](../07-lakehouse-iceberg/README.md)

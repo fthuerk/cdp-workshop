@@ -23,4 +23,4 @@ fi
 
 log_info "Lakehouse module has no folders to prepare."
 log_warn "Ranger: besides Hive policies on ws_* and HDFS rwx on the external warehouse folders of ws_*, workshop users need the Iceberg storage handler policy (storage-type iceberg, storage-url *, RW Storage) - see 00-setup/admin/ranger/README.md (module 07)"
-log_warn "Runtime: Impala UPDATE/MERGE need 7.3.1.500 or later; Spark needs the Iceberg SQL extensions on the command line (see lab section 5)"
+log_warn "Runtime: Impala UPDATE/MERGE need 7.3.1.500 or later"

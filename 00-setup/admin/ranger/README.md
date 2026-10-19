@@ -21,6 +21,10 @@ The JSON templates only cover HDFS. The Hive lab needs these policies in the **H
 2. **HDFS for participants:** the lab uses the **default external location** only (no `LOCATION` clauses). Participants copy files into `/warehouse/tablespace/external/hive/ws_<user>.db/<table>`, so allow `read`/`write`/`execute` for the workshop users on `/warehouse/tablespace/external/hive/ws_*` (recursive), and read on `${WORKSHOP_ROOT}/data` and `${WORKSHOP_ROOT}/04-hive/landing`. Hive itself writes there as the `hive` user, which already has access to the warehouse.  
 3. **No URL policy needed** for module 04, because tables never set a custom location (this comes in a later lab).
 
+## Hive policies for module 05 Spark (manual, Ranger UI)
+
+Same **`ws_*` database/table** pattern as module 04. Participants write Parquet under **`/user/<participant>/`** (their HDFS home) and register an external table with `LOCATION` pointing there — grant workshop users **read/write/execute** on their own `/user/<name>` tree (or rely on default home ownership). Optional shared folder `${WORKSHOP_ROOT}/05-spark/work/*` only if you redirect lab tables there; default setup uses personal paths only.
+
 ## Hive / Impala policies for module 06 (manual, Ranger UI)
 
 Same pattern as module 04: `ws_*` database/table privileges and URL access for `${WORKSHOP_ROOT}/06-impala/work/*`. If Impala has a separate Ranger service, grant `SELECT` (and `CREATE` on `ws_*`) for workshop users. HDFS ACL on `${WORKSHOP_ROOT}/06-impala/work` is prepared by `06-basics-impala/setup/setup.sh`.
