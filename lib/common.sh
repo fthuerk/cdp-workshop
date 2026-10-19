@@ -41,9 +41,52 @@ require_kerberos_ticket() {
   fi
 }
 
+# Optional flags for bootstrap/setup/verify/teardown (see workshop_admin_usage).
+parse_workshop_admin_args() {
+  CDP_WORKSHOP_SKIP_ADMIN_KINIT="${CDP_WORKSHOP_SKIP_ADMIN_KINIT:-0}"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --skip-kinit|--use-existing-ticket)
+        CDP_WORKSHOP_SKIP_ADMIN_KINIT=1
+        shift
+        ;;
+      -h|--help)
+        workshop_admin_usage
+        exit 0
+        ;;
+      *)
+        log_err "Unknown argument: $1 (try --help)"
+        exit 1
+        ;;
+    esac
+  done
+  export CDP_WORKSHOP_SKIP_ADMIN_KINIT
+}
+
+workshop_admin_usage() {
+  cat <<EOF
+Usage: $(basename "${0}") [--skip-kinit]
+
+  --skip-kinit, --use-existing-ticket
+    Use your current Kerberos ticket instead of kinit via the HDFS NameNode keytab.
+
+  Environment: CDP_WORKSHOP_SKIP_ADMIN_KINIT=1 has the same effect as --skip-kinit.
+EOF
+}
+
 # Admin bootstrap/setup: ticket as hdfs superuser (NameNode keytab on edge node).
 require_admin_hdfs_kinit() {
-  require_cmd kinit
+  require_cmd kinit klist
+  if [[ "${CDP_WORKSHOP_SKIP_ADMIN_KINIT:-0}" == "1" ]]; then
+    if ! klist -s 2>/dev/null; then
+      log_err "No valid Kerberos ticket. Run kinit first, or omit --skip-kinit."
+      exit 1
+    fi
+    local principal
+    principal="$(klist 2>/dev/null | awk '/Default principal/ {print $3; exit}')"
+    log_info "Using existing Kerberos ticket${principal:+ (${principal})}"
+    return 0
+  fi
   # shellcheck source=admin_auth.sh
   source "${_ws_script_dir}/admin_auth.sh"
   admin_kinit_hdfs

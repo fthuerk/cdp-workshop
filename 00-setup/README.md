@@ -28,10 +28,10 @@ Prepare your account and confirm cluster access before any hands-on module.
 
 - HDFS workshop root with sample datasets under `${WORKSHOP_ROOT}/data/`
 - Optional home directories `/user/<participant>`
-- Module **01** adds HDFS lab paths (secret, quota, big file)
+- Module **02** adds HDFS lab paths (secret, quota, big file)
 
 Details: [admin/README.md](admin/README.md)
 
 ## Next module
 
-[01-basics-hdfs](../01-basics-hdfs/README.md)
+[01-basics-kerberos](../01-basics-kerberos/README.md)

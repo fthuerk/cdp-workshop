@@ -16,18 +16,21 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 | ID | Module | Track | Est. time | Status |
 |----|--------|-------|-----------|--------|
 | 00 | [Setup](00-setup/README.md) | — | 15 min | **Ready** |
-| 01 | [Basics: HDFS](01-basics-hdfs/README.md) | Basics | ~75 min | **Ready** |
-| 02 | [Basics: YARN](02-basics-yarn/README.md) | Basics | ~80 min | **Ready** |
-| 03 | [Basics: Hive](03-basics-hive/README.md) | Basics | ~120 min | Draft (not yet dry-run on a cluster) |
-| 04 | Basics: Spark | Basics | ~90 min | Planned |
-| 05 | [Basics: Impala](05-basics-impala/README.md) | Basics | ~45 min | Draft (not yet dry-run on a cluster) |
+| 01 | [Basics: Kerberos](01-basics-kerberos/README.md) | Basics | ~35 min | Draft (not yet dry-run on a cluster) |
+| 02 | [Basics: HDFS](02-basics-hdfs/README.md) | Basics | ~75 min | **Ready** |
+| 03 | [Basics: YARN](03-basics-yarn/README.md) | Basics | ~80 min | **Ready** |
+| 04 | [Basics: Hive](04-basics-hive/README.md) | Basics | ~110 min | Draft (not yet dry-run on a cluster) |
+| 05 | Basics: Spark | Basics | ~90 min | Planned |
+| 06 | [Basics: Impala](06-basics-impala/README.md) | Basics | ~45 min | Draft (not yet dry-run on a cluster) |
+| 07 | [Lakehouse: Iceberg](07-lakehouse-iceberg/README.md) | Lakehouse | ~150 min | Draft (not yet dry-run on a cluster) |
 | 10 | Advanced: Hive | Advanced | ~90 min | Planned |
 | 11 | Advanced: Spark | Advanced | ~90 min | Planned |
 | 12 | Advanced: Impala | Advanced | ~60 min | Planned |
 | 13 | Advanced: Oozie | Advanced | ~75 min | Planned |
 | 20 | MVP: Full pipeline | MVP | ~120 min | Planned |
 
-**Basics track:** HDFS → YARN → Hive → Spark → Impala  
+**Basics track:** Kerberos → HDFS → YARN → Hive → Spark → Impala  
+**Lakehouse:** Iceberg tables on Hive, Impala, and Spark (after Hive and Impala basics)  
 **Advanced track:** Hive → Spark → Impala → Oozie (deeper patterns on the same use case)  
 **MVP:** end-to-end pipeline with quality checks and governance touchpoints
 
@@ -42,10 +45,12 @@ config.env.example   # cluster-specific settings
 lib/                 # common.sh, admin_auth.sh
 data/samples/        # synthetic CSVs (uploaded to HDFS by bootstrap)
 00-setup/            # shared cluster bootstrap
-01-basics-hdfs/      # lab + trainer + setup scripts
-02-basics-yarn/      # YARN lab + setup scripts
-03-basics-hive/      # Hive lab + trainer + setup scripts
-05-basics-impala/    # Impala lab + trainer + setup scripts
+01-basics-kerberos/  # Kerberos lab + trainer (no setup needed; first lab)
+02-basics-hdfs/      # lab + trainer + setup scripts
+03-basics-yarn/      # YARN lab + setup scripts
+04-basics-hive/      # Hive lab + trainer + setup scripts
+06-basics-impala/    # Impala lab + trainer + setup scripts
+07-lakehouse-iceberg/ # Lakehouse lab (Iceberg on Hive, Impala, Spark) + trainer + setup scripts
 docs/concept.md              # curriculum concept
 docs/workshop-guidelines.md  # how to author labs and modules
 ```
@@ -53,7 +58,7 @@ docs/workshop-guidelines.md  # how to author labs and modules
 ## On the cluster
 
 1. Clone or unpack this repo on an edge node → set `WORKSHOP_LOCAL` in `config.env`.
-2. Admin: `00-setup/admin/bootstrap.sh`, then `01-basics-hdfs/setup/setup.sh`, then each module’s `verify.sh`.
-3. Participants: read module `lab/lab.md` and run commands with a personal Kerberos principal.
+2. Admin: `00-setup/admin/bootstrap.sh`, then `02-basics-hdfs/setup/setup.sh`, then each module’s `verify.sh`.
+3. Participants: read each module’s lab markdown (for example `lab/lab_basics_hdfs.md`) and run commands with a personal Kerberos principal.
 
 Labs define success through outcomes and `lab/check.sh`, not fixed sample transcripts.

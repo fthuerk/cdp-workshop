@@ -28,7 +28,7 @@ fi
 if hdfs dfs -test -d "/user/${USER}" 2>/dev/null; then
   pass "Personal HDFS home exists: /user/${USER}"
 else
-  echo "[WARN] /user/${USER} not found — you will create it in module 01"
+  echo "[WARN] /user/${USER} not found — you will create it in module 02"
 fi
 
 if command -v beeline >/dev/null 2>&1; then

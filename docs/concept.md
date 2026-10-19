@@ -36,7 +36,7 @@ Module **00-setup** includes a short participant checklist (SSH, `kinit`, Hue/Kn
 
 ### Basics track
 
-After completing modules **01–05**, participants should be able to:
+After completing modules **01–06**, participants should be able to:
 
 - Navigate and manage files in **HDFS**, including replication, trash, and permissions  
 - Read **YARN** application state, queues, and logs for Hive/Spark/MR jobs  
@@ -64,14 +64,16 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 | Module | Title | Depends on | Est. duration | Hands-on outcome |
 |--------|-------|------------|---------------|------------------|
 | **00-setup** | Environment bootstrap | — | 15 min | Workshop root on HDFS, samples loaded, personal `/user/$USER` |
-| **01-basics-hdfs** | HDFS fundamentals | 00 | ~75 min | Personal workspace; inspect use-case CSVs; replication & trash |
-| **02-basics-yarn** | YARN fundamentals | 01 | ~80 min | Submit MR/Tez/Spark app; find the AM; compare MR vs Tez; read queue, status, logs |
-| **03-basics-hive** | Hive fundamentals | 01, 02 | ~120 min | External tables and partitions on `data/landisgyr`, ORC/Parquet on HDFS, idempotent loads, managed ACID tables, SQL basics and joins |
-| **04-basics-spark** | Spark on YARN | 02, 03 | ~90 min | PySpark cleanse/join on sample time series |
-| **05-basics-impala** | Impala fundamentals | 00 | ~45 min | Interactive SQL; Hive vs Impala timing; UPDATE/DELETE errors on external tables |
-| **10-advanced-hive** | Hive modeling & performance | 03 | ~90 min | Partitions, CTAS, file format comparison on use case |
-| **11-advanced-spark** | Spark pipelines | 04, 10 | ~90 min | Multi-source alignment, derived features |
-| **12-advanced-impala** | Impala for analytics | 05, 11 | ~60 min | Aggregations, KPIs for pilot sensors |
+| **01-basics-kerberos** | Kerberos fundamentals | 00 | ~35 min | `kinit`/`klist`/`kdestroy`, ticket lifetime and renewal, custom cache, common errors; optional keytab. First lab of the basics track |
+| **02-basics-hdfs** | HDFS fundamentals | 01 | ~75 min | Personal workspace; inspect use-case CSVs; replication & trash |
+| **03-basics-yarn** | YARN fundamentals | 02 | ~80 min | Submit MR/Tez/Spark app; find the AM; compare MR vs Tez; read queue, status, logs |
+| **04-basics-hive** | Hive fundamentals | 02, 03 | ~110 min | External tables and partitions on `data/landisgyr`, ORC/Parquet on HDFS, failed UPDATE/DELETE on external tables, managed ACID tables, SQL basics and joins |
+| **05-basics-spark** | Spark on YARN | 03, 04 | ~90 min | PySpark cleanse/join on sample time series |
+| **06-basics-impala** | Impala fundamentals | 01 | ~45 min | Interactive SQL; Hive vs Impala timing; UPDATE/DELETE errors on external tables |
+| **07-lakehouse-iceberg** | Lakehouse with Iceberg | 04, 06 | ~150 min | Idempotent loads by hand vs Iceberg; `UPDATE`/`DELETE`/`MERGE` from Hive, Impala, and Spark; files on HDFS; time travel, snapshot isolation, rollback; advanced joins |
+| **10-advanced-hive** | Hive modeling & performance | 04 | ~90 min | Partitions, CTAS, file format comparison on use case |
+| **11-advanced-spark** | Spark pipelines | 05, 10 | ~90 min | Multi-source alignment, derived features |
+| **12-advanced-impala** | Impala for analytics | 06, 11 | ~60 min | Aggregations, KPIs for pilot sensors |
 | **13-advanced-oozie** | Workflow orchestration | 11 | ~75 min | Parametrized workflow with quality step |
 | **20-mvp-pipeline** | Full pipeline | 10–13 | ~120 min | End-to-end run, documentation, governance checklist |
 
@@ -89,7 +91,7 @@ Examples:
 
 Later Hive/Spark modules reference these paths consistently (no separate toy `id,name,value` dataset).
 
-Module **01-basics-hdfs** introduces the layout and file operations; **03-basics-hive** owns table types, managed vs external, and partitioning detail.
+Module **02-basics-hdfs** introduces the layout and file operations; **04-basics-hive** owns table types, managed vs external, and partitioning detail.
 
 ## Prerequisites
 
@@ -106,7 +108,7 @@ If a service is unavailable:
 | Gap | Fallback |
 |-----|----------|
 | Hue | CLI-only labs; trainer screenshots for file browser |
-| Impala | Defer module 05/12; use Hive for SQL |
+| Impala | Defer module 06/12; use Hive for SQL |
 | Spark | Trainer-run notebook or pre-materialized curated tables |
 | Ranger demos | Rely on POSIX permissions from setup scripts; show Ranger UI read-only |
 | Participant cluster access | Trainer demo mode with shared screen; participants use `check.sh` against recorded outputs |

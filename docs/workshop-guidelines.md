@@ -10,7 +10,7 @@ Use this document whenever you add or revise a **module**, **lab**, **self-check
 | [simplicity.md](simplicity.md) | Scripts and tooling — stay boring and CLI-first |
 | [.cursor/rules/no-customer-identifiers.mdc](../.cursor/rules/no-customer-identifiers.mdc) | No end-customer names in this git repo |
 
-**Reference module:** [01-basics-hdfs](../01-basics-hdfs/) (lab, check script, trainer split, HDFS paths).
+**Reference module:** [02-basics-hdfs](../02-basics-hdfs/) (lab, check script, trainer split, HDFS paths).
 
 ---
 
@@ -18,7 +18,7 @@ Use this document whenever you add or revise a **module**, **lab**, **self-check
 
 | Audience | Reads | Writes / runs |
 |----------|--------|----------------|
-| **Participant** | Module `README.md`, `lab/lab.md`, `lab/troubleshooting.md` | Commands in the lab; `lab/check.sh`; `00-setup/participant/check_env.sh` |
+| **Participant** | Module `README.md`, `lab/lab_basics_*.md`, `lab/troubleshooting.md` | Commands in the lab; `lab/check.sh`; `00-setup/participant/check_env.sh` |
 | **Trainer** | `trainer/notes.md`, `trainer/demos.md` | Live demos; timing; when to skip fallbacks |
 | **Admin** | `00-setup/admin/`, `setup/`, `config.env` | Bootstrap, module `setup.sh` / `verify.sh`, Ranger policies |
 
@@ -33,10 +33,10 @@ Trainer and troubleshooting docs **may** link to setup scripts when something re
 Each hands-on module should follow the same skeleton:
 
 ```
-NN-short-name/           # e.g. 01-basics-hdfs, 03-basics-hive
+NN-short-name/           # e.g. 02-basics-hdfs, 04-basics-hive
   README.md              # participant entry: time, prerequisites, goals, link to lab
   lab/
-    lab.md               # numbered hands-on sections
+    lab_basics_*.md      # numbered hands-on sections (e.g. lab_basics_hdfs.md)
     check.sh             # non-interactive self-check (exit 0/1)
     troubleshooting.md   # common failures; trainer escalation where needed
   trainer/
@@ -65,22 +65,22 @@ Every lab must be runnable **on its own**, in any order, by someone who skipped 
 
 ## Naming: repo folder vs HDFS paths
 
-- **Repo folder:** `NN-<track>-<technology>` (e.g. `01-basics-hdfs`, `10-advanced-hive`).
-- **HDFS under `${WORKSHOP_ROOT}`:** short module slug **without** “basics/advanced” (e.g. `01-hdfs`, `03-hive`).
+- **Repo folder:** `NN-<track>-<technology>` (e.g. `02-basics-hdfs`, `10-advanced-hive`).
+- **HDFS under `${WORKSHOP_ROOT}`:** short module slug **without** “basics/advanced” (e.g. `02-hdfs`, `04-hive`).
 
 Shared use-case data always lives at `${WORKSHOP_ROOT}/data/<dataset>/`. Module-specific assets live under `${WORKSHOP_ROOT}/<module-slug>/` (lab files, secrets for demos, etc.).
 
 Document the HDFS slug in the lab intro, for example:
 
 ```bash
-export HDFS_LAB="${WORKSHOP_ROOT}/01-hdfs/lab"
+export HDFS_LAB="${WORKSHOP_ROOT}/02-hdfs/lab"
 ```
 
 ---
 
 ## Participant identity (`WORKSHOP_USER`)
 
-Every `lab/lab.md` starts with the same pattern:
+Every lab markdown (for example `lab/lab_basics_hdfs.md`) starts with the same pattern:
 
 1. Export the participant’s Kerberos short name once.
 2. `kinit` using that variable.
@@ -110,7 +110,7 @@ Participants can `export WORKSHOP_USER="${USER}"` on the edge node if their shel
 
 Run sections **in order**. Separate core sections from stretch.
 
-### Voice in `lab/lab.md`
+### Voice in the lab markdown
 
 The reader **is** the person doing the lab. Write in **second person** (`you` / `your`).
 
@@ -151,7 +151,7 @@ Align section themes with [concept.md — Didactic pattern](concept.md#didactic-
 - **Never more than 3 command lines in a row without a `#` comment.** Longer blocks get a short comment line before each group of up to 3 commands (blank line between groups).
 - Keep blocks **readable aloud** — one logical step per line; no hidden magic.
 - After a block, add a **short outcome cue** when it is not obvious (e.g. “You should see three files in the listing” or “You should get permission denied on the last command”).
-- When output has **no headers**, explain columns right after the block (see `-count`, `-du`, `fsck` in [01-basics-hdfs/lab/lab.md](../01-basics-hdfs/lab/lab.md) section 3).
+- When output has **no headers**, explain columns right after the block (see `-count`, `-du`, `fsck` in [02-basics-hdfs/lab/lab_basics_hdfs.md](../02-basics-hdfs/lab/lab_basics_hdfs.md) section 3).
 
 ---
 
@@ -220,7 +220,7 @@ Before marking a module **Ready** in the root README:
 - [ ] Folder layout matches the skeleton above.
 - [ ] Lab runs standalone: only `00-setup` and this module’s `setup.sh` are assumed; anything from earlier labs is repeated briefly in the lab.
 - [ ] HDFS module slug under `${WORKSHOP_ROOT}` documented in lab intro.
-- [ ] `lab/lab.md` uses `WORKSHOP_USER` + standard opening exports.
+- [ ] Lab markdown uses `WORKSHOP_USER` + standard opening exports.
 - [ ] No participant-facing `config.env` or bootstrap references.
 - [ ] Check questions have answers in `trainer/notes.md`.
 - [ ] `lab/check.sh` passes on a clean participant run after admin setup.
