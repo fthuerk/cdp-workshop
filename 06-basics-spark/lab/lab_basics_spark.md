@@ -1,6 +1,13 @@
 # Spark hands-on lab
 
-Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need one terminal on the edge node for `pyspark` and `spark-submit`, and optionally a second for `beeline` in section 7.
+Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need one terminal on the edge node for `spark-shell` and `spark-submit`, a second one for `yarn` commands, and optionally a third for `beeline` in section 7.
+
+The lab has two clearly separated parts:
+
+| Part | Sections | Tool | Language | Style |
+|------|----------|------|----------|-------|
+| **A. Interactive** | 0–5 | `spark-shell` | Scala | You type, Spark answers immediately |
+| **B. Batch** | 6 onward | `spark-submit` | Script file (PySpark) | You hand over a finished program and walk away |
 
 Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `SPARK_LAB` holds the shared batch script on HDFS. The three `*_CSV` paths point at workshop sample data under `${WORKSHOP_ROOT}/data`. `HS2_URL` is the HiveServer2 JDBC URL from your handout (section 7 only).
 
@@ -19,21 +26,45 @@ export HS2_URL="<jdbc-url-from-your-handout>"
 
 ---
 
-## 0. Orient — PySpark on YARN
+# Part A — Interactive work with `spark-shell` (Scala)
+
+## What is `spark-shell`?
+
+`spark-shell` is an **interactive Scala REPL** (read–eval–print loop) with Spark already wired in. When it starts it:
+
+1. launches a Spark **driver** — here on your edge node, as a process attached to your terminal;
+2. asks YARN for **executors** (containers) when the first job needs them;
+3. creates two ready-made objects for you:
+   - `spark` — the `SparkSession`, the entry point for reading data and running SQL;
+   - `sc` — the `SparkContext`, the lower-level handle (app name, master, configuration).
+
+You type a Scala expression, press Enter, and the result is printed immediately. Nothing is saved: when you exit, the session and everything you defined in it is gone (only files you **write** to HDFS survive).
+
+Use `spark-shell` for **exploration**: looking at data, trying a transformation, checking a schema. It is the wrong tool for anything that must run unattended or repeatedly — that is what `spark-submit` is for (Part B).
+
+Useful shell habits:
+
+- `:help` lists REPL commands, `:paste` lets you paste multi-line code (finish with Ctrl-D), `:quit` or Ctrl-D exits.
+- The prompt is `scala>`. Results are echoed as `res0: ...` or `name: Type = ...`.
+
+---
+
+## 0. Orient — start `spark-shell` on YARN
 
 **Goal:** Start an interactive Spark session backed by YARN and find your application in the cluster.
 
-Open PySpark with YARN as the cluster manager (use `spark3-submit` / `pyspark3` from your handout if your cluster names them differently):
+Start the shell with YARN as the cluster manager (use `spark3-shell` from your handout if your cluster names it differently):
 
 ```bash
-pyspark --master yarn --name "spark-lab-${WORKSHOP_USER}"
+spark-shell --master yarn --name "spark-lab-${WORKSHOP_USER}"
 ```
 
-At the `>>>` prompt, create a session handle and confirm the app name:
+Wait for the `scala>` prompt, then confirm the app name and master:
 
-```python
+```scala
 spark.sparkContext.appName
 spark.sparkContext.master
+spark.version
 ```
 
 Leave this shell open for sections 1–5. In a **second** terminal (same user, valid ticket), list running Spark applications:
@@ -42,9 +73,9 @@ Leave this shell open for sections 1–5. In a **second** terminal (same user, v
 yarn application -list -appStates RUNNING -appTypes SPARK
 ```
 
-You should see your PySpark app. In the ResourceManager UI (URL from your handout), open the application link and note the **Spark UI** proxy URL — stages and tasks appear there while you run actions in section 2.
+You should see your shell session as a running application. In the ResourceManager UI (URL from your handout), open the application link and note the **Spark UI** proxy URL — stages and tasks appear there while you run actions in section 2.
 
-**Check question:** In cluster mode on YARN, where does the driver run — on your edge node or inside a container?
+**Check question:** `spark-shell` defaults to **client** deploy mode on YARN. Where does the driver run — on your edge node or inside a container? (Why can an interactive shell not run its driver in the cluster?)
 
 ---
 
@@ -52,58 +83,51 @@ You should see your PySpark app. In the ResourceManager UI (URL from your handou
 
 **Goal:** Load smart-meter and operator weather CSVs from HDFS and inspect types.
 
-PySpark inherits exports from the shell that started it. Pull paths and your username into Python once:
+The shell inherits the exports of the terminal that started it. Pull paths and your username into Scala once, and import the SQL functions:
 
-```python
-import os
-from pyspark.sql import functions as F
+```scala
+import org.apache.spark.sql.functions._
 
-WORKSHOP_USER = os.environ["WORKSHOP_USER"]
-METER_CSV = os.environ["METER_CSV"]
-WEATHER_CSV = os.environ["WEATHER_CSV"]
-AWATTAR_CSV = os.environ["AWATTAR_CSV"]
+val workshopUser = sys.env("WORKSHOP_USER")
+val meterCsv     = sys.env("METER_CSV")
+val weatherCsv   = sys.env("WEATHER_CSV")
+val awattarCsv   = sys.env("AWATTAR_CSV")
 ```
 
 Read the meter file with a header and inferred types (small data — inference is fine here):
 
-```python
-meter_raw = spark.read.option("header", True).option("inferSchema", True).csv(METER_CSV)
-meter_raw.printSchema()
-meter_raw.show(5, truncate=False)
-meter_raw.count()
+```scala
+val meterRaw = spark.read.option("header", true).option("inferSchema", true).csv(meterCsv)
+meterRaw.printSchema()
+meterRaw.show(5, false)
+meterRaw.count()
 ```
 
 The first column is the reading time; the CSV header calls it `timestamp`. For production pipelines you prefer an explicit schema so a bad row cannot widen a column type. Spark maps CSV fields **by position** when you supply a schema — name the first field `ts_utc` even though the header says `timestamp`:
 
-```python
-meter = (
-    spark.read.option("header", True)
-    .schema(
-        "ts_utc STRING, station_id STRING, device_id STRING, phase STRING, "
-        "active_power_kw DOUBLE, reactive_power_kvar DOUBLE, voltage_v DOUBLE, "
-        "current_a DOUBLE, power_factor DOUBLE, frequency_hz DOUBLE, "
-        "transformer_load_pct DOUBLE, quality_flag STRING, event_code STRING, "
-        "comm_status STRING"
-    )
-    .csv(METER_CSV)
-    .withColumn("ts_utc", F.to_timestamp("ts_utc"))
-)
+```scala
+val meter = spark.read.option("header", true)
+  .schema(
+    "ts_utc STRING, station_id STRING, device_id STRING, phase STRING, " +
+    "active_power_kw DOUBLE, reactive_power_kvar DOUBLE, voltage_v DOUBLE, " +
+    "current_a DOUBLE, power_factor DOUBLE, frequency_hz DOUBLE, " +
+    "transformer_load_pct DOUBLE, quality_flag STRING, event_code STRING, " +
+    "comm_status STRING")
+  .csv(meterCsv)
+  .withColumn("ts_utc", to_timestamp(col("ts_utc")))
 meter.count()
 ```
 
 Load weather the same way (two operator stations, 15-minute steps):
 
-```python
-weather = (
-    spark.read.option("header", True)
-    .schema(
-        "ts_utc STRING, weather_station_id STRING, station_name STRING, "
-        "temperature_c DOUBLE, relative_humidity_pct INT, wind_speed_mps DOUBLE, "
-        "precipitation_mm DOUBLE, pressure_hpa DOUBLE, weather_quality STRING"
-    )
-    .csv(WEATHER_CSV)
-    .withColumn("ts_utc", F.to_timestamp("ts_utc"))
-)
+```scala
+val weather = spark.read.option("header", true)
+  .schema(
+    "ts_utc STRING, weather_station_id STRING, station_name STRING, " +
+    "temperature_c DOUBLE, relative_humidity_pct INT, wind_speed_mps DOUBLE, " +
+    "precipitation_mm DOUBLE, pressure_hpa DOUBLE, weather_quality STRING")
+  .csv(weatherCsv)
+  .withColumn("ts_utc", to_timestamp(col("ts_utc")))
 weather.count()
 ```
 
@@ -117,23 +141,20 @@ You should see **15** meter rows and **10** weather rows (header excluded).
 
 **Goal:** Keep quality-approved readings, normalize null event codes, and see how actions trigger work.
 
-Transformations are **lazy** until an **action** (`count`, `show`, `write`) runs:
+Transformations are **lazy** until an **action** (`count`, `show`, `write`) runs. Note that the shell prints the `val` definition instantly without launching any job:
 
-```python
-meter_ok = (
-    meter.filter(F.col("quality_flag") == "OK")
-    .withColumn(
-        "event_code",
-        F.when(F.trim(F.col("event_code")) == "", None).otherwise(F.col("event_code")),
-    )
-    .dropDuplicates(["ts_utc", "station_id", "device_id", "phase"])
-)
-rejected = meter.count() - meter_ok.count()
-print(f"rejected_rows={rejected}")
-meter_ok.count()
+```scala
+val meterOk = meter.filter(col("quality_flag") === "OK")
+  .withColumn("event_code",
+    when(trim(col("event_code")) === "", lit(null)).otherwise(col("event_code")))
+  .dropDuplicates("ts_utc", "station_id", "device_id", "phase")
+
+val rejected = meter.count() - meterOk.count()
+println(s"rejected_rows=$rejected")
+meterOk.count()
 ```
 
-You should see **3** rejected rows (WARN quality flags in the sample) and **12** cleansed rows. Watch the Spark UI — the first `count()` on `meter_ok` schedules a new job.
+You should see **3** rejected rows (WARN quality flags in the sample) and **12** cleansed rows. Watch the Spark UI — the first `count()` on `meterOk` schedules a new job.
 
 **Check question:** If you chain ten `filter` calls but never call `count`, does YARN start executors?
 
@@ -143,24 +164,22 @@ You should see **3** rejected rows (WARN quality flags in the sample) and **12**
 
 **Goal:** Summarize average power and peak load per transformer station and hour.
 
-```python
-hourly = (
-    meter_ok.withColumn("hour_utc", F.date_trunc("hour", F.col("ts_utc")))
-    .groupBy("station_id", "hour_utc")
-    .agg(
-        F.avg("active_power_kw").alias("avg_power_kw"),
-        F.max("transformer_load_pct").alias("max_load_pct"),
-        F.count("*").alias("reading_count"),
-    )
-    .orderBy("station_id", "hour_utc")
-)
-hourly.show(truncate=False)
+```scala
+val hourly = meterOk
+  .withColumn("hour_utc", date_trunc("hour", col("ts_utc")))
+  .groupBy("station_id", "hour_utc")
+  .agg(
+    avg("active_power_kw").alias("avg_power_kw"),
+    max("transformer_load_pct").alias("max_load_pct"),
+    count(lit(1)).alias("reading_count"))
+  .orderBy("station_id", "hour_utc")
+hourly.show(false)
 ```
 
 Register a temp view and express the same logic in SQL:
 
-```python
-meter_ok.createOrReplaceTempView("meter_ok")
+```scala
+meterOk.createOrReplaceTempView("meter_ok")
 spark.sql("""
 SELECT station_id,
        date_trunc('hour', ts_utc) AS hour_utc,
@@ -170,7 +189,7 @@ SELECT station_id,
 FROM meter_ok
 GROUP BY station_id, date_trunc('hour', ts_utc)
 ORDER BY station_id, hour_utc
-""").show(truncate=False)
+""").show(false)
 ```
 
 You should see two hour buckets (08:00 and 09:00 UTC) for each of the three transformer stations.
@@ -183,40 +202,32 @@ You should see two hour buckets (08:00 and 09:00 UTC) for each of the three tran
 
 The sample weather stations (`GRID-WS-01`, `GRID-WS-02`) differ from transformer IDs (`TS-101`, …) — you join on **time** only, so each meter row matches **both** weather stations at that timestamp:
 
-```python
-joined = meter_ok.join(weather, on="ts_utc", how="inner")
+```scala
+val joined = meterOk.join(weather, Seq("ts_utc"), "inner")
 joined.count()
 ```
 
 You should get **24** rows (12 meter × 2 weather stations per timestamp). Try a **left** join and compare:
 
-```python
-meter_ok.join(weather, on="ts_utc", how="left").count()
+```scala
+meterOk.join(weather, Seq("ts_utc"), "left").count()
 ```
 
 Add hourly **awattar** prices by truncating meter time to the hour:
 
-```python
-prices = (
-    spark.read.option("header", True)
-    .schema(
-        "price_start STRING, price_end STRING, market STRING, "
-        "price_eur_mwh DOUBLE, price_ct_kwh DOUBLE, currency STRING"
-    )
-    .csv(AWATTAR_CSV)
-    .withColumn("price_hour", F.date_trunc("hour", F.to_timestamp("price_start")))
-)
+```scala
+val prices = spark.read.option("header", true)
+  .schema(
+    "price_start STRING, price_end STRING, market STRING, " +
+    "price_eur_mwh DOUBLE, price_ct_kwh DOUBLE, currency STRING")
+  .csv(awattarCsv)
+  .withColumn("price_hour", date_trunc("hour", to_timestamp(col("price_start"))))
 
-curated = (
-    joined.withColumn("price_hour", F.date_trunc("hour", F.col("ts_utc")))
-    .join(
-        prices.select("price_hour", "price_eur_mwh", "market"),
-        on="price_hour",
-        how="left",
-    )
-    .drop("price_hour")
-)
-curated.show(5, truncate=False)
+val curated = joined
+  .withColumn("price_hour", date_trunc("hour", col("ts_utc")))
+  .join(prices.select("price_hour", "price_eur_mwh", "market"), Seq("price_hour"), "left")
+  .drop("price_hour")
+curated.show(5, false)
 ```
 
 **Check question:** With an inner join on time only, why does one meter timestamp produce two output rows?
@@ -227,16 +238,12 @@ curated.show(5, truncate=False)
 
 **Goal:** Persist the joined dataset as partitioned Parquet under your HDFS home.
 
-```python
-out_interactive = f"/user/{WORKSHOP_USER}/spark-curated"
-(
-    curated.write.mode("overwrite")
-    .partitionBy("station_id")
-    .parquet(out_interactive)
-)
+```scala
+val outInteractive = s"/user/$workshopUser/spark-curated"
+curated.write.mode("overwrite").partitionBy("station_id").parquet(outInteractive)
 ```
 
-Exit PySpark (`exit()` or Ctrl-D) and inspect the layout from bash:
+Exit the shell (`:quit` or Ctrl-D) and inspect the layout from bash:
 
 ```bash
 hdfs dfs -ls "/user/${WORKSHOP_USER}/spark-curated"
@@ -246,13 +253,44 @@ hdfs dfs -du -s -h "/user/${WORKSHOP_USER}/spark-curated"
 
 You should see `_SUCCESS`, one directory per `station_id`, and Parquet part files inside. This is your **curated** layer: columnar files ready for Hive, Impala, or the next Spark job — landing CSVs stay untouched under `${WORKSHOP_ROOT}/data`.
 
+Notice what is **gone**: your `meter`, `curated`, … values lived only in the shell session. Only the Parquet files remain. To repeat this work tomorrow you would have to retype it — which leads to Part B.
+
+---
+
+# ✂️ Part B — Batch work with `spark-submit`
+
+> **Clear cut: from here on you leave the shell.** Everything above was typed interactively into `spark-shell`. From now on you do **not** type Spark code at a prompt. You submit a finished program from the bash command line.
+
+## What does `spark-submit` do?
+
+`spark-submit` is the command that **launches a packaged Spark application** on a cluster. You give it:
+
+- **what to run** — a script (`.py`) or a JAR (Scala/Java) plus its arguments;
+- **where to run it** — `--master yarn`;
+- **how to run it** — `--deploy-mode`, resources such as `--executor-memory`, `--num-executors`, and a `--name`.
+
+It then asks YARN to start the application, ships your code to the cluster, runs it from start to finish, and the application **ends by itself**. There is no prompt and no session to keep open.
+
+| | `spark-shell` | `spark-submit` |
+|---|---|---|
+| Purpose | Explore, prototype | Production / scheduled / repeatable runs |
+| Interaction | Type, get results immediately | None; runs unattended to completion |
+| Code lives in | Your head / terminal history | A file under version control (here on HDFS) |
+| Language here | Scala | Any: the lab script is PySpark; a Scala app would be a JAR |
+| Session objects | `spark`, `sc` pre-created | Your program creates its own `SparkSession` |
+| Typical deploy mode | `client` (driver on edge node) | `cluster` (driver in a YARN container) |
+| Output | Printed in terminal | Written to HDFS / tables; logs via `yarn logs` |
+| Lifetime | Until you exit | Until the script finishes |
+
+The pipeline is the same one you just built by hand: read CSV, cleanse, join, write Parquet. The difference is only **how it is run**. Schedulers (Oozie, Airflow, cron) always use `spark-submit`.
+
 ---
 
 ## 6. Batch — spark-submit on YARN
 
 **Goal:** Run the same pipeline as a batch job with the shared script on HDFS.
 
-Admin setup placed `spark_cleanse_join.py` under `${SPARK_LAB}/assets/`. Submit in **cluster** mode so the driver runs in YARN (logs via `yarn logs`, as in the YARN basics lab):
+Make sure you are in a normal bash prompt (not `scala>`). Admin setup placed `spark_cleanse_join.py` under `${SPARK_LAB}/assets/`. Submit in **cluster** mode so the driver runs in YARN (logs via `yarn logs`, as in the YARN basics lab):
 
 ```bash
 spark-submit --master yarn --deploy-mode cluster \
@@ -261,6 +299,8 @@ spark-submit --master yarn --deploy-mode cluster \
   "${METER_CSV}" "${WEATHER_CSV}" "${AWATTAR_CSV}" \
   "/user/${WORKSHOP_USER}/spark-batch-curated"
 ```
+
+Note how the command ends: the four trailing values are **arguments to the script** (three inputs, one output path), replacing the `sys.env` lookups and hard-coded paths you used in the shell.
 
 **Optional:** submit the script from local disk — copy it first, because a path without a scheme is read only on the node where you run `spark-submit`:
 
@@ -282,34 +322,35 @@ yarn application -list -appStates FINISHED -appTypes SPARK | tail -5
 
 You should see `_SUCCESS` under `spark-batch-curated` with the same row count (**24**) as section 4.
 
+**Check question:** What does `spark-submit` return to your terminal when the job runs in cluster mode, and where do you find the job's `println`/log output?
+
 ---
 
 ## 7. Relate — register Parquet in the Metastore
 
 **Goal:** Point an external Hive table at your curated Parquet so SQL engines can query it.
 
-Start PySpark again (or use `spark-sql` with the same `--master yarn` if your handout recommends it). Re-import `os` and `WORKSHOP_USER` if this is a fresh shell:
+This is interactive work again, so go back to `spark-shell` (or use `spark-sql` with the same `--master yarn` if your handout recommends it):
 
 ```bash
-pyspark --master yarn --name "spark-metastore-${WORKSHOP_USER}"
+spark-shell --master yarn --name "spark-metastore-${WORKSHOP_USER}"
 ```
 
-```python
-import os
-WORKSHOP_USER = os.environ["WORKSHOP_USER"]
-batch_path = f"/user/{WORKSHOP_USER}/spark-batch-curated"
+```scala
+val workshopUser = sys.env("WORKSHOP_USER")
+val batchPath = s"/user/$workshopUser/spark-batch-curated"
 ```
 
 Create your personal database and external table over the batch output path:
 
-```python
-spark.sql(f"CREATE DATABASE IF NOT EXISTS ws_{WORKSHOP_USER}")
-spark.sql(f"USE ws_{WORKSHOP_USER}")
+```scala
+spark.sql(s"CREATE DATABASE IF NOT EXISTS ws_$workshopUser")
+spark.sql(s"USE ws_$workshopUser")
 
-spark.sql(f"""
+spark.sql(s"""
 CREATE TABLE IF NOT EXISTS spark_curated_join
 USING parquet
-LOCATION '{batch_path}'
+LOCATION '$batchPath'
 """)
 spark.sql("SELECT COUNT(*) AS rows, COUNT(DISTINCT station_id) AS stations FROM spark_curated_join").show()
 ```
@@ -331,22 +372,21 @@ Hive and Impala read the same Metastore entry — no copy step. Use **external**
 
 **Goal:** Provoke three common failures and read the signal in the shell or YARN logs.
 
-**Wrong input path** — expect `AnalysisException` or `Path does not exist`:
+**Wrong input path** (in `spark-shell`) — expect `AnalysisException` or `Path does not exist`:
 
-```python
+```scala
 spark.read.csv("/no/such/workshop/path").count()
 ```
 
-**Output path already exists** — in PySpark, reload the batch output and write again without `overwrite`:
+**Output path already exists** (in `spark-shell`) — reload the batch output and write again without `overwrite`:
 
-```python
-import os
-u = os.environ["WORKSHOP_USER"]
-again = spark.read.parquet(f"/user/{u}/spark-batch-curated")
-again.write.parquet(f"/user/{u}/spark-batch-curated")
+```scala
+val u = sys.env("WORKSHOP_USER")
+val again = spark.read.parquet(s"/user/$u/spark-batch-curated")
+again.write.parquet(s"/user/$u/spark-batch-curated")
 ```
 
-**Executor memory too small** — submit the batch script with an unrealistically tiny executor heap (may stay `ACCEPTED` or fail with `Container killed`):
+**Executor memory too small** (from bash, `spark-submit`) — submit the batch script with an unrealistically tiny executor heap (may stay `ACCEPTED` or fail with `Container killed`):
 
 ```bash
 spark-submit --master yarn --deploy-mode cluster \
@@ -368,9 +408,9 @@ yarn logs -applicationId "<application-id>" | tail -40
 
 ## Stretch (optional)
 
-- Repartition `curated` to 1 file per station with `repartition(1, "station_id")` before write; compare part-file counts with section 5.  
-- Run `curated.explain(True)` before the join and discuss shuffle stages.  
-- `cache()` `meter_ok`, run two aggregations, and compare timings in the Spark UI storage tab.
+- In `spark-shell`, repartition `curated` to 1 file per station with `repartition(1, col("station_id"))` before write; compare part-file counts with section 5.  
+- Run `curated.explain(true)` before the join and discuss shuffle stages.  
+- `cache()` `meterOk`, run two aggregations, and compare timings in the Spark UI storage tab.
 
 ---
 
