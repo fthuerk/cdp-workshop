@@ -1,4 +1,4 @@
-# Technical deep-dive — Impala (Module 06)
+# Technical deep-dive — Impala (Module 05)
 
 ## Why this matters
 

@@ -10,10 +10,10 @@ load_config
 require_admin_hdfs_kinit
 require_cmd hdfs
 
-MODULE_ROOT="${WORKSHOP_ROOT}/05-spark"
+MODULE_ROOT="${WORKSHOP_ROOT}/06-spark"
 ASSETS="${MODULE_ROOT}/assets"
 WORK="${MODULE_ROOT}/work"
-LOCAL_ASSETS="${WORKSHOP_LOCAL}/05-basics-spark/assets"
+LOCAL_ASSETS="${WORKSHOP_LOCAL}/06-basics-spark/assets"
 
 for dataset in \
   "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" \
@@ -37,4 +37,4 @@ hdfs dfs -chmod -R 755 "${ASSETS}" 2>/dev/null || true
 hdfs dfs -chmod 1777 "${WORK}" 2>/dev/null || true
 
 log_info "Spark module setup complete under ${MODULE_ROOT}"
-log_warn "Ranger: workshop users need Hive policies on ws_* and HDFS write on /user/<participant> — see 00-setup/admin/ranger/README.md (module 05)"
+log_warn "Ranger: workshop users need Hive policies on ws_* and HDFS write on /user/<participant> — see 00-setup/admin/ranger/README.md (module 06)"

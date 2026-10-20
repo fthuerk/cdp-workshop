@@ -49,4 +49,4 @@ After this module you can:
 
 ## Next module
 
-[05-basics-spark](../05-basics-spark/README.md)
+[05-basics-impala](../05-basics-impala/README.md)

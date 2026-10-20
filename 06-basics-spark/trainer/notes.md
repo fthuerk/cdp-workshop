@@ -1,4 +1,4 @@
-# Trainer notes — Module 05 Spark
+# Trainer notes — Module 06 Spark
 
 **Dry-run status:** run once with a participant account before the session; `spark-submit` binary names and Spark UI links vary by CDP version.
 
@@ -35,12 +35,12 @@ If time is tight, skip section 8 and stretch; run section 7 as a trainer demo wi
 | No rows after join | Participant joined on wrong column names — weather first field must be timestamp typed as `ts_utc` |
 | Section 7 `CREATE TABLE` fails | Enable Hive support (`spark.sql.catalogImplementation=hive`) if your cluster requires it; or use Beeline `CREATE EXTERNAL TABLE … STORED AS PARQUET LOCATION` |
 | Small cluster, slow local check | `check.sh` uses `local[2]` — acceptable on edge node; warn if laptops not used |
-| Ranger | Module 04 Hive policies on `ws_*` plus HDFS home write; optional path `${WORKSHOP_ROOT}/05-spark/work` if you redirect tables there |
+| Ranger | Module 04 Hive policies on `ws_*` plus HDFS home write; optional path `${WORKSHOP_ROOT}/06-spark/work` if you redirect tables there |
 
 ## Admin
 
-[setup/setup.sh](../setup/setup.sh) uploads `spark_cleanse_join.py` to `${WORKSHOP_ROOT}/05-spark/assets/` and creates `work/` with mode `1777` for optional shared experiments.
+[setup/setup.sh](../setup/setup.sh) uploads `spark_cleanse_join.py` to `${WORKSHOP_ROOT}/06-spark/assets/` and creates `work/` with mode `1777` for optional shared experiments.
 
 ## After module
 
-Module 06 Impala queries the same Metastore pattern on external CSV tables; module 11 (advanced Spark) builds multi-step pipelines on curated layers.
+Module 05 Impala queries the same Metastore pattern on external CSV tables; module 11 (advanced Spark) builds multi-step pipelines on curated layers.

@@ -19,6 +19,8 @@ flowchart TB
     NNactive[Active_NameNode]
     NNstandby[Standby_NameNode]
     JN[JournalNodes_edit_log]
+    ZKFC[ZKFailoverController]
+    ZK[ZooKeeper]
   end
 
   subgraph storage [DataNodes]
@@ -27,23 +29,30 @@ flowchart TB
     DN3[DataNode_rackC]
   end
 
-  CLI --> NNactive
-  HS2 --> NNactive
-  NNactive --> JN
-  NNstandby --> JN
-  NNactive --> DN1
+  CLI -->|"metadata requests"| NNactive
+  HS2 -->|"metadata requests"| NNactive
+  NNactive -->|"1 write edits, majority ack"| JN
+  JN -->|"2 Standby pulls new edits"| NNstandby
+  NNstandby -.->|"checkpoint fsimage"| NNactive
+  ZKFC -->|"health check, election"| ZK
+  ZKFC -.->|"monitor, trigger failover"| NNactive
+  ZKFC -.->|"monitor, promote on failure"| NNstandby
+  NNactive -->|"block placement"| DN1
   NNactive --> DN2
   NNactive --> DN3
   DN1 --- blockReplicas[Block_replicas_RF3]
   DN2 --- blockReplicas
   DN3 --- blockReplicas
+  DN1 -.->|"block reports"| NNstandby
 ```
 
 **Clients** — `hdfs dfs`, DistCp, and engines’ Hadoop FileSystem API. Reads ask the NameNode for block locations, then read directly from DataNodes (short-circuit local read when co-located).
 
 **Active NameNode** — holds the namespace tree (directories, files, permissions) and block-to-replica mapping **in memory**; persists mutations to the edit log. Does not store file bytes.
 
-**Standby NameNode + JournalNodes** — HA pairs replay edits so failover preserves namespace consistency.
+**Standby NameNode + JournalNodes** — The Active **writes** every namespace edit to the JournalNodes (committed once a majority acknowledges). The JournalNodes only store the log; the Standby **pulls** the new edits from them and replays them in memory, so it can take over quickly. Edits never flow from the Standby to the Active; the Standby only sends periodic `fsimage` checkpoints back. DataNodes send block reports to both NameNodes.
+
+**ZooKeeper + ZKFailoverController** — A ZKFC runs next to each NameNode, monitors its health and holds the election lock in ZooKeeper. If the Active fails, the ZKFC promotes the Standby, and JournalNode epoch fencing stops the old Active from writing.
 
 **DataNodes** — store **blocks** (default often 128 MB or 256 MB in modern CDP). Each block is replicated (default RF=3) across racks for fault tolerance.
 

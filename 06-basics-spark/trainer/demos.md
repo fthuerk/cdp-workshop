@@ -1,4 +1,4 @@
-# Trainer demos — Module 05 Spark
+# Trainer demos — Module 06 Spark
 
 Optional live-only steps — not required for participants.
 

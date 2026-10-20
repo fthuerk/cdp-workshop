@@ -1,4 +1,4 @@
-# Trainer notes — Module 06 Impala
+# Trainer notes — Module 05 Impala
 
 **Dry-run status:** run once with a participant account before the session; Impala error text for UPDATE/DELETE varies by CDP version.
 
@@ -31,14 +31,14 @@ If time is tight, shorten section 5 to a verbal demo (you append a file and inva
 | `IMPALA_OPTS` wrong | Put the exact `impala-shell -i …` line on the handout; test from edge node |
 | No speed difference | Cluster idle + small data — focus on Tez app vs none; scaled file is 15k rows |
 | Hive faster once | Second Hive query reuses Tez session — tell room to compare **first** Hive run after `kinit` or use a fresh Beeline JVM |
-| CREATE TABLE LOCATION typo | Must be `${WORKSHOP_ROOT}/06-impala/work/<user>/meter` |
+| CREATE TABLE LOCATION typo | Must be `${WORKSHOP_ROOT}/05-impala/work/<user>/meter` |
 | Section 4 scares people | Say loudly: **red errors are the learning goal** |
-| Ranger | Same `ws_*` and URL policies as Hive; add HDFS path `06-impala/work` for `hive` user (setup ACL mirrors module 04) |
+| Ranger | Same `ws_*` and URL policies as Hive; add HDFS path `05-impala/work` for `hive` user (setup ACL mirrors module 04) |
 
 ## Admin
 
-[setup/setup.sh](../setup/setup.sh) builds `meter-15k.csv` under `${WORKSHOP_ROOT}/06-impala/scaled/` and prepares `work/` with `hive` ACL.
+[setup/setup.sh](../setup/setup.sh) builds `meter-15k.csv` under `${WORKSHOP_ROOT}/05-impala/scaled/` and prepares `work/` with `hive` ACL.
 
 ## After module
 
-Module 05 Spark reads the same `${WORKSHOP_ROOT}/data` paths; module 12 (advanced Impala) adds KPI-style analytics on curated tables.
+Module 06 Spark reads the same `${WORKSHOP_ROOT}/data` paths; module 12 (advanced Impala) adds KPI-style analytics on curated tables.

@@ -110,11 +110,11 @@ kinit "${WORKSHOP_USER}"
 
 **Goal:** Request a ticket with a chosen lifetime and extend it without typing your password.
 
-Request a ticket that is valid for 10 minutes and renewable for up to 1 hour, then look at the times:
+Request a ticket that is valid for 3 minutes and renewable for up to 1 hour, then look at the times:
 
 ```bash
 # -l = lifetime, -r = renewable lifetime
-kinit -l 10m -r 1h "${WORKSHOP_USER}"
+kinit -l 3m -r 1h "${WORKSHOP_USER}"
 
 klist
 ```

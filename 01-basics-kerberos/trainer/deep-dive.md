@@ -11,8 +11,10 @@ Every read of smart-meter CSVs in HDFS, every Hive or Impala query over `landisg
 ```mermaid
 sequenceDiagram
   participant Client as Client_edge_or_UI
-  participant AS as KDC_AuthenticationService
-  participant TGS as KDC_TicketGrantingService
+  box rgb(230,240,255) KDC - one server and one principal database (AD domain controller, MIT or FreeIPA)
+    participant AS as Authentication_Service
+    participant TGS as Ticket_Granting_Service
+  end
   participant Svc as Service_nn_or_hs2
 
   Client->>AS: AS_REQ password_or_keytab
@@ -25,6 +27,8 @@ sequenceDiagram
 ```
 
 **Client** — edge-node shell (`kinit`), Java tools (HDFS, YARN, Hive JDBC), or a browser session through Knox (SPNEGO). The client never sends the password to HDFS or Hive; it proves identity to the KDC and presents short-lived **service tickets** to each service.
+
+**KDC (Key Distribution Center)** — one server (or replica set) that hosts both the AS and TGS roles below, sharing one principal database and the `krbtgt/REALM` key. In Active Directory every domain controller is a KDC; on-cluster alternatives are MIT Kerberos or FreeIPA.
 
 **KDC — Authentication Service (AS)** — validates the user (password, keytab, or PKINIT) and issues a **Ticket-Granting Ticket (TGT)** bound to the client’s session.
 
@@ -107,7 +111,7 @@ klist
 
 ```bash
 # Short-lived ticket for testing renewal behavior
-kinit -l 10m -r 5m "${WORKSHOP_USER}"
+kinit -l 3m -r 5m "${WORKSHOP_USER}"
 klist
 ```
 

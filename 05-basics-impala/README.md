@@ -1,4 +1,4 @@
-# Module 06 — Basics: Impala
+# Module 05 — Basics: Impala
 
 Interactive SQL on smart-meter sample data: same Hive Metastore as Hive, but Impala serves low-latency reads while Hive runs heavier Tez jobs. You will hit **expected errors** on row-level `UPDATE`/`DELETE` for external tables and compare query speed side by side with Hive.
 
@@ -27,7 +27,7 @@ After this module you can:
 | Concept (trainer) | Impala daemons vs HiveServer2 + Tez; shared Metastore; when to use which engine |
 | Core lab | [lab_basics_impala.md](lab/lab_basics_impala.md) sections 0–5 |
 | Stretch | [lab_basics_impala.md](lab/lab_basics_impala.md) stretch (Hue, EXPLAIN, transactional Hive table) |
-| Self-check | `./06-basics-impala/lab/check.sh` |
+| Self-check | `./05-basics-impala/lab/check.sh` |
 
 ## Trainer materials
 
@@ -38,12 +38,12 @@ After this module you can:
 
 ```bash
 ./00-setup/admin/bootstrap.sh
-./06-basics-impala/setup/setup.sh
-./06-basics-impala/setup/verify.sh
+./05-basics-impala/setup/setup.sh
+./05-basics-impala/setup/verify.sh
 ```
 
-(Ranger: extend Hive policies to `${WORKSHOP_ROOT}/06-impala/work` — see [ranger README](../00-setup/admin/ranger/README.md).)
+(Ranger: extend Hive policies to `${WORKSHOP_ROOT}/05-impala/work` — see [ranger README](../00-setup/admin/ranger/README.md).)
 
 ## Next module
 
-[07-lakehouse-iceberg](../07-lakehouse-iceberg/README.md)
+[06-basics-spark](../06-basics-spark/README.md)

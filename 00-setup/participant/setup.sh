@@ -2,7 +2,7 @@
 # Self-service setup: upload the workshop data and module files into YOUR OWN HDFS home,
 # using your own Kerberos ticket. Use this when no trainer/admin can run bootstrap.sh.
 #
-# Usage: setup.sh [--root HDFS_DIR] [--modules "02 03 04 06 07"] [--remove]
+# Usage: setup.sh [--root HDFS_DIR] [--modules "02 03 04 05 07"] [--remove]
 #   --root     workshop location on HDFS (default: /user/<kerberos user>/cdp_workshop)
 #   --modules  module setup scripts to run after the data upload (default: all)
 #   --remove   delete the workshop location again (and exit)

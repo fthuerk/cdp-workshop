@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Workshop 05: cleanse meter CSV, join weather and hourly prices, write Parquet."""
+"""Workshop 06: cleanse meter CSV, join weather and hourly prices, write Parquet."""
 import sys
 
 from pyspark.sql import SparkSession
@@ -17,7 +17,7 @@ def main() -> None:
     meter_path, weather_path, awattar_path, output_path = sys.argv[1:5]
 
     spark = (
-        SparkSession.builder.appName("workshop-05-spark-cleanse-join")
+        SparkSession.builder.appName("workshop-06-spark-cleanse-join")
         .getOrCreate()
     )
 

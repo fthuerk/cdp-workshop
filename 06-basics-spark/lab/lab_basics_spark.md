@@ -8,7 +8,7 @@ Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
-export SPARK_LAB="${WORKSHOP_ROOT}/05-spark"
+export SPARK_LAB="${WORKSHOP_ROOT}/06-spark"
 export METER_CSV="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
 export WEATHER_CSV="${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
 export AWATTAR_CSV="${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"
@@ -379,7 +379,7 @@ yarn logs -applicationId "<application-id>" | tail -40
 From the repo on the edge node:
 
 ```bash
-./05-basics-spark/lab/check.sh
+./06-basics-spark/lab/check.sh
 ```
 
 If something fails, see [troubleshooting.md](troubleshooting.md).

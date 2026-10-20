@@ -1,4 +1,4 @@
-# Technical deep-dive — Spark on YARN (Module 05)
+# Technical deep-dive — Spark on YARN (Module 06)
 
 ## Why this matters
 

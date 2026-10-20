@@ -19,8 +19,8 @@ fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
 DB="ws_${WS_USER}"
-IMPALA_WORK="${WORKSHOP_ROOT}/06-impala/work/${WS_USER}"
-SCALED="${WORKSHOP_ROOT}/06-impala/scaled/meter-15k.csv"
+IMPALA_WORK="${WORKSHOP_ROOT}/05-impala/work/${WS_USER}"
+SCALED="${WORKSHOP_ROOT}/05-impala/scaled/meter-15k.csv"
 REPEAT=1000
 
 source_body="$(hdfs dfs -cat "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" 2>/dev/null \
@@ -44,7 +44,7 @@ fi
 if hdfs dfs -test -e "${SCALED}" 2>/dev/null; then
   pass "shared scaled file present"
 else
-  fail_msg "Missing ${SCALED} - ask instructor to run 06-basics-impala/setup/setup.sh"
+  fail_msg "Missing ${SCALED} - ask instructor to run 05-basics-impala/setup/setup.sh"
 fi
 
 expect "impala_meter row count" "$(impala_q 'SELECT COUNT(*) FROM impala_meter')" "${expected_rows}" "lab sections 1 and 5"

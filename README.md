@@ -21,8 +21,8 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 | 02 | [Basics: HDFS](02-basics-hdfs/README.md) | Basics | ~75 min | **Ready** |
 | 03 | [Basics: YARN](03-basics-yarn/README.md) | Basics | ~80 min | **Ready** |
 | 04 | [Basics: Hive](04-basics-hive/README.md) | Basics | ~110 min | Draft (not yet dry-run on a cluster) |
-| 05 | [Basics: Spark](05-basics-spark/README.md) | Basics | ~90 min | Draft (not yet dry-run on a cluster) |
-| 06 | [Basics: Impala](06-basics-impala/README.md) | Basics | ~45 min | Draft (not yet dry-run on a cluster) |
+| 05 | [Basics: Impala](05-basics-impala/README.md) | Basics | ~45 min | Draft (not yet dry-run on a cluster) |
+| 06 | [Basics: Spark](06-basics-spark/README.md) | Basics | ~90 min | Draft (not yet dry-run on a cluster) |
 | 07 | [Lakehouse: Iceberg](07-lakehouse-iceberg/README.md) | Lakehouse | ~120 min | Draft (not yet dry-run on a cluster) |
 | 10 | Advanced: Hive | Advanced | ~90 min | Planned |
 | 11 | Advanced: Spark | Advanced | ~90 min | Planned |
@@ -50,8 +50,8 @@ data/samples/        # synthetic CSVs (uploaded to HDFS by bootstrap)
 02-basics-hdfs/      # lab + trainer + setup scripts
 03-basics-yarn/      # YARN lab + setup scripts
 04-basics-hive/      # Hive lab + trainer + setup scripts
-05-basics-spark/     # Spark lab + trainer + setup scripts
-06-basics-impala/    # Impala lab + trainer + setup scripts
+05-basics-impala/    # Impala lab + trainer + setup scripts
+06-basics-spark/     # Spark lab + trainer + setup scripts
 07-lakehouse-iceberg/ # Lakehouse lab (Iceberg in Hue/Impala) + trainer + setup scripts
 docs/concept.md              # curriculum concept
 docs/workshop-guidelines.md  # how to author labs and modules
@@ -60,7 +60,7 @@ docs/workshop-guidelines.md  # how to author labs and modules
 ## On the cluster
 
 1. Clone or unpack this repo on an edge node → set `WORKSHOP_LOCAL` in `config.env`.
-2. Admin: `00-setup/admin/bootstrap.sh`, then per-module `setup/setup.sh` (e.g. `02-basics-hdfs`, `05-basics-spark`), then each module’s `verify.sh`.
+2. Admin: `00-setup/admin/bootstrap.sh`, then per-module `setup/setup.sh` (e.g. `02-basics-hdfs`, `06-basics-spark`), then each module’s `verify.sh`.
 3. Participants: read each module’s lab markdown (for example `lab/lab_basics_hdfs.md`) and run commands with a personal Kerberos principal.
 
 Labs define success through outcomes and `lab/check.sh`, not fixed sample transcripts.

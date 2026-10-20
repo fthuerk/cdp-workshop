@@ -1,4 +1,4 @@
-# Module 05 — Basics: Spark
+# Module 06 — Basics: Spark
 
 Distributed transforms on the grid monitoring pilot data: read smart-meter and weather CSVs from HDFS with PySpark, cleanse and join time series on YARN, write curated Parquet to your personal folder, and register the result in the shared Hive Metastore.
 
@@ -30,7 +30,7 @@ After this module you can:
 | Core lab | [lab_basics_spark.md](lab/lab_basics_spark.md) sections 0–7 |
 | Optional | [lab_basics_spark.md](lab/lab_basics_spark.md) section 8 (failure signals) |
 | Stretch | [lab_basics_spark.md](lab/lab_basics_spark.md) stretch |
-| Self-check | `./05-basics-spark/lab/check.sh` |
+| Self-check | `./06-basics-spark/lab/check.sh` |
 
 ## Trainer materials
 
@@ -41,12 +41,12 @@ After this module you can:
 
 ```bash
 ./00-setup/admin/bootstrap.sh
-./05-basics-spark/setup/setup.sh
-./05-basics-spark/setup/verify.sh
+./06-basics-spark/setup/setup.sh
+./06-basics-spark/setup/verify.sh
 ```
 
-(Ranger: same Hive `ws_*` pattern as module 04; HDFS write under `/user/<participant>` and optional `${WORKSHOP_ROOT}/05-spark/work` — see [ranger README](../00-setup/admin/ranger/README.md).)
+(Ranger: same Hive `ws_*` pattern as module 04; HDFS write under `/user/<participant>` and optional `${WORKSHOP_ROOT}/06-spark/work` — see [ranger README](../00-setup/admin/ranger/README.md).)
 
 ## Next module
 
-[06-basics-impala](../06-basics-impala/README.md)
+[07-lakehouse-iceberg](../07-lakehouse-iceberg/README.md)

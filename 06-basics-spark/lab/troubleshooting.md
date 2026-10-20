@@ -47,4 +47,4 @@ Workshop users need Hive policies on database `ws_*` (same pattern as the Hive b
 - **24 joined rows:** inner join on `ts_utc` only — each of 12 OK meter rows matches two weather stations. Redo sections 2 and 4.  
 - **12 cleansed rows:** three WARN rows in the sample must be filtered out in section 2.  
 - Missing `_SUCCESS` on `spark-batch-curated`: redo section 6 and wait until YARN shows `FINISHED`.  
-- Missing shared script: instructor runs `./05-basics-spark/setup/setup.sh`.
+- Missing shared script: instructor runs `./06-basics-spark/setup/setup.sh`.

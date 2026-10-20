@@ -10,7 +10,7 @@ load_config
 require_admin_hdfs_kinit
 require_cmd hdfs awk mktemp
 
-MODULE_ROOT="${WORKSHOP_ROOT}/06-impala"
+MODULE_ROOT="${WORKSHOP_ROOT}/05-impala"
 SCALED="${MODULE_ROOT}/scaled"
 WORK="${MODULE_ROOT}/work"
 SOURCE="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
@@ -51,4 +51,4 @@ hdfs dfs -setfacl -m user:hive:rwx,default:user:hive:rwx "${WORK}" \
 total_rows=$(( body_lines * REPEAT ))
 log_info "Scaled meter file: ${total_rows} data rows at ${SCALED_FILE}"
 log_info "Impala module setup complete under ${MODULE_ROOT}"
-log_warn "Ranger: workshop users need Hive/Impala policies on ws_* and ${WORKSHOP_ROOT}/06-impala/work - see 00-setup/admin/ranger/README.md (module 06)"
+log_warn "Ranger: workshop users need Hive/Impala policies on ws_* and ${WORKSHOP_ROOT}/05-impala/work - see 00-setup/admin/ranger/README.md (module 05)"

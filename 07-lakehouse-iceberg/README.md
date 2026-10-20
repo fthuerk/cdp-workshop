@@ -7,7 +7,7 @@ The follow-up to the Hive module: how to change, delete, and merge data **safely
 ## Prerequisites
 
 - Module [00-setup](../00-setup/README.md) complete (`check_env.sh` passes); the lab creates its own database and source tables from the shared sample data
-- Recommended background: [04-basics-hive](../04-basics-hive/README.md) (external vs managed tables, partitions) and [06-basics-impala](../06-basics-impala/README.md)
+- Recommended background: [04-basics-hive](../04-basics-hive/README.md) (external vs managed tables, partitions) and [05-basics-impala](../05-basics-impala/README.md)
 - Valid Kerberos ticket (`WORKSHOP_USER` + `kinit`) for the `hdfs` commands, Hue login, and the `impala-shell` options from your handout (only for `check.sh`)
 - Cloudera Runtime 7.3.2 or later (Impala `UPDATE` and `MERGE` need 7.3.1.500 or later)
 

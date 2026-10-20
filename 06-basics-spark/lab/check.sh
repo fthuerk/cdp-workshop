@@ -15,7 +15,7 @@ fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
 USER_HOME="/user/${WS_USER}"
-SPARK_LAB="${WORKSHOP_ROOT}/05-spark"
+SPARK_LAB="${WORKSHOP_ROOT}/06-spark"
 BATCH_OUT="${USER_HOME}/spark-batch-curated"
 INTERACTIVE_OUT="${USER_HOME}/spark-curated"
 EXPECTED_JOINED=24
@@ -27,7 +27,7 @@ expect_path() {
 
 expect_path "${SPARK_LAB}/assets/spark_cleanse_join.py" \
   "Shared Spark script on HDFS" \
-  "ask instructor to run 05-basics-spark/setup/setup.sh"
+  "ask instructor to run 06-basics-spark/setup/setup.sh"
 
 expect_path "${BATCH_OUT}/_SUCCESS" \
   "Batch Parquet output (_SUCCESS)" \
@@ -44,7 +44,7 @@ import sys
 from pyspark.sql import SparkSession
 
 path = sys.argv[1]
-spark = SparkSession.builder.appName("workshop-05-check").master("local[2]").getOrCreate()
+spark = SparkSession.builder.appName("workshop-06-check").master("local[2]").getOrCreate()
 print(spark.read.parquet(path).count())
 spark.stop()
 PY
@@ -68,7 +68,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 path = sys.argv[1]
-spark = SparkSession.builder.appName("workshop-05-check-meter").master("local[2]").getOrCreate()
+spark = SparkSession.builder.appName("workshop-06-check-meter").master("local[2]").getOrCreate()
 meter = (
     spark.read.option("header", True)
     .schema(

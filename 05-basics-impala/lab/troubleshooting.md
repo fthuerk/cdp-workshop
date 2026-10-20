@@ -22,11 +22,11 @@ Only needed for section 4. Verify `HS2_URL` from your handout and a valid ticket
 
 ## `Permission denied: user=hive` when creating the table or querying
 
-Table data must live under `${IMPALA_WORK}`, not only in your `/user/...` home. Ask your instructor to re-run module setup — it grants the `hive` user access to `${WORKSHOP_ROOT}/06-impala/work`.
+Table data must live under `${IMPALA_WORK}`, not only in your `/user/...` home. Ask your instructor to re-run module setup — it grants the `hive` user access to `${WORKSHOP_ROOT}/05-impala/work`.
 
 ## Ranger: `does not have privilege` on database or HDFS URL
 
-Same pattern as the Hive module: policies on `ws_*` and on `${WORKSHOP_ROOT}/06-impala/work/*`. Ask your instructor.
+Same pattern as the Hive module: policies on `ws_*` and on `${WORKSHOP_ROOT}/05-impala/work/*`. Ask your instructor.
 
 ## UPDATE / DELETE errors in section 4
 
@@ -36,7 +36,7 @@ Same pattern as the Hive module: policies on `ws_*` and on `${WORKSHOP_ROOT}/06-
 
 - Redo section 1 copy from `${IMPALA_LAB}/scaled/meter-15k.csv`.  
 - If you still have `extra-copy.csv` from section 5, remove it and `INVALIDATE METADATA impala_meter;`.  
-- Shared scaled file missing: instructor runs `./06-basics-impala/setup/setup.sh`.
+- Shared scaled file missing: instructor runs `./05-basics-impala/setup/setup.sh`.
 
 ## Impala much slower than expected
 

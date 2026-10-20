@@ -1,4 +1,4 @@
-# Trainer demos — Module 06 Impala
+# Trainer demos — Module 05 Impala
 
 Optional live-only steps — not required for participants.
 

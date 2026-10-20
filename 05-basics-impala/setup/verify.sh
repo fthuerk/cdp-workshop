@@ -10,7 +10,7 @@ load_config
 require_admin_hdfs_kinit
 require_cmd hdfs awk
 
-MODULE_ROOT="${WORKSHOP_ROOT}/06-impala"
+MODULE_ROOT="${WORKSHOP_ROOT}/05-impala"
 SCALED_FILE="${MODULE_ROOT}/scaled/meter-15k.csv"
 WORK="${MODULE_ROOT}/work"
 REPEAT=1000
@@ -48,4 +48,4 @@ fi
 echo "[INFO] Not checked here: Impala daemon reachability or Ranger Impala/Hive policies."
 
 if [[ ${fail} -ne 0 ]]; then exit 1; fi
-echo "06-basics-impala setup verify complete."
+echo "05-basics-impala setup verify complete."

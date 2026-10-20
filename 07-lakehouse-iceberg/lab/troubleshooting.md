@@ -1,6 +1,6 @@
 # Troubleshooting — Lakehouse (Iceberg)
 
-For Kerberos, Hue, and Ranger basics see the [Hive troubleshooting](../../04-basics-hive/lab/troubleshooting.md); for `impala-shell` and Impala see the [Impala module](../../06-basics-impala/README.md) (same errors, same fixes).
+For Kerberos, Hue, and Ranger basics see the [Hive troubleshooting](../../04-basics-hive/lab/troubleshooting.md); for `impala-shell` and Impala see the [Impala module](../../05-basics-impala/README.md) (same errors, same fixes).
 
 ## `Table does not exist: landisgyr_changes` (or `stations`, `market_prices`, `landisgyr_csv`)
 

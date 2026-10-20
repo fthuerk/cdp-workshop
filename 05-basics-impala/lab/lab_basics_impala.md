@@ -8,7 +8,7 @@ Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER`
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
-export IMPALA_LAB="${WORKSHOP_ROOT}/06-impala"
+export IMPALA_LAB="${WORKSHOP_ROOT}/05-impala"
 export IMPALA_WORK="${IMPALA_LAB}/work/${WORKSHOP_USER}"
 export IMPALA_OPTS="<impala-shell-options-from-handout>"   # e.g. -i impala-host:21050
 export HS2_URL="<jdbc-url-from-your-handout>"
@@ -300,7 +300,7 @@ You should be back at **15,000** rows.
 From the repo root on the edge node (export `IMPALA_OPTS` and `HS2_URL` as in the intro):
 
 ```bash
-./06-basics-impala/lab/check.sh
+./05-basics-impala/lab/check.sh
 ```
 
 If something fails, see [troubleshooting.md](troubleshooting.md).

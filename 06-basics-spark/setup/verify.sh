@@ -10,7 +10,7 @@ load_config
 require_admin_hdfs_kinit
 require_cmd hdfs
 
-MODULE_ROOT="${WORKSHOP_ROOT}/05-spark"
+MODULE_ROOT="${WORKSHOP_ROOT}/06-spark"
 SCRIPT="${MODULE_ROOT}/assets/spark_cleanse_join.py"
 
 fail=0
@@ -26,4 +26,4 @@ for dataset in landisgyr/sample-landisgyr-data.csv \
 done
 
 if [[ ${fail} -ne 0 ]]; then exit 1; fi
-echo "05-basics-spark setup verify complete."
+echo "06-basics-spark setup verify complete."

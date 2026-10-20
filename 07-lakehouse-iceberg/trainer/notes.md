@@ -71,4 +71,4 @@ Permissions: Hive/Impala policies on `ws_*` (create database and tables), HDFS `
 
 ## After module
 
-Advanced Hive (module 10) builds on the joins of section 6: window functions and ranking, bucketing, and performance tuning. Spark module (05, planned): Spark reads and writes the same Iceberg tables. Not covered in the lab: Hive and Spark access to the table, copy-on-write, schema and partition evolution (stretch), branches and tags, and (from Runtime 7.3.2 SP1, Technical Preview) format version 3 with deletion vectors.
+Advanced Hive (module 10) builds on the joins of section 6: window functions and ranking, bucketing, and performance tuning. Spark module (06, planned): Spark reads and writes the same Iceberg tables. Not covered in the lab: Hive and Spark access to the table, copy-on-write, schema and partition evolution (stretch), branches and tags, and (from Runtime 7.3.2 SP1, Technical Preview) format version 3 with deletion vectors.

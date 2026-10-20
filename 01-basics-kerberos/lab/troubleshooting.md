@@ -22,7 +22,7 @@ Wrong password. Retry once. Repeated failures can lock your account — then ask
 
 ## `kinit -R` fails ("KDC can't fulfill requested option")
 
-Your ticket is not renewable, or its `renew until` time has passed. Run `kinit "${WORKSHOP_USER}"` again; to see whether renewable tickets are allowed, use `kinit -l 10m -r 1h` and check `renew until` in `klist`. If it is missing, your cluster does not allow renewal; skip the renewal step.
+Your ticket is not renewable, or its `renew until` time has passed. Run `kinit "${WORKSHOP_USER}"` again; to see whether renewable tickets are allowed, use `kinit -l 3m -r 1h` and check `renew until` in `klist`. If it is missing, your cluster does not allow renewal; skip the renewal step.
 
 ## `Ticket expired` or `GSS initiate failed` in the middle of a lab
 

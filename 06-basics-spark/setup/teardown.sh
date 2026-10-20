@@ -9,6 +9,6 @@ load_config
 
 require_admin_hdfs_kinit
 
-MODULE_ROOT="${WORKSHOP_ROOT}/05-spark"
+MODULE_ROOT="${WORKSHOP_ROOT}/06-spark"
 hdfs dfs -rm -f "${MODULE_ROOT}/assets/spark_cleanse_join.py" 2>/dev/null || true
 log_info "Removed shared Spark script under ${MODULE_ROOT}/assets (work/ kept)"
