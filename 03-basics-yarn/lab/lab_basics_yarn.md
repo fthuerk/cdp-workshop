@@ -357,6 +357,52 @@ This time the application stays in `ACCEPTED`: no AM was ever started, so no tas
 
 ---
 
+## 11. Group exercise — preemption in a full queue
+
+**Goal:** See what YARN does when everyone submits into one small queue at the same time.
+
+The queue `root.demo` is small (24 GB) and has **intra-queue preemption** enabled. If the queue is full and a user is below their fair share, YARN kills containers of other apps in the same queue to make room. Killed containers are not a failure: the ApplicationMaster simply requests them again.
+
+**Instructor (before the group starts)** — fill the queue with a long job as a separate admin user, and check that usage is near 100%:
+
+```bash
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+  pi \
+  -Dmapreduce.job.queuename=demo \
+  -Dmapreduce.map.memory.mb=2048 \
+  200 100000000
+
+yarn queue -status root.demo
+```
+
+**Participants** — wait for the signal, then all submit **at the same time**:
+
+```bash
+hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+  pi \
+  -Dmapreduce.job.queuename=demo \
+  -Dmapreduce.map.memory.mb=2048 \
+  20 100000000
+```
+
+In a second terminal, watch your application and the queue (preemption takes a minute or more):
+
+```bash
+yarn application -list -appStates ACCEPTED,RUNNING
+yarn queue -status root.demo
+yarn top
+```
+
+Your app may stay in `ACCEPTED` for a while, then get containers once the instructor's containers are preempted. When the jobs have finished, look for preempted containers in the AM log of the instructor's application (exit status `-102`):
+
+```bash
+yarn logs -applicationId "<application-id>" -containerId "<am-container-id>" -log_files syslog | grep -i preempt
+```
+
+**Check question:** Why does a preempted container not fail the job? Why is the ApplicationMaster the last container to be preempted? When is this behaviour wanted on a shared grid-analytics queue, and when is it a problem for long-running work?
+
+---
+
 ## Stretch (optional)
 
 Watch containers and queues live while a colleague's job runs (quit with `q`):
