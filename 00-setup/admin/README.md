@@ -25,12 +25,17 @@ Run on a **CM-managed edge node** (scripts call `kinit` as `hdfs` via the NameNo
    ./04-basics-hive/setup/setup.sh
    ./04-basics-hive/setup/verify.sh
    ```
-4. Module **07** Lakehouse (Iceberg): no folders to create; the script checks prerequisites and reminds you of the Ranger storage handler policy:
+4. Module **10** Advanced Hive: no folders to create; the script checks the sample data the lab copies from:
+   ```bash
+   ./10-advanced-hive/setup/setup.sh
+   ./10-advanced-hive/setup/verify.sh
+   ```
+5. Module **07** Lakehouse (Iceberg): no folders to create; the script checks prerequisites and reminds you of the Ranger storage handler policy:
    ```bash
    ./07-lakehouse-iceberg/setup/setup.sh
    ./07-lakehouse-iceberg/setup/verify.sh
    ```
-5. **Optional — Ranger** (test in dev first; manual UI fallback in `ranger/README.md`):
+6. **Optional — Ranger** (test in dev first; manual UI fallback in `ranger/README.md`):
    ```bash
    ./00-setup/admin/ranger/apply_policies.sh
    ```

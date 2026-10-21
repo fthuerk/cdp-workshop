@@ -1,6 +1,6 @@
 # Hive hands-on lab
 
-Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need two terminals on the edge node: one for `beeline` (SQL) and one for `hdfs` (files). Sections 1–5 are about **external tables** and files, sections 6–7 about **managed tables**, sections 8–10 about everyday SQL.
+Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need two terminals on the edge node: one for `beeline` (SQL) and one for `hdfs` (files). Sections 1–5 are about **external tables** and files, sections 6–7 about **managed tables**, sections 8–9 about everyday SQL and a first join, section 10 about table statistics. Window functions, complex joins, and more advanced functions are in the [advanced Hive lab](../../10-advanced-hive/lab/lab_advanced_hive.md).
 
 Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit` (same account as on the edge node). `HIVE_LAB` holds shared module files on HDFS (prepared landing data). `HIVE_EXT` is the folder where Hive keeps the data of your **external** tables: the default external warehouse location, with one sub-folder per database. You never set a table location in this lab — Hive creates a folder per table below `HIVE_EXT`, and you copy files into it. `HIVE_MANAGED` is the matching folder for your **managed** tables (section 6), where Hive alone decides the layout. `HS2_URL` is the HiveServer2 JDBC URL from your workshop handout.
 
@@ -44,7 +44,7 @@ Notes:
 - Click a file name to see its content (like `-cat`; ORC and Parquet look unreadable, which is the point). The listing shows size and owner (like `-ls` and `-du`).  
 - Tick a file and **Delete forever** (not *Move to trash*) replaces `-rm -skipTrash`.
 
-**What still needs a terminal:** the `heredoc` that creates the correction file in section 7 (in Hue: **New → File**, paste the three lines, save as `landisgyr-changes.csv` in the `landisgyr_changes` table folder), `hive --orcfiledump` and `strings` in section 4, `yarn application -list` in section 10, and `beeline -f` in the stretch. The `bash` blocks in the other sections all have the File Browser equivalents above.
+**What still needs a terminal:** the `heredoc` that creates the correction file in section 7 (in Hue: **New → File**, paste the three lines, save as `landisgyr-changes.csv` in the `landisgyr_changes` table folder), `hive --orcfiledump` and `strings` in section 4, and `beeline -f` in the stretch. The `bash` blocks in the other sections all have the File Browser equivalents above.
 
 ---
 
@@ -700,12 +700,12 @@ SELECT COALESCE(event_code, 'NONE') AS event, COUNT(*) FROM landisgyr_v GROUP BY
 
 ## 9. Joins
 
-**Goal:** Combine meter readings with reference data, market prices, and weather — and spot a join that multiplies rows.
+**Goal:** Combine meter readings with reference data in one basic join.
 
-Create three small external tables for the reference data, market prices, and operator weather. As in section 1, each table gets an empty folder under `HIVE_EXT`; you fill it in the second terminal after the `CREATE` statements:
+The station coordinates and districts live in a separate reference file. Create an external table for it. As in section 1, the table gets an empty folder under `HIVE_EXT`; you fill it in the second terminal after the `CREATE` statement:
 
 ```sql
-CREATE EXTERNAL TABLE stations (
+CREATE EXTERNAL TABLE IF NOT EXISTS stations (
   station_id STRING,
   latitude DOUBLE,
   longitude DOUBLE,
@@ -716,47 +716,16 @@ CREATE EXTERNAL TABLE stations (
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
 TBLPROPERTIES ('skip.header.line.count'='1');
-
-CREATE EXTERNAL TABLE market_prices (
-  timestamp_start STRING,
-  timestamp_end STRING,
-  market STRING,
-  price_eur_mwh DOUBLE,
-  price_ct_kwh DOUBLE,
-  currency STRING
-)
-ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-STORED AS TEXTFILE
-TBLPROPERTIES ('skip.header.line.count'='1');
-
-CREATE EXTERNAL TABLE weather_operator (
-  ts_utc STRING,
-  station_id STRING,
-  station_name STRING,
-  temperature_c DOUBLE,
-  relative_humidity_pct DOUBLE,
-  wind_speed_mps DOUBLE,
-  precipitation_mm DOUBLE,
-  pressure_hpa DOUBLE,
-  quality_flag STRING
-)
-ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-STORED AS TEXTFILE
-TBLPROPERTIES ('skip.header.line.count'='1');
 ```
 
-Copy one shared CSV into each table folder and check that the tables return rows:
+Copy the shared CSV into the table folder and check that the table returns rows. `-f` overwrites the file if it is already there, so you can repeat the step:
 
 ```bash
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/basemap/sample-basemap-at-locations.csv" "${HIVE_EXT}/stations/"
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv" "${HIVE_EXT}/market_prices/"
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv" "${HIVE_EXT}/weather_operator/"
+hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/basemap/sample-basemap-at-locations.csv" "${HIVE_EXT}/stations/"
 ```
 
 ```sql
 SELECT * FROM stations;
-SELECT * FROM market_prices LIMIT 3;
-SELECT * FROM weather_operator LIMIT 3;
 ```
 
 **Inner join.** Add the district to each station's peak load. Rows without a match on either side disappear:
@@ -769,86 +738,62 @@ GROUP BY s.municipality, s.district, m.station_id
 ORDER BY max_load_pct DESC;
 ```
 
-**Left join as anti-join.** Which stations never reported a `WARN`? Keep all stations, attach the ones with warnings, and keep the rows where nothing matched:
+You should get one row per station. `landisgyr_v` is the view from section 8; Hive runs the join as a Tez job, like every other query in this lab.
 
-```sql
-SELECT s.station_id, s.district
-FROM stations s
-LEFT JOIN (SELECT DISTINCT station_id FROM landisgyr_v WHERE quality_flag = 'WARN') w
-  ON s.station_id = w.station_id
-WHERE w.station_id IS NULL;
-```
-
-**Join on a derived key.** Meter readings arrive every 15 minutes, prices per hour. Join on the hour — the first 13 characters of both timestamps (`2026-01-15T08`) — to estimate the energy cost per station (15 minutes = 0.25 h; prices are in ct/kWh):
-
-```sql
-SELECT m.station_id,
-       ROUND(SUM(m.active_power_kw * 0.25), 1) AS energy_kwh,
-       ROUND(SUM(m.active_power_kw * 0.25 * p.price_ct_kwh) / 100, 2) AS cost_eur
-FROM landisgyr_csv m
-JOIN market_prices p ON SUBSTR(m.ts_utc, 1, 13) = SUBSTR(p.timestamp_start, 1, 13)
-GROUP BY m.station_id
-ORDER BY cost_eur DESC;
-```
-
-**A join that multiplies rows.** Join the readings to the operator weather on the timestamp only and compare the row counts:
-
-```sql
-SELECT COUNT(*) FROM landisgyr_csv;
-SELECT COUNT(*) FROM landisgyr_csv m JOIN weather_operator w ON m.ts_utc = w.ts_utc;
-```
-
-You should see twice as many rows after the join. Find out why, then fix it by averaging the weather per timestamp first, in a common table expression (`WITH`):
-
-```sql
-SELECT ts_utc, COUNT(*) AS weather_rows FROM weather_operator GROUP BY ts_utc;
-
-WITH weather AS (
-  SELECT ts_utc, ROUND(AVG(temperature_c), 2) AS avg_temp_c
-  FROM weather_operator
-  GROUP BY ts_utc
-)
-SELECT m.station_id, m.ts_utc, m.transformer_load_pct, w.avg_temp_c
-FROM landisgyr_csv m
-JOIN weather w ON m.ts_utc = w.ts_utc
-ORDER BY m.station_id, m.ts_utc;
-```
-
-**Check question:** Why did the join double the rows? What do you check about the join keys before you trust a join result in a pipeline?
+**Check question:** Imagine `stations` listed only two of the three stations. What would the result above show for the third one, and how could you notice that readings are missing from a report built on this join? (Left joins, anti-joins, and joins that multiply rows are in the [advanced Hive lab](../../10-advanced-hive/lab/lab_advanced_hive.md).)
 
 ---
 
-## 10. Relate — Hive on Tez and YARN
+## 10. Statistics — what the optimizer knows
 
-**Goal:** Connect your SQL to what you learned in the YARN lab: query plans, statistics, and the Tez application behind Beeline.
+**Goal:** Collect table and column statistics, and see how they change what Hive knows about your data.
 
-Ask Hive for the plan of an aggregation. Look for `Tez`, the `Edges` section, and the vertices `Map 1` and `Reducer 2`:
+Hive plans a query before it runs it. For a good plan (how many reducers, which join strategy) the optimizer needs to know how big the data is. That knowledge is **statistics** in the Metastore: row counts and sizes per table, and per column the number of distinct values, `NULL`s, minimum, and maximum. Files that you copied into an external table folder yourself (section 1) have no statistics yet. Check the table parameters and look for `numRows` and `totalSize`:
+
+```sql
+DESCRIBE FORMATTED landisgyr_csv;
+```
+
+Now ask for the plan of an aggregation. Look for `Tez`, the vertices `Map 1` and `Reducer 2`, and the `Statistics:` line of the table scan, which shows what Hive assumes about the table:
 
 ```sql
 EXPLAIN
 SELECT station_id, MAX(transformer_load_pct) FROM landisgyr_csv GROUP BY station_id;
 ```
 
-Run the query, then switch to the second terminal and list Tez applications on YARN. Look at the user and the application state:
-
-```sql
-SELECT station_id, MAX(transformer_load_pct) FROM landisgyr_csv GROUP BY station_id;
-```
-
-```bash
-yarn application -list -appTypes TEZ
-```
-
-You should see at least one Tez application owned by the Hive service user — HiveServer2 keeps Tez sessions open, so your query used existing containers instead of starting a new application.
-
-The optimizer plans better with statistics. Collect them for the table and look for `numRows` and `totalSize` in the table parameters:
+Collect table statistics. This runs a job that reads the data once. Then look at the table parameters again:
 
 ```sql
 ANALYZE TABLE landisgyr_csv COMPUTE STATISTICS;
 DESCRIBE FORMATTED landisgyr_csv;
 ```
 
-**Check question:** Compare the `EXPLAIN` output with the MapReduce and Tez runs from the YARN lab. Which part of the plan corresponds to the ApplicationMaster and the containers you saw there?
+You should see `numRows` with the number of readings and `totalSize` with the size of the file. Run the `EXPLAIN` from above again and compare the `Statistics:` line: Hive now knows the row count instead of guessing from the file size.
+
+Column statistics are collected separately. They tell the optimizer how selective a filter or a join key is:
+
+```sql
+ANALYZE TABLE landisgyr_csv COMPUTE STATISTICS FOR COLUMNS;
+DESCRIBE FORMATTED landisgyr_csv station_id;
+DESCRIBE FORMATTED landisgyr_csv transformer_load_pct;
+```
+
+The output has one row of numbers per column: `min`, `max`, `num_nulls`, `distinct_count`, and for text columns the average and maximum length. You should see three distinct values for `station_id` and a minimum and maximum for the load.
+
+With accurate table statistics Hive can answer some queries from the Metastore alone. Run the count that needed a Tez job in section 1 again and watch Beeline:
+
+```sql
+SELECT COUNT(*) FROM landisgyr_csv;
+```
+
+For a partitioned table, statistics are kept per partition. Collect them for all partitions of the table from section 3 and look at one of them:
+
+```sql
+ANALYZE TABLE landisgyr_by_station PARTITION (station_id) COMPUTE STATISTICS;
+DESCRIBE FORMATTED landisgyr_by_station PARTITION (station_id='TS-101');
+```
+
+**Check question:** A new file lands in the folder of `landisgyr_csv` and nobody runs `ANALYZE TABLE` again. What does `numRows` say, and what could go wrong when the optimizer trusts it? Which tables would you analyze regularly in a pipeline?
 
 ---
 

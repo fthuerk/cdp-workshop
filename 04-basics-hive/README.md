@@ -2,7 +2,7 @@
 
 SQL over the grid monitoring pilot data: put external and managed Hive tables on the smart-meter, market, and weather files you met in modules 02 and 03, look at how the files are stored on HDFS, and learn why external tables cannot be changed row by row.
 
-**Estimated time:** ~110 minutes (core ~95 min + stretch). The lab splits cleanly into two blocks — sections 0–5 (external tables, partitions, formats, failed updates) and sections 6–10 (managed tables, SQL basics, joins) — if you prefer two shorter sessions. Safe re-runnable loads for external tables (overwrite, rewrite, merge) and Iceberg tables live in the [lakehouse module](../07-lakehouse-iceberg/README.md).
+**Estimated time:** ~100 minutes (core ~85 min + stretch). The lab splits cleanly into two blocks — sections 0–5 (external tables, partitions, formats, failed updates) and sections 6–10 (managed tables, SQL basics, a first join, statistics) — if you prefer two shorter sessions. Safe re-runnable loads for external tables (overwrite, rewrite, merge) and Iceberg tables live in the [lakehouse module](../07-lakehouse-iceberg/README.md).
 
 ## Prerequisites
 
@@ -20,8 +20,8 @@ After this module you can:
 - Store the same data as text, ORC, and Parquet, and inspect the files on HDFS to see columnar storage
 - Explain why `UPDATE` and `DELETE` fail on external tables, and why `INSERT INTO` is not safe to retry (`INSERT OVERWRITE` is)
 - Create managed (ACID) tables and use `UPDATE`, `DELETE`, and `MERGE`
-- Write everyday Hive SQL: filter, aggregate, `CASE`, `NULL` handling, views, CTEs, and joins
-- Relate a Hive query to its Tez application on YARN
+- Write everyday Hive SQL: filter, aggregate, `CASE`, `NULL` handling, views, and a basic join
+- Collect table and column statistics with `ANALYZE TABLE` and explain what the optimizer uses them for
 
 ## Flow
 
@@ -46,6 +46,8 @@ After this module you can:
 ```
 
 (Ranger policies for Hive are a separate step — see the [ranger README](../00-setup/admin/ranger/README.md).)
+
+Window functions, complex joins, complex types, and WKT geo data are in [10-advanced-hive](../10-advanced-hive/README.md).
 
 ## Next module
 

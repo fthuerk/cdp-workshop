@@ -67,11 +67,11 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 | **01-basics-kerberos** | Kerberos fundamentals | 00 | ~35 min | `kinit`/`klist`/`kdestroy`, ticket lifetime and renewal, custom cache, common errors; optional keytab. First lab of the basics track |
 | **02-basics-hdfs** | HDFS fundamentals | 01 | ~75 min | Personal workspace; inspect use-case CSVs; replication & trash |
 | **03-basics-yarn** | YARN fundamentals | 02 | ~80 min | Submit MR/Tez/Spark app; find the AM; compare MR vs Tez; read queue, status, logs |
-| **04-basics-hive** | Hive fundamentals | 02, 03 | ~110 min | External tables and partitions on `data/landisgyr`, ORC/Parquet on HDFS, failed UPDATE/DELETE on external tables, managed ACID tables, SQL basics and joins |
+| **04-basics-hive** | Hive fundamentals | 02, 03 | ~100 min | External tables and partitions on `data/landisgyr`, ORC/Parquet on HDFS, failed UPDATE/DELETE on external tables, managed ACID tables, SQL basics, a basic join, table statistics |
 | **05-basics-impala** | Impala fundamentals | 01 | ~45 min | Interactive SQL; Hive vs Impala timing; UPDATE/DELETE errors on external tables |
 | **06-basics-spark** | Spark on YARN | 03, 04 | ~90 min | PySpark cleanse/join on meter and weather CSVs; Parquet curated output; `spark-submit`; external table in `ws_*` |
 | **07-lakehouse-iceberg** | Lakehouse with Iceberg | 04, 05 | ~120 min | Idempotent loads by hand vs Iceberg; `UPDATE`/`DELETE`/`MERGE` in Hue/Impala; files on HDFS; time travel, snapshot isolation, rollback; joins |
-| **10-advanced-hive** | Hive modeling & performance | 04 | ~90 min | Partitions, CTAS, file format comparison on use case |
+| **10-advanced-hive** | Advanced Hive SQL | 04 | ~75 min | Complex joins, window functions (rank, lag, running totals), complex types, ROLLUP, WKT geo data on use case |
 | **11-advanced-spark** | Spark pipelines | 06, 10 | ~90 min | Multi-source alignment, derived features |
 | **12-advanced-impala** | Impala for analytics | 05, 11 | ~60 min | Aggregations, KPIs for pilot sensors |
 | **13-advanced-oozie** | Workflow orchestration | 11 | ~75 min | Parametrized workflow with quality step |

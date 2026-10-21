@@ -2,7 +2,7 @@
 
 **Dry-run status:** the lab SQL has not been run end to end on the target cluster yet. Do one full run with a normal participant account before the session, fix anything that differs on your CDP version, and note it in [Pitfalls](#pitfalls).
 
-## Suggested timing (~110 min)
+## Suggested timing (~100 min)
 
 | Minutes | Activity |
 |---------|----------|
@@ -15,10 +15,10 @@
 | 60–63 | Short break |
 | 63–76 | Sections 6–7: managed table, UPDATE/DELETE/MERGE; live demo [demos.md](demos.md) section 1 |
 | 76–88 | Section 8: SQL basics |
-| 88–100 | Section 9: joins |
-| 100–110 | Section 10 relate; `check.sh`; bridge to the lakehouse module |
+| 88–93 | Section 9: one basic join |
+| 93–100 | Section 10: statistics; `check.sh`; bridge to the lakehouse module |
 
-If you run short, shorten sections 8–9 (they are the most "self-service") and keep 3–7 intact. If you split into two sessions, break after section 5 and start the second block with the section 6 concept. The question "how do I change one row in an external table safely?" is the opening of the [lakehouse module](../../07-lakehouse-iceberg/trainer/notes.md): say so at the end of section 5.
+If you run short, shorten section 8 (they are the most "self-service") and keep 3–7 intact. If you split into two sessions, break after section 5 and start the second block with the section 6 concept. The question "how do I change one row in an external table safely?" is the opening of the [lakehouse module](../../07-lakehouse-iceberg/trainer/notes.md): say so at the end of section 5.
 
 ## Check-question answers
 
@@ -32,12 +32,12 @@ If you run short, shorten sections 8–9 (they are the most "self-service") and 
 7. **Owner of raw vs curated (6):** Raw landing data: external — files are owned by the ingestion process, other engines (Spark, Impala) read them, and dropping a table must not delete source data. Curated tables only Hive writes: managed/ACID — Hive controls layout, updates, compaction, and cleanup; nobody should touch the files directly.  
 8. **Why deltas (7):** Immutable files; Hive writes `delta_` (inserts/new versions) and `delete_delta_` folders and merges them at read time. Without compaction every read has to merge more and more small files — read performance degrades and the NameNode holds many small files.  
 9. **`NULL` vs empty (8):** `IS NULL` returns 0 because delimited text yields empty **strings**; `= ''` returns the real number. A rule written with `IS NULL` reports zero problems. The view uses `NULLIF` to normalize.  
-10. **Doubled rows (9):** Each timestamp exists twice in the weather table (two stations) — the join key is not unique on one side. Check key uniqueness (`GROUP BY key HAVING COUNT(*) > 1`) and compare row counts before and after the join.  
-11. **EXPLAIN vs YARN (10):** `Map 1` / `Reducer 2` are Tez vertices (tasks in containers). The ApplicationMaster is the Tez AM of the HiveServer2 session — not visible as a vertex. Containers can be reused between queries of the same session, which is why the Tez application was already running.
+10. **Missing station in the join (9):** With an inner join the third station simply disappears from the result — no error, no `NULL`. A report built on it looks complete. Notice it by comparing the row or station count before and after the join, or with a left join and a `NULL` check. Left/anti-joins and row-multiplying joins are in the advanced lab (module 10).  
+11. **Stale statistics (10):** `numRows` still shows the old count, because nothing updates statistics for files copied into an external table folder. The optimizer plans with wrong sizes (wrong join strategy, too few reducers), and with accurate-looking statistics Hive can even answer `COUNT(*)` from the Metastore with the old number. Analyze after every load that changes a table a lot — in a pipeline, as the last step of the load; for partitioned tables per new partition.
 
 ## Talking points
 
-- **Use case:** the files are the same CSVs from modules 02–03; `landisgyr_csv`, `stations`, `market_prices`, `weather_operator` are the "staging" layer from [concept.md](../../docs/concept.md). Everything after landing/staging becomes ORC/Parquet.  
+- **Use case:** the files are the same CSVs from modules 02–03; `landisgyr_csv` and `stations` (and `market_prices`, `weather_operator` in the advanced lab) are the "staging" layer from [concept.md](../../docs/concept.md). Everything after landing/staging becomes ORC/Parquet.  
 - **Idempotency** is the thread through sections 5 and 7: say "can I run this twice?" after every statement, and bring it back in the Spark and Oozie modules.  
 - **Partitioning:** the lab partitions by `station_id` because the sample files cover one day. In production the partition is almost always a date (`dt=2026-01-15`) — the mechanics are identical. Warn against over-partitioning (high-cardinality keys, many tiny partitions).  
 - **Timestamps:** the CSV has `2026-01-15T08:00:00Z`, which Hive's `TIMESTAMP` cast does not parse directly. Section 8's view shows the cleanup (`REPLACE`/`SUBSTR`/`CAST`). Hive timestamps carry no time zone — all pilot data is UTC.
@@ -76,4 +76,4 @@ Run [setup/setup.sh](../setup/setup.sh) after bootstrap: it splits the Landis&Gy
 
 ## After module
 
-Preview module 05 (Impala) and module 06 (Spark): Impala and Spark read the same Parquet/ORC files and external tables through the Metastore — the folders you built under `${HIVE_EXT}` are the input. The later lab on table locations (`LOCATION` clause) comes after this module. The [lakehouse module (07)](../../07-lakehouse-iceberg/README.md) picks up the failed `UPDATE`/`DELETE` of section 5 and solves it with Iceberg. Advanced Hive (module 10) builds on sections 3 and 4: partition design, bucketing, window functions and ranking, and performance tuning.
+Preview module 05 (Impala) and module 06 (Spark): Impala and Spark read the same Parquet/ORC files and external tables through the Metastore — the folders you built under `${HIVE_EXT}` are the input. The later lab on table locations (`LOCATION` clause) comes after this module. The [lakehouse module (07)](../../07-lakehouse-iceberg/README.md) picks up the failed `UPDATE`/`DELETE` of section 5 and solves it with Iceberg. Advanced Hive ([module 10](../../10-advanced-hive/README.md)) covers the complex operations: complex joins, window functions and ranking, complex types, `ROLLUP`, and WKT geo data.

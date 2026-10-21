@@ -47,7 +47,8 @@ expect "meter_parquet rows" "$(sql 'SELECT COUNT(*) FROM meter_parquet')" "15000
 expect "landisgyr_managed is transactional" "$(sql 'SHOW TBLPROPERTIES landisgyr_managed("transactional")')" "true" "lab section 6"
 expect "landisgyr_managed MERGE inserted the new reading" "$(sql "SELECT COUNT(*) FROM landisgyr_managed WHERE ts_utc = '2026-01-15T09:15:00Z'")" "1" "lab section 7 (MERGE with landisgyr_changes)"
 expect "landisgyr_v view works" "$(sql 'SELECT COUNT(*) FROM landisgyr_v')" "${source_rows}" "lab section 8"
-expect "joined readings and weather (no row multiplication)" "$(sql 'WITH w AS (SELECT ts_utc, AVG(temperature_c) AS t FROM weather_operator GROUP BY ts_utc) SELECT COUNT(*) FROM landisgyr_csv m JOIN w ON m.ts_utc = w.ts_utc')" "${source_rows}" "lab section 9"
+expect "readings joined with stations" "$(sql 'SELECT COUNT(*) FROM landisgyr_v m JOIN stations s ON m.station_id = s.station_id')" "${source_rows}" "lab section 9"
+expect "landisgyr_csv has table statistics" "$(sql 'SHOW TBLPROPERTIES landisgyr_csv("numRows")')" "${source_rows}" "lab section 10 (ANALYZE TABLE)"
 
 if [[ ${fail} -ne 0 ]]; then
   echo "Self-check failed. See lab/troubleshooting.md"

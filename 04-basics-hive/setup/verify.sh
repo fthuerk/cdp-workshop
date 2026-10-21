@@ -17,8 +17,6 @@ fail=0
 check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
 
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/basemap/sample-basemap-at-locations.csv"
-check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"
-check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
 
 parts="$(hdfs dfs -ls "${LANDING}" 2>/dev/null | grep -c 'station_id=' || true)"
 if [[ "${parts}" -ge 3 ]]; then

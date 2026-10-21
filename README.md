@@ -20,11 +20,11 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 | 01 | [Basics: Kerberos](01-basics-kerberos/README.md) | Basics | ~35 min | Draft (not yet dry-run on a cluster) |
 | 02 | [Basics: HDFS](02-basics-hdfs/README.md) | Basics | ~75 min | **Ready** |
 | 03 | [Basics: YARN](03-basics-yarn/README.md) | Basics | ~80 min | **Ready** |
-| 04 | [Basics: Hive](04-basics-hive/README.md) | Basics | ~110 min | Draft (not yet dry-run on a cluster) |
+| 04 | [Basics: Hive](04-basics-hive/README.md) | Basics | ~100 min | Draft (not yet dry-run on a cluster) |
 | 05 | [Basics: Impala](05-basics-impala/README.md) | Basics | ~45 min | Draft (not yet dry-run on a cluster) |
 | 06 | [Basics: Spark](06-basics-spark/README.md) | Basics | ~90 min | Draft (not yet dry-run on a cluster) |
 | 07 | [Lakehouse: Iceberg](07-lakehouse-iceberg/README.md) | Lakehouse | ~120 min | Draft (not yet dry-run on a cluster) |
-| 10 | Advanced: Hive | Advanced | ~90 min | Planned |
+| 10 | [Advanced: Hive](10-advanced-hive/README.md) | Advanced | ~75 min | Draft (not yet dry-run on a cluster) |
 | 11 | Advanced: Spark | Advanced | ~90 min | Planned |
 | 12 | Advanced: Impala | Advanced | ~60 min | Planned |
 | 13 | Advanced: Oozie | Advanced | ~75 min | Planned |
@@ -50,6 +50,7 @@ data/samples/        # synthetic CSVs (uploaded to HDFS by bootstrap)
 02-basics-hdfs/      # lab + trainer + setup scripts
 03-basics-yarn/      # YARN lab + setup scripts
 04-basics-hive/      # Hive lab + trainer + setup scripts
+10-advanced-hive/    # Advanced Hive lab (joins, window functions, complex types, WKT) + trainer
 05-basics-impala/    # Impala lab + trainer + setup scripts
 06-basics-spark/     # Spark lab + trainer + setup scripts
 07-lakehouse-iceberg/ # Lakehouse lab (Iceberg in Hue/Impala) + trainer + setup scripts

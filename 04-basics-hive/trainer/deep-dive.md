@@ -70,9 +70,82 @@ flowchart LR
 
 **Statistics and CBO** — `ANALYZE TABLE … COMPUTE STATISTICS` feeds row counts and column stats to the **cost-based optimizer** (join order, map join hints). Stale stats → bad plans.
 
-**ACID / transactions** — Inserts/updates/deletes write **delta files** (`delta_*`, delete deltas); readers merge base + deltas. **Compaction** (minor/major) merges small files and improves read performance — operational duty for mutable managed tables.
+**ACID / transactions** — Inserts/updates/deletes write **delta files** (`delta_*`, delete deltas); readers merge base + deltas. **Compaction** (minor/major) merges small files and improves read performance — operational duty for mutable managed tables. Details in [ACID on HDFS](#acid-on-hdfs-base-delta-and-compaction).
 
 **Security** — Ranger Hive policies (column, row filter, mask) apply after authentication; SQL standard authorization may also apply depending on cluster config.
+
+---
+
+## ORC internals
+
+An ORC file is HDFS-immutable and self-describing. Layout, front to back:
+
+```text
+"ORC" magic
+Stripe 1  ┬ index data   (per column, per 10,000 rows: min / max / sum / count, optional bloom filter)
+          ├ row data     (one stream per column: PRESENT, DATA, LENGTH, DICTIONARY_DATA ...)
+          └ stripe footer (stream locations, encodings)
+Stripe 2 ... (default ~64 MB of data each)
+File footer   (schema, row count, per-stripe offsets, file-level column statistics)
+Postscript    (compression codec, footer length, version) — last bytes of the file
+```
+
+- **Columnar within stripes:** each column has its own streams, so `SELECT AVG(current_a)` reads the footer plus only that column's streams (projection). Rows are grouped in stripes so a row is never split across them.
+- **Encodings (per column, before compression):** low-cardinality strings (`event_code`, `comm_status`) use **dictionary** encoding; integers and dictionary IDs use **run-length** (RLE) and delta encoding; a `PRESENT` bit stream handles NULLs. High-cardinality doubles (`current_a`) have little to exploit and stay large.
+- **Compression (per stream, on top of encoding):** `ZLIB` is the Hive default (smaller, slower), `SNAPPY` is faster with larger files, `ZSTD` is available in newer versions, `NONE` is possible. Set per table: `TBLPROPERTIES ('orc.compress'='SNAPPY')`. The codec is stored in the postscript, so readers need no configuration.
+- **Skipping with indexes (predicate pushdown):** the file footer holds min/max per stripe, and the stripe index holds min/max per 10,000-row group. For `WHERE station_id = 'TS-305'` the reader skips stripes and row groups whose range cannot match. This works best when data is **sorted or clustered** by the filter column — random order gives wide min/max ranges and little skipping. **Bloom filters** (`'orc.bloom.filter.columns'='station_id'`) help for equality lookups on unsorted columns.
+- **Why small files hurt:** every file has its own footer and stripes. A 50 KB ORC file is mostly metadata, produces a tiny stripe, and costs a NameNode entry and a Tez task. Prefer few files of at least one stripe (hundreds of MB); compact or `INSERT OVERWRITE` after many small inserts.
+- **ORC vs Parquet:**
+
+  | | ORC | Parquet |
+  |---|-----|---------|
+  | Native fit | Hive (ACID, vectorized reader, LLAP cache) | Spark, Impala, wider ecosystem |
+  | Layout | stripes → column streams | row groups → column chunks → pages |
+  | Statistics | stripe + 10k-row-group indexes, optional bloom | row-group and page min/max, optional bloom |
+  | ACID tables | Required (managed transactional tables are ORC) | Not supported for Hive ACID |
+  | Choose when | Hive-centric, mutable managed tables | Shared by Spark/Impala/other engines, Iceberg default |
+
+- **Inspect it:** `hive --orcfiledump <file>` prints footer, stripes, and column statistics; add `-d` to dump rows (also shows ACID hidden columns). Use `hdfs dfs -du -h` to compare sizes between formats.
+
+---
+
+## ACID on HDFS: base, delta, and compaction
+
+HDFS files cannot be modified, so a transactional (managed, ORC) table never edits a file. Every write transaction adds new directories, and readers merge them using the transaction snapshot from the Metastore.
+
+**Directory layout of a table (or partition):**
+
+```text
+landisgyr_managed/
+  base_0000005_v0000123/                 # compacted full state as of write id 5
+    bucket_00000
+  delta_0000006_0000006_0000/            # INSERT, write id 6
+    bucket_00000
+  delete_delta_0000007_0000007_0000/     # DELETE (and the "delete half" of UPDATE), write id 7
+    bucket_00000
+  delta_0000007_0000007_0000/            # UPDATE = delete_delta + delta with the new row version
+    bucket_00000
+```
+
+- Names encode **write id range** (`delta_<min>_<max>`), plus a statement id, and after compaction a `_v<visibility txn id>` suffix.
+- `INSERT` → `delta_*`. `DELETE` → `delete_delta_*`. `UPDATE` → **both** (split update: delete old row version, insert new).
+- Each file is a normal ORC file with the user columns wrapped in a hidden struct: `operation` (0 insert, 1 update, 2 delete), `originalTransaction`, `bucket`, `rowId`, `currentTransaction`, `row`. Look at them with `hive --orcfiledump -d <file>`. A row is identified by `(originalTransaction, bucket, rowId)`.
+- **Read path:** the reader asks the Metastore for the valid write-id list, picks the newest `base` plus all `delta` / `delete_delta` directories above it, and anti-joins rows with a matching delete event. Dozens of deltas mean dozens of files to open and merge per query.
+- **Aborted and open transactions:** their deltas exist on HDFS but are ignored by readers; the **cleaner** removes them later. So a directory listing is not the same as the committed table state.
+
+**Compaction** (runs as a MapReduce/Tez job on YARN, started by the Metastore **Initiator**, executed by **Workers**, cleaned up by the **Cleaner**):
+
+| Type | What it does | Trigger (defaults) | Result |
+|------|--------------|--------------------|--------|
+| **Minor** | Merges all deltas into one `delta` and all `delete_delta` into one `delete_delta`; keeps the base | more than 10 deltas (`hive.compactor.delta.num.threshold`) | fewer files; deleted rows are still physically present |
+| **Major** | Rewrites base + deltas into a new `base_N_v…`, applies deletes | deltas larger than 10% of base (`hive.compactor.delta.pct.threshold`) | clean table; deleted rows physically removed |
+
+- The **Cleaner** deletes the obsolete directories only after no running query can still read them, so for a while old and new directories coexist and disk usage peaks.
+- Manual control: `ALTER TABLE t COMPACT 'minor'|'major' [AND WAIT]`, `SHOW COMPACTIONS` (states: initiated → working → ready for cleaning → succeeded / failed). Partitioned tables compact per partition.
+- Requirements: compactor threads must be enabled on the Metastore (`hive.compactor.initiator.on`, `hive.compactor.worker.threads > 0`); a failed or disabled compactor shows up as ever-growing delta counts and slow queries.
+- Streaming or per-row updates every second create thousands of deltas; consider batching, or move to Iceberg (module 07) for row-level changes with snapshot-based metadata.
+
+**Lab link:** the managed-table sections of the lab show `base_`/`delta_`/`delete_delta_` folders and runs `SHOW COMPACTIONS` and `COMPACT 'major'`. A good trainer demo: list the folder before and after the `UPDATE`, run `orcfiledump -d` on a delta file, then compact and list again.
 
 ---
 
