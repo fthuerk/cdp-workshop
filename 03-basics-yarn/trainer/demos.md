@@ -31,7 +31,7 @@ Only if you have a safe **test queue** with zero capacity; do not disrupt produc
 In terminal 1 start a slow job; in terminal 2 find the AM container of attempt 1 (`yarn applicationattempt -list`, `yarn container -list`) and force it down:
 
 ```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar pi 16 100000000
+yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar pi 16 100000000
 yarn container -signal "<am-container-id>" FORCEFUL_SHUTDOWN
 yarn applicationattempt -list "<application-id>"
 ```

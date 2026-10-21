@@ -14,7 +14,7 @@ The CSV files were not copied into the table folders, or Impala has not seen the
 
 The placeholder has no value. Type your `WORKSHOP_USER` into the `ws_user` input field below the editor. The same applies to `snap_first`, `snap_now`, and `snap_good`: paste the snapshot ID from the result of the query that the lab names.
 
-## `CREATE EXTERNAL TABLE … STORED AS ICEBERG` is denied or fails with an authorization error
+## `CREATE TABLE … STORED AS ICEBERG` is denied or fails with an authorization error
 
 Iceberg needs **two** Ranger policies: the usual Hive table policy on `ws_*`, and the Hadoop SQL **storage handler** policy (storage-type `iceberg`, storage-url `*`, permission *RW Storage*) for the workshop users. A missing second policy shows up when you create or alter an Iceberg table. Trainers: see the [ranger README](../../00-setup/admin/ranger/README.md), section module 07.
 

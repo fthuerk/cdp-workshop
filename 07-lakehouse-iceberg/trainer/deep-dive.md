@@ -177,7 +177,7 @@ spark.sql("""
 | Time travel disk cost | `expire_snapshots` + orphan cleanup policy |
 | Assuming external Hive UPDATE works | Migrate mutable facts to Iceberg |
 | Concurrent writers same partition | Iceberg serializes commits; retry on conflict |
-| Reading without catalog refresh | Impala may need metadata invalidate after external Spark write |
+| Reading without catalog refresh | Impala may show an old snapshot after a Spark or Hive write; run `REFRESH <table>` (or rely on automatic metadata sync if enabled) |
 
 **Best practices:** Iceberg for curated mutable facts; keep raw landing as external CSV/Parquet; MERGE for idempotency; snapshot retention policy documented; monitor metadata file count and manifest size.
 

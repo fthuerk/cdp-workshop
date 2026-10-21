@@ -69,7 +69,7 @@ hdfs dfs -cat "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" | head -5
 The Hadoop examples JAR ships with every cluster. Submit the `wordcount` example; the output directory in your HDFS home must not exist yet:
 
 ```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   wordcount \
   "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
   "/user/${WORKSHOP_USER}/wordcount-mr"
@@ -124,7 +124,7 @@ The ResourceManager only hands out containers. For every application it first st
 You need two terminals on the edge node (same user, valid ticket). In **terminal 1**, start a MapReduce job that runs long enough to watch. The two numbers are the count of map tasks and the samples per task — raise the second number if the job finishes before you are done observing:
 
 ```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   pi 10 50000000
 ```
 
@@ -206,7 +206,7 @@ Run word count with MapReduce and with Tez on that **folder**. Use the same term
 
 ```bash
 hdfs dfs -rm -r -f -skipTrash "/user/${WORKSHOP_USER}/wordcount-mr-many" "/user/${WORKSHOP_USER}/wordcount-tez-many"
-time hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+time yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   wordcount "${YARN_LAB}/input-many" "/user/${WORKSHOP_USER}/wordcount-mr-many"
 time yarn jar /opt/cloudera/parcels/CDH/lib/tez/bin/tez-examples-*.jar \
   wordcount "${YARN_LAB}/input-many" "/user/${WORKSHOP_USER}/wordcount-tez-many"
@@ -320,7 +320,7 @@ yarn queue -status root.default
 First a request that still fits. Run `pi` with larger map and AM containers (`-D` settings go right after the program name). Then compare **aggregate resource allocation** in `yarn application -status` with your `pi` run from section 5:
 
 ```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   pi \
   -Dmapreduce.map.memory.mb=4096 \
   -Dyarn.app.mapreduce.am.resource.mb=2048 \
@@ -330,7 +330,7 @@ hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examp
 Now make the **map containers** too large. Multiply the value by 4 each run (16384, 65536, 262144, …) until the job no longer runs normally. Watch from a second terminal with `yarn application -list`:
 
 ```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   pi \
   -Dmapreduce.map.memory.mb=<memory-mb> \
   2 100000
@@ -345,7 +345,7 @@ yarn application -kill "<application-id>"
 Finally make the **AM container** too large and keep the map memory at its default:
 
 ```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   pi \
   -Dyarn.app.mapreduce.am.resource.mb=<memory-mb> \
   2 100000
@@ -366,7 +366,7 @@ The queue `root.demo` is small (24 GB) and has **intra-queue preemption** enable
 **Instructor (before the group starts)** — fill the queue with a long job as a separate admin user, and check that usage is near 100%:
 
 ```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   pi \
   -Dmapreduce.job.queuename=demo \
   -Dmapreduce.map.memory.mb=2048 \
@@ -378,7 +378,7 @@ yarn queue -status root.demo
 **Participants** — wait for the signal, then all submit **at the same time**:
 
 ```bash
-hadoop jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
+yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   pi \
   -Dmapreduce.job.queuename=demo \
   -Dmapreduce.map.memory.mb=2048 \

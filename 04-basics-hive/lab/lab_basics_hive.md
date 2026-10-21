@@ -2,16 +2,15 @@
 
 Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need two terminals on the edge node: one for `beeline` (SQL) and one for `hdfs` (files). Sections 1–5 are about **external tables** and files, sections 6–7 about **managed tables**, sections 8–9 about everyday SQL and a first join, section 10 about table statistics. Window functions, complex joins, and more advanced functions are in the [advanced Hive lab](../../10-advanced-hive/lab/lab_advanced_hive.md).
 
-Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit` (same account as on the edge node). `HIVE_LAB` holds shared module files on HDFS (prepared landing data). `HIVE_EXT` is the folder where Hive keeps the data of your **external** tables: the default external warehouse location, with one sub-folder per database. You never set a table location in this lab — Hive creates a folder per table below `HIVE_EXT`, and you copy files into it. `HIVE_MANAGED` is the matching folder for your **managed** tables (section 6), where Hive alone decides the layout. `HS2_URL` is the HiveServer2 JDBC URL from your workshop handout.
+Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit` (same account as on the edge node). `HIVE_LAB` holds shared module files on HDFS (prepared landing data). `HIVE_EXT` is the folder where Hive keeps the data of your **external** tables: the default external warehouse location, with one sub-folder per database. You never set a table location in this lab — Hive creates a folder per table below `HIVE_EXT`, and you copy files into it. `HIVE_MANAGED` is the matching folder for your **managed** tables (section 6), where Hive alone decides the layout.
 
 ```bash
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
 export HIVE_LAB="${WORKSHOP_ROOT}/04-hive"
-export HIVE_EXT="/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db"   # adjust if needed
-export HIVE_MANAGED="/warehouse/tablespace/managed/hive/ws_${WORKSHOP_USER}.db"
-export HS2_URL="<jdbc-url-from-your-handout>"
+export HIVE_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"   # adjust if needed
+export HIVE_MANAGED="/warehouse/tablespace/managed/hive/${WORKSHOP_USER}.db"
 ```
 
 Hive stores **no data itself**: the Metastore keeps table definitions (names, columns, locations), and the data stays as files in HDFS. Every query you run compiles into a Tez application on YARN — the same engine you compared with MapReduce in the YARN lab.
@@ -27,18 +26,18 @@ You can run most of this lab in the Hue web UI (URL from your handout). Beeline 
 Run a test statement, type your username into the field that appears, and run it again:
 
 ```sql
-SELECT '${ws_user}', 'ws_${ws_user}';
+SELECT '${ws_user}';
 ```
 
-The second column is the name of your database.
+The result is the name of your database.
 
 Notes:
 
 - The fields belong to the editor tab: they apply to every statement in the tab, and a new tab or a reloaded page needs them again.  
 - Run a statement with **Ctrl+Enter** (the play button). Hue runs the statement under the cursor; select several statements to run them one after another.  
-- Pick your database `ws_<your_username>` in the database list on the left (or run `USE`) once section 0 has created it.
+- Pick your database `<your_username>` in the database list on the left (or run `USE`) once section 0 has created it.
 
-**Files in Hue.** Open **Files** (File Browser). Click the path at the top to type a path such as `/warehouse/tablespace/external/hive/ws_<your_username>.db`. Then:
+**Files in Hue.** Open **Files** (File Browser). Click the path at the top to type a path such as `/warehouse/tablespace/external/hive/<your_username>.db`. Then:
 
 - Tick a file or folder, then **Actions → Copy**, and choose the target folder — this replaces `hdfs dfs -cp`. Copy a whole `station_id=…` folder the same way.  
 - Click a file name to see its content (like `-cat`; ORC and Parquet look unreadable, which is the point). The listing shows size and owner (like `-ls` and `-du`).  
@@ -55,18 +54,17 @@ Notes:
 Start Beeline in the first terminal. The `--hivevar` options define variables you can use in SQL as `${name}` (in Hue the same placeholders become input fields, see above), so you never type your username by hand:
 
 ```bash
-beeline -u "${HS2_URL}" \
-  --hivevar ws_user="${WORKSHOP_USER}"
+beeline --hivevar ws_user="${WORKSHOP_USER}"
 ```
 
 Everything in the following blocks marked `sql` goes into this Beeline session. See what exists, create your database, and look at where Hive will put its data:
 
 ```sql
 SHOW DATABASES;
-CREATE DATABASE IF NOT EXISTS ws_${ws_user};
-USE ws_${ws_user};
+CREATE DATABASE IF NOT EXISTS ${ws_user};
+USE ${ws_user};
 SELECT current_database(), current_user();
-DESCRIBE DATABASE EXTENDED ws_${ws_user};
+DESCRIBE DATABASE EXTENDED ${ws_user};
 ```
 
 Note the two locations in the `DESCRIBE` output: one for **external** tables and one for **managed** tables. You will see in sections 1 and 7 why they are separate. The external location is the folder `HIVE_EXT` you exported above.
@@ -803,24 +801,24 @@ Run SQL non-interactively. Save a statement with a variable to a file and run it
 
 ```bash
 cat > "/tmp/station-summary.sql.${WORKSHOP_USER}" <<'EOF'
-USE ws_${ws_user};
+USE ${ws_user};
 SELECT station_id, COUNT(*) AS readings FROM meter_orc WHERE station_id = '${station}' GROUP BY station_id;
 EOF
-beeline -u "${HS2_URL}" --hivevar ws_user="${WORKSHOP_USER}" --hivevar station=TS-305 \
+beeline --hivevar ws_user="${WORKSHOP_USER}" --hivevar station=TS-305 \
   -f "/tmp/station-summary.sql.${WORKSHOP_USER}"
 ```
 
 - Join three ways: `landisgyr_v` + `stations` + the OpenStreetMap context (a new external table for `${WORKSHOP_ROOT}/data/openstreetmap`, copied the same way as in section 9; filter `buffer_m = 250`) to relate peak load to the share of industrial area.  
 - Schema change on an external table: `ALTER TABLE landisgyr_csv ADD COLUMNS (note STRING);` — what do old rows show? Does the CSV change?  
 - Parquet footer with a proper tool: `parquet-tools meta "<parquet-file>"` (if it is on your `PATH`).  
-- Clean up: `DROP DATABASE ws_${ws_user} CASCADE;` and then list `${HIVE_EXT}` and the warehouse folder of your managed tables (`DESCRIBE DATABASE` shows both) — which data is gone, which is still there?  
+- Clean up: `DROP DATABASE ${ws_user} CASCADE;` and then list `${HIVE_EXT}` and the warehouse folder of your managed tables (`DESCRIBE DATABASE` shows both) — which data is gone, which is still there?  
 - Hue: run one of the join queries in the Hive editor and open the query in **Job Browser**.
 
 ---
 
 ## Self-check
 
-From the repo root on the edge node, run the module check script (uses your Kerberos ticket, `HS2_URL`, and your table folders under `HIVE_EXT`):
+From the repo root on the edge node, run the module check script (uses your Kerberos ticket and your table folders under `HIVE_EXT`):
 
 ```bash
 ./04-basics-hive/lab/check.sh

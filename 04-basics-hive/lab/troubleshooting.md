@@ -7,7 +7,7 @@ Wrong username or realm. Use the principal provided by your instructor (`user@RE
 ## Beeline: `GSS initiate failed` or `Could not open client transport`
 
 - Run `klist`. No valid ticket means `kinit "${WORKSHOP_USER}"` again.  
-- Check `echo "${HS2_URL}"` — it must be the JDBC URL from your handout, including any `principal=…` part.  
+- Start Beeline with the command from [lab section 0](lab_basics_hive.md#0-orient--connect-and-create-your-database) (no `-u` URL — the edge node is preconfigured).  
 - Still failing: ask your instructor whether HiveServer2 is up.
 
 ## `${ws_user}` shows up literally in an error (Beeline)
