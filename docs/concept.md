@@ -71,6 +71,7 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 | **05-basics-impala** | Impala fundamentals | 01 | ~45 min | Interactive SQL; Hive vs Impala timing; UPDATE/DELETE errors on external tables |
 | **06-basics-spark** | Spark on YARN | 03, 04 | ~90 min | PySpark cleanse/join on meter and weather CSVs; Parquet curated output; `spark-submit`; external table in `ws_*` |
 | **07-lakehouse-iceberg** | Lakehouse with Iceberg | 04, 05 | ~120 min | Idempotent loads by hand vs Iceberg; `UPDATE`/`DELETE`/`MERGE` in Hue/Impala; files on HDFS; time travel, snapshot isolation, rollback; joins |
+| **08-basics-atlas** | Atlas UI (metadata & lineage) | 04 | ~20 min | Hive tables in Hue; search entities in Atlas; CTAS lineage; classifications with propagation; business glossary term assignment |
 | **10-advanced-hive** | Advanced Hive SQL | 04 | ~75 min | Complex joins, window functions (rank, lag, running totals), complex types, ROLLUP, WKT geo data on use case |
 | **11-advanced-spark** | Spark pipelines | 06, 10 | ~90 min | Multi-source alignment, derived features |
 | **12-advanced-impala** | Impala for analytics | 05, 11 | ~60 min | Aggregations, KPIs for pilot sensors |
