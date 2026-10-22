@@ -2,7 +2,7 @@
 
 Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need **two terminals** on the edge node: one for `impala-shell` and one for `beeline` (Hive) in sections 4 and 5 only.
 
-Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_EXT` is the default external warehouse folder of your database: you never set a table location in this lab — the engine creates a folder per table below `IMPALA_EXT`, and you copy files into it. `IMPALA_OPTS` is how you reach the Impala coordinator (from your handout). `HS2_URL` is the HiveServer2 JDBC URL (same handout — only for the Hive comparison in sections 4 and 5).
+Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_EXT` is the default external warehouse folder of your database: you never set a table location in this lab — the engine creates a folder per table below `IMPALA_EXT`, and you copy files into it. `IMPALA_OPTS` holds the `impala-shell` connection options (HiveServer2 over HTTP on port 28000, Kerberos, TLS).
 
 ```bash
 export WORKSHOP_USER=<your_username>
@@ -10,9 +10,10 @@ kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
 export IMPALA_LAB="${WORKSHOP_ROOT}/05-impala"
 export IMPALA_EXT="/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db"   # adjust if needed
-export IMPALA_OPTS="<impala-shell-options-from-handout>"   # e.g. -i impala-host:21050
-export HS2_URL="<jdbc-url-from-your-handout>"
+export IMPALA_OPTS="-i <impala-host>:28000 --protocol=hs2-http -d default -k --ssl --ca_cert=/var/lib/cloudera-scm-agent/agent-cert/cm-auto-global_cacerts.pem"
 ```
+
+Replace `<impala-host>` with the Impala coordinator host from your handout. Every `impala-shell ${IMPALA_OPTS}` call below uses these options; a later `-d ws_${WORKSHOP_USER}` overrides `-d default`.
 
 **Impala** and **Hive** share the **Hive Metastore**: table names, columns, and HDFS locations are the same catalog. Impala daemons read files directly and return results with low latency; Hive compiles most queries into **Tez** jobs on YARN (as in the YARN basics module). This lab builds its own database and external table — nothing from other modules is required.
 
@@ -22,8 +23,7 @@ export HS2_URL="<jdbc-url-from-your-handout>"
 
 **Goal:** Open an Impala session and create a personal database in the shared Metastore.
 
-Create your database from the shell so `${WORKSHOP_USER}` expands correctly. If your cluster sets the coordinator in `/etc/impala/conf`, you can leave `IMPALA_OPTS` empty:
-
+Create your database from the shell so `${WORKSHOP_USER}` expands correctly.
 ```bash
 impala-shell ${IMPALA_OPTS} -q "
 CREATE DATABASE IF NOT EXISTS ws_${WORKSHOP_USER};
@@ -188,7 +188,7 @@ ORDER BY station_id;
 In the **Hive** terminal, run the equivalent through Beeline. The first statement in a session often pays a **Tez startup** cost; that is normal:
 
 ```bash
-time beeline -u "${HS2_URL}" --silent=true -e "
+time beeline --silent=true -e "
 USE ws_${WORKSHOP_USER};
 SELECT station_id, COUNT(*), AVG(active_power_kw), MAX(transformer_load_pct)
 FROM impala_meter
@@ -232,7 +232,7 @@ Same story — external HDFS files are **immutable**; engines append new files o
 Switch to the **Hive** terminal and open Beeline on the same database:
 
 ```bash
-beeline -u "${HS2_URL}" -e "USE ws_${WORKSHOP_USER};"
+beeline -e "USE ws_${WORKSHOP_USER};"
 ```
 
 Run the same two statements in Beeline (paste into an interactive session or use `-e`):
@@ -297,7 +297,7 @@ You should be back at **15,000** rows.
 
 ## Self-check
 
-From the repo root on the edge node (export `IMPALA_OPTS` and `HS2_URL` as in the intro):
+From the repo root on the edge node (export `IMPALA_OPTS` as in the intro):
 
 ```bash
 ./05-basics-impala/lab/check.sh

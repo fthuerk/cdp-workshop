@@ -7,12 +7,12 @@ Wrong username or realm. Use the principal from your instructor (`user@REALM`).
 ## `impala-shell: could not connect` or `Connection refused`
 
 - Run `klist`. Renew with `kinit "${WORKSHOP_USER}"` if the ticket expired.  
-- Check `echo "${IMPALA_OPTS}"` — it must match the coordinator flags from your handout (often `-i hostname:21050`).  
+- Check `echo "${IMPALA_OPTS}"` — it must match the lab intro: `-i <host>:28000 --protocol=hs2-http -d default -k --ssl --ca_cert=/var/lib/cloudera-scm-agent/agent-cert/cm-auto-global_cacerts.pem`. Port 28000 needs `--protocol=hs2-http`.  
 - Ask your instructor whether Impala daemons are running.
 
 ## Beeline / Hive section: `GSS initiate failed`
 
-Only needed for section 4. Verify `HS2_URL` from your handout and a valid ticket (`klist`).
+Only needed for section 4. Verify you have a valid ticket (`klist`) and that plain `beeline` connects on the edge node.
 
 ## `AnalysisException: Could not resolve path` or `Table not found`
 

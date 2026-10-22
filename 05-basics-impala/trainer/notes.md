@@ -28,7 +28,7 @@ If time is tight, shorten section 5 to a verbal demo (you append a file and inva
 
 | Issue | Mitigation |
 |-------|------------|
-| `IMPALA_OPTS` wrong | Put the exact `impala-shell -i …` line on the handout; test from edge node |
+| `IMPALA_OPTS` wrong | Put the coordinator host on the handout (options: `--protocol=hs2-http`, port 28000); test from edge node |
 | No speed difference | Cluster idle + small data — focus on Tez app vs none; scaled file is 15k rows |
 | Hive faster once | Second Hive query reuses Tez session — tell room to compare **first** Hive run after `kinit` or use a fresh Beeline JVM |
 | Copy lands in wrong folder | No `LOCATION` is used: the CSV must go to `${IMPALA_EXT}/impala_meter` (default external folder), then `REFRESH impala_meter` |

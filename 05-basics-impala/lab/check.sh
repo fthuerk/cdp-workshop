@@ -3,13 +3,10 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PARTICIPANT_IMPALA_OPTS="${IMPALA_OPTS:-}"
-PARTICIPANT_HS2_URL="${HS2_URL:-}"
 # shellcheck source=../../lib/common.sh
 source "${REPO_ROOT}/lib/common.sh"
 load_config
 IMPALA_OPTS="${PARTICIPANT_IMPALA_OPTS}"
-HS2_URL="${PARTICIPANT_HS2_URL:-${HS2_URL}}"
-
 require_cmd hdfs impala-shell
 require_kerberos_ticket
 

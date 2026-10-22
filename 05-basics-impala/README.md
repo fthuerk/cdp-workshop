@@ -8,7 +8,7 @@ Interactive SQL on smart-meter sample data: same Hive Metastore as Hive, but Imp
 
 - Module [00-setup](../00-setup/README.md) complete (`check_env.sh` passes)
 - Valid Kerberos ticket (`WORKSHOP_USER` + `kinit`)
-- Impala coordinator options and HiveServer2 JDBC URL from your handout (`IMPALA_OPTS`, `HS2_URL`)
+- Impala coordinator host from your handout (used in `IMPALA_OPTS`)
 
 ## Learning goals
 
