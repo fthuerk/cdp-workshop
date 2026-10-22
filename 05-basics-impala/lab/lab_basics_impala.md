@@ -2,14 +2,14 @@
 
 Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need **two terminals** on the edge node: one for `impala-shell` and one for `beeline` (Hive) in sections 4 and 5 only.
 
-Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_WORK` is your folder for table data. `IMPALA_OPTS` is how you reach the Impala coordinator (from your handout). `HS2_URL` is the HiveServer2 JDBC URL (same handout — only for the Hive comparison in sections 4 and 5).
+Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_EXT` is the default external warehouse folder of your database: you never set a table location in this lab — the engine creates a folder per table below `IMPALA_EXT`, and you copy files into it. `IMPALA_OPTS` is how you reach the Impala coordinator (from your handout). `HS2_URL` is the HiveServer2 JDBC URL (same handout — only for the Hive comparison in sections 4 and 5).
 
 ```bash
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
 export IMPALA_LAB="${WORKSHOP_ROOT}/05-impala"
-export IMPALA_WORK="${IMPALA_LAB}/work/${WORKSHOP_USER}"
+export IMPALA_EXT="/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db"   # adjust if needed
 export IMPALA_OPTS="<impala-shell-options-from-handout>"   # e.g. -i impala-host:21050
 export HS2_URL="<jdbc-url-from-your-handout>"
 ```
@@ -48,17 +48,9 @@ Optional: run the same statements in **Hue → Editor → Impala** (URL from you
 
 ## 1. External table over scaled meter data
 
-**Goal:** Copy workshop CSV data into your work folder and register an external table Impala can query.
+**Goal:** Register an external table Impala can query and copy workshop CSV data into its default folder.
 
-Admin setup placed a **15,000-row** smart-meter file under `${IMPALA_LAB}/scaled/` (many copies of the small sample — enough rows to feel a speed difference). Copy it into a folder you own:
-
-```bash
-hdfs dfs -mkdir -p "${IMPALA_WORK}/meter"
-hdfs dfs -cp -f "${IMPALA_LAB}/scaled/meter-15k.csv" "${IMPALA_WORK}/meter/"
-hdfs dfs -ls -h "${IMPALA_WORK}/meter"
-```
-
-Define the table in Impala. Column names are yours; Hive and Impala map CSV fields **by position**. The header line is skipped with a table property. Run this from bash so the `LOCATION` uses your exported paths:
+Define the table in Impala. Column names are yours; Hive and Impala map CSV fields **by position**. The header line is skipped with a table property. There is no `LOCATION` clause: the table folder is `${IMPALA_EXT}/impala_meter`.
 
 ```bash
 impala-shell ${IMPALA_OPTS} -d ws_${WORKSHOP_USER} -q "
@@ -80,9 +72,17 @@ CREATE EXTERNAL TABLE IF NOT EXISTS impala_meter (
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '${IMPALA_WORK}/meter'
 TBLPROPERTIES ('skip.header.line.count'='1');
 "
+```
+
+Admin setup placed a **15,000-row** smart-meter file under `${IMPALA_LAB}/scaled/` (many copies of the small sample — enough rows to feel a speed difference). Copy it into the table folder and tell Impala that files arrived:
+
+```bash
+hdfs dfs -mkdir -p "${IMPALA_EXT}/impala_meter"
+hdfs dfs -cp -f "${IMPALA_LAB}/scaled/meter-15k.csv" "${IMPALA_EXT}/impala_meter/"
+hdfs dfs -ls -h "${IMPALA_EXT}/impala_meter"
+impala-shell ${IMPALA_OPTS} -d ws_${WORKSHOP_USER} -q "REFRESH impala_meter;"
 ```
 
 Sanity checks:
@@ -93,7 +93,7 @@ SELECT * FROM impala_meter LIMIT 5;
 SELECT COUNT(*) FROM impala_meter;
 ```
 
-You should see `EXTERNAL=TRUE`, a location under your `IMPALA_WORK` path, and **15,000** rows.
+You should see `EXTERNAL=TRUE`, a location under your `IMPALA_EXT` folder, and **15,000** rows.
 
 **Check question:** Who owns the CSV bytes in HDFS — Impala or the table definition in the Metastore?
 
@@ -255,7 +255,7 @@ Hive should fail with an error that the table is **not transactional** (often `S
 Append another copy of the data file without changing the table DDL:
 
 ```bash
-hdfs dfs -cp -f "${IMPALA_WORK}/meter/meter-15k.csv" "${IMPALA_WORK}/meter/extra-copy.csv"
+hdfs dfs -cp -f "${IMPALA_EXT}/impala_meter/meter-15k.csv" "${IMPALA_EXT}/impala_meter/extra-copy.csv"
 ```
 
 In Impala, count rows — you may still see **15,000** until metadata catches up:
@@ -271,7 +271,7 @@ After `INVALIDATE METADATA`, the count should jump to **30,000** (two identical 
 Remove the extra file so the self-check stays predictable:
 
 ```bash
-hdfs dfs -rm -f "${IMPALA_WORK}/meter/extra-copy.csv"
+hdfs dfs -rm -f "${IMPALA_EXT}/impala_meter/extra-copy.csv"
 ```
 
 In Impala:

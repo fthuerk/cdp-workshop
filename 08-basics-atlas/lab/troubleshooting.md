@@ -9,13 +9,12 @@
 ## Lineage empty or missing CTAS children
 
 - Finish **section 3** in Hue and wait briefly, then refresh the **Lineage** tab.  
-- Open lineage on **`atlas_meter_src`**, not only on the external staging table **`atlas_meter_ext`**.  
+- Open lineage on **`atlas_meter_src`**; it is the root, so its children appear downstream only.  
 - If still empty, instructor checks Atlas hook configuration and Hive execution engine logging.
 
-## `Permission denied` on external table or `LOCATION`
+## Ranger: `does not have privilege` on `CREATE` or `INSERT`
 
-- The path must be `${WORKSHOP_ROOT}/08-atlas/data` (for example `/2026_cdp_workshop/08-atlas/data`).  
-- Instructor re-runs `./08-basics-atlas/setup/setup.sh` and confirms Ranger HDFS read for workshop users.
+The lab only uses managed tables in your own database (default locations, no `LOCATION` clause). Same Hive policies on your personal database as in the Hive module are enough. Ask your instructor.
 
 ## Cannot create classification or glossary
 
@@ -30,9 +29,7 @@
 ## Self-check: table missing
 
 - Re-run lab sections 1 and 3 in Hue.  
-- Set `HS2_URL` if `check.sh` cannot reach HiveServer2 (same JDBC URL as on your handout).  
-- Shared CSV missing: instructor runs `./08-basics-atlas/setup/setup.sh`.
-
+- Set `HS2_URL` if `check.sh` cannot reach HiveServer2 (the same JDBC URL you use for Beeline).  
 ## Hue / Knox session expired
 
 Renew Kerberos (`kinit`) and reload Hue. Atlas uses the same SSO path when opened via Knox.

@@ -19,7 +19,7 @@ fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
 DB="ws_${WS_USER}"
-IMPALA_WORK="${WORKSHOP_ROOT}/05-impala/work/${WS_USER}"
+IMPALA_EXT="${IMPALA_EXT:-/warehouse/tablespace/external/hive/${DB}.db}"
 SCALED="${WORKSHOP_ROOT}/05-impala/scaled/meter-15k.csv"
 REPEAT=1000
 
@@ -35,10 +35,10 @@ expect() { # description, actual, expected, hint
   if [[ "$2" == "$3" ]]; then pass "$1"; else fail_msg "$1 (got '${2:-nothing}', expected '$3') - $4"; fi
 }
 
-if hdfs dfs -test -e "${IMPALA_WORK}/meter/meter-15k.csv" 2>/dev/null; then
-  pass "meter CSV in ${IMPALA_WORK}/meter"
+if hdfs dfs -test -e "${IMPALA_EXT}/impala_meter/meter-15k.csv" 2>/dev/null; then
+  pass "meter CSV in ${IMPALA_EXT}/impala_meter"
 else
-  fail_msg "Missing ${IMPALA_WORK}/meter/meter-15k.csv - redo lab section 1"
+  fail_msg "Missing ${IMPALA_EXT}/impala_meter/meter-15k.csv - redo lab section 1"
 fi
 
 if hdfs dfs -test -e "${SCALED}" 2>/dev/null; then

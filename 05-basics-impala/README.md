@@ -42,7 +42,7 @@ After this module you can:
 ./05-basics-impala/setup/verify.sh
 ```
 
-(Ranger: extend Hive policies to `${WORKSHOP_ROOT}/05-impala/work` — see [ranger README](../00-setup/admin/ranger/README.md).)
+(Ranger: same Hive policies and default external warehouse access as module 04, no URL policy — see [ranger README](../00-setup/admin/ranger/README.md).)
 
 ## Next module
 

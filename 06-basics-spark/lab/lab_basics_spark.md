@@ -328,7 +328,7 @@ You should see `_SUCCESS` under `spark-batch-curated` with the same row count (*
 
 ## 7. Relate — register Parquet in the Metastore
 
-**Goal:** Point an external Hive table at your curated Parquet so SQL engines can query it.
+**Goal:** Save your curated Parquet as a table in the Metastore so SQL engines can query it.
 
 This is interactive work again, so go back to `spark-shell` (or use `spark-sql` with the same `--master yarn` if your handout recommends it):
 
@@ -341,18 +341,16 @@ val workshopUser = sys.env("WORKSHOP_USER")
 val batchPath = s"/user/$workshopUser/spark-batch-curated"
 ```
 
-Create your personal database and external table over the batch output path:
+Create your personal database and save the batch output as a table. There is no `LOCATION` clause: Spark writes the table files into the default external warehouse folder of your database.
 
 ```scala
 spark.sql(s"CREATE DATABASE IF NOT EXISTS ws_$workshopUser")
 spark.sql(s"USE ws_$workshopUser")
 
-spark.sql(s"""
-CREATE TABLE IF NOT EXISTS spark_curated_join
-USING parquet
-LOCATION '$batchPath'
-""")
+spark.read.parquet(batchPath)
+  .write.mode("overwrite").format("parquet").saveAsTable("spark_curated_join")
 spark.sql("SELECT COUNT(*) AS rows, COUNT(DISTINCT station_id) AS stations FROM spark_curated_join").show()
+spark.sql("DESCRIBE FORMATTED spark_curated_join").show(50, false)
 ```
 
 You should see **24** rows and **3** stations. **Optional cross-check** in Beeline (second terminal):
@@ -364,7 +362,7 @@ SELECT station_id, COUNT(*) AS n FROM spark_curated_join GROUP BY station_id ORD
 "
 ```
 
-Hive and Impala read the same Metastore entry — no copy step. Use **external** tables here so dropping the table does not delete Parquet files (managed table semantics are covered in the Hive basics module).
+Hive and Impala read the same Metastore entry. In the `DESCRIBE FORMATTED` output, find the `Location`: it sits under the default external warehouse folder of `ws_<your_user>`, not under `/user/...`. The batch Parquet in `/user/${WORKSHOP_USER}/spark-batch-curated` stays untouched (managed table semantics are covered in the Hive basics module).
 
 ---
 

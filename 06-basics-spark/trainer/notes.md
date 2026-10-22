@@ -13,7 +13,7 @@
 | 45–55 | Section 4: time join → 24 rows; inner vs left; awattar hour |
 | 55–65 | Section 5: Parquet write, `hdfs dfs -ls` partitions |
 | 65–75 | Section 6: `spark-submit` cluster mode, HDFS vs local script path |
-| 75–85 | Section 7: external table in Metastore; optional Beeline |
+| 75–85 | Section 7: `saveAsTable` into the default external location; optional Beeline |
 | 85–90 | Section 8 optional or stretch; `check.sh` |
 
 If time is tight, skip section 8 and stretch; run section 7 as a trainer demo with one shared screen.
@@ -33,7 +33,7 @@ If time is tight, skip section 8 and stretch; run section 7 as a trainer demo wi
 | `spark-submit` vs `spark3-submit` | Put the exact command on the handout; test from edge node |
 | PySpark client cannot reach RM | Firewall or wrong `YARN_CONF_DIR` — use same edge node as other labs |
 | No rows after join | Participant joined on wrong column names — weather first field must be timestamp typed as `ts_utc` |
-| Section 7 `CREATE TABLE` fails | Enable Hive support (`spark.sql.catalogImplementation=hive`) if your cluster requires it; or use Beeline `CREATE EXTERNAL TABLE … STORED AS PARQUET LOCATION` |
+| Section 7 `saveAsTable` fails | Enable Hive support (`spark.sql.catalogImplementation=hive`) if your cluster requires it. Do not switch to a custom `LOCATION` (needs Ranger URL policies); check the table location with `DESCRIBE FORMATTED` — it must be under the default external warehouse. Verify once on your cluster that Spark creates it as an external table |
 | Small cluster, slow local check | `check.sh` uses `local[2]` — acceptable on edge node; warn if laptops not used |
 | Ranger | Module 04 Hive policies on `ws_*` plus HDFS home write; optional path `${WORKSHOP_ROOT}/06-spark/work` if you redirect tables there |
 

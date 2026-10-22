@@ -6,7 +6,7 @@
 
 | Minutes | Activity |
 |---------|----------|
-| 0–2 | Section 1: database, external staging, CTAS source (~500 rows) |
+| 0–2 | Section 1: database, managed source table with 8 inserted rows |
 | 2–6 | Section 2: Atlas search and entity detail (while hook catches up) |
 | 6–8 | Section 3: two CTAS children |
 | 8–13 | Section 4: downstream/upstream lineage, process node |
@@ -33,4 +33,4 @@ Advanced search DSL, Audits tab, REST API, deleted-entity lineage, custom attrib
 
 ## Admin
 
-[setup/setup.sh](../setup/setup.sh) copies the landisgyr sample CSV to `${WORKSHOP_ROOT}/08-atlas/data/`.
+No setup script. The lab uses managed tables at the default location, so only the Hive policies on personal databases are needed (no URL or extra HDFS policies).

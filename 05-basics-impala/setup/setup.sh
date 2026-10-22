@@ -12,7 +12,6 @@ require_cmd hdfs awk mktemp
 
 MODULE_ROOT="${WORKSHOP_ROOT}/05-impala"
 SCALED="${MODULE_ROOT}/scaled"
-WORK="${MODULE_ROOT}/work"
 SOURCE="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
 SCALED_FILE="${SCALED}/meter-15k.csv"
 # Repeat the sample body so aggregation queries take long enough to compare Hive vs Impala.
@@ -39,16 +38,12 @@ for ((i = 0; i < REPEAT; i++)); do
   cat "${tmp}/body.csv" >> "${tmp}/scaled.csv"
 done
 
-hdfs dfs -mkdir -p "${SCALED}" "${WORK}"
+hdfs dfs -mkdir -p "${SCALED}"
 hdfs dfs -put -f "${tmp}/scaled.csv" "${SCALED_FILE}"
 hdfs dfs -chmod 755 "${MODULE_ROOT}"
 hdfs dfs -chmod -R 755 "${SCALED}"
-# HiveServer2 and Impala often read table paths as the hive service user.
-hdfs dfs -chmod 1777 "${WORK}"
-hdfs dfs -setfacl -m user:hive:rwx,default:user:hive:rwx "${WORK}" \
-  || log_warn "setfacl failed - enable HDFS ACLs or grant hive access to ${WORK} (Ranger)"
 
 total_rows=$(( body_lines * REPEAT ))
 log_info "Scaled meter file: ${total_rows} data rows at ${SCALED_FILE}"
 log_info "Impala module setup complete under ${MODULE_ROOT}"
-log_warn "Ranger: workshop users need Hive/Impala policies on ws_* and ${WORKSHOP_ROOT}/05-impala/work - see 00-setup/admin/ranger/README.md (module 05)"
+log_warn "Ranger: workshop users need Hive/Impala policies on ws_* and HDFS access to /warehouse/tablespace/external/hive/ws_* (default locations, no URL policy) - see 00-setup/admin/ranger/README.md (module 05)"

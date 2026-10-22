@@ -8,7 +8,7 @@ Twenty-minute lab in **Hue** and **Atlas**: create Hive tables, find them in Atl
 
 - Module [00-setup](../00-setup/README.md) complete (`check_env.sh` passes)
 - Valid Kerberos ticket (for Hue if your cluster requires it)
-- Atlas and Hue URLs from your handout (typically via Knox)
+- Atlas and Hue links on the Knox home page (ask your trainer if you cannot find them)
 
 ## Learning goals
 
@@ -34,11 +34,7 @@ After this module you can:
 
 ## Admin (before session)
 
-```bash
-./00-setup/admin/bootstrap.sh
-./08-basics-atlas/setup/setup.sh
-./08-basics-atlas/setup/verify.sh
-```
+No module setup script: the lab inserts its own rows into managed tables with default locations, so it needs no extra HDFS paths or Ranger URL policies beyond the Hive policies on personal databases.
 
 Pre-create glossary **Metering** with term **Active Power** in Atlas if participants cannot create glossaries. Confirm Hive–Atlas hook and classification propagation are enabled.
 

@@ -164,7 +164,7 @@ Useful **configs** (set in submit or `spark-defaults.conf`):
 | Case-sensitive column names | Quote or normalize in CSV ingest |
 | Hive partition not visible | `MSCK REPAIR` or register partition after Spark write |
 
-**Best practices:** name apps for traceability; write to user or curated namespace then register external table; log row counts and null rates as job metrics; align shuffle partitions with ~128 MB task input where possible.
+**Best practices:** name apps for traceability; write to user or curated namespace then save a table at the default location (no custom `LOCATION`, so no extra Ranger URL policy); log row counts and null rates as job metrics; align shuffle partitions with ~128 MB task input where possible.
 
 ---
 

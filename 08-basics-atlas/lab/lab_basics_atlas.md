@@ -1,10 +1,10 @@
 # Atlas UI hands-on lab
 
-Run sections in order. You need **Hue** (Hive editor) and **Atlas** (URL from your handout, usually via Knox). All SQL runs in **Hue → Editor → Hive**.
+Run sections in order. You need **Hue** (Hive editor) and **Atlas** (both open from the Knox home page, the same place you open Hue). All SQL runs in **Hue → Editor → Hive**.
 
-Adjust `WORKSHOP_ROOT` in the SQL below if your cluster uses a different workshop path. The lab uses the placeholder `${ws_user}` — Hue shows an input field for it; type your short username (same as for `kinit`).
+The lab SQL uses the placeholder `${ws_user}` — Hue shows an input field for it; type your short username (same as for `kinit`).
 
-This lab builds its own database and tables from shared workshop CSV data on HDFS. Nothing from other modules is required.
+This lab builds its own database and managed tables with a few inserted rows. It needs no files on HDFS, no custom table locations, and nothing from other modules.
 
 **Pacing tip:** Run section 3 (CTAS) as soon as section 1 finishes. Atlas catches up in the background while you explore the UI in sections 2 and 4.
 
@@ -15,7 +15,7 @@ This lab builds its own database and tables from shared workshop CSV data on HDF
 
 When Hive creates or changes a table, the **Hive Atlas hook** publishes metadata events (via Kafka) into **Atlas**. Atlas stores **metadata and lineage**, not the table data in HDFS.
 
-Open Atlas from your handout. Note the **Search** bar and the **Classifications** and **Glossary** areas in the navigation — you use them in sections 2, 5, and 6.
+Open Atlas from the Knox home page. Note the **Search** bar and the **Classifications** and **Glossary** areas in the navigation — you use them in sections 2, 5, and 6.
 
 ---
 
@@ -23,28 +23,28 @@ Open Atlas from your handout. Note the **Search** bar and the **Classifications*
 
 **Goal:** Create a small managed table Atlas can catalog.
 
-In Hue, paste and run (set `${ws_user}` and replace the `LOCATION` path if your trainer gave another `WORKSHOP_ROOT`):
+In Hue, paste and run. The table is **managed**, so Hive picks the storage location itself:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS ${ws_user};
 USE ${ws_user};
 
-CREATE EXTERNAL TABLE IF NOT EXISTS atlas_meter_ext (
+CREATE TABLE atlas_meter_src (
   ts_utc STRING,
   station_id STRING,
   device_id STRING,
   active_power_kw DOUBLE
-)
-ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-STORED AS TEXTFILE
-LOCATION '/2026_cdp_workshop/08-atlas/data'
-TBLPROPERTIES ('skip.header.line.count'='1');
+);
 
-CREATE TABLE atlas_meter_src AS
-SELECT ts_utc, station_id, device_id, active_power_kw
-FROM atlas_meter_ext
-WHERE station_id IS NOT NULL
-LIMIT 500;
+INSERT INTO atlas_meter_src VALUES
+  ('2024-01-01 00:00:00', 'TS-101', 'DEV-0001', 12.4),
+  ('2024-01-01 00:15:00', 'TS-101', 'DEV-0001', 13.1),
+  ('2024-01-01 00:00:00', 'TS-101', 'DEV-0002', 8.7),
+  ('2024-01-01 00:15:00', 'TS-101', 'DEV-0002', 9.2),
+  ('2024-01-01 00:00:00', 'TS-305', 'DEV-0003', 21.5),
+  ('2024-01-01 00:15:00', 'TS-305', 'DEV-0003', 20.9),
+  ('2024-01-02 00:00:00', 'TS-305', 'DEV-0003', 22.3),
+  ('2024-01-02 00:00:00', 'TS-101', 'DEV-0001', 11.8);
 ```
 
 Confirm in Hue:
@@ -54,7 +54,7 @@ SELECT COUNT(*) FROM atlas_meter_src;
 DESCRIBE atlas_meter_src;
 ```
 
-You should see a few hundred rows and four columns including `device_id`.
+You should see **8** rows and four columns including `device_id`.
 
 ---
 
@@ -197,7 +197,6 @@ Optional cleanup in Hue (does not remove lineage history immediately):
 DROP TABLE IF EXISTS atlas_meter_daily;
 DROP TABLE IF EXISTS atlas_meter_anonymized;
 DROP TABLE IF EXISTS atlas_meter_src;
-DROP TABLE IF EXISTS atlas_meter_ext;
 ```
 
 In Atlas, dropped tables often move to **DELETED** state but lineage remains visible — useful for audit discussions.

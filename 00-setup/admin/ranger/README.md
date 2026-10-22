@@ -23,11 +23,15 @@ The JSON templates only cover HDFS. The Hive lab needs these policies in the **H
 
 ## Hive policies for module 06 Spark (manual, Ranger UI)
 
-Same **`ws_*` database/table** pattern as module 04. Participants write Parquet under **`/user/<participant>/`** (their HDFS home) and register an external table with `LOCATION` pointing there — grant workshop users **read/write/execute** on their own `/user/<name>` tree (or rely on default home ownership). Optional shared folder `${WORKSHOP_ROOT}/06-spark/work/*` only if you redirect lab tables there; default setup uses personal paths only.
+Same **`ws_*` database/table** pattern as module 04. Participants write Parquet files under **`/user/<participant>/`** (their HDFS home; default home ownership is enough) and save the final table with `saveAsTable` at the **default location** — no `LOCATION` clause, so no URL policy. Spark and Hive need the same access to `/warehouse/tablespace/external/hive/ws_*` as in module 04.
 
 ## Hive / Impala policies for module 05 (manual, Ranger UI)
 
-Same pattern as module 04: `ws_*` database/table privileges and URL access for `${WORKSHOP_ROOT}/05-impala/work/*`. If Impala has a separate Ranger service, grant `SELECT` (and `CREATE` on `ws_*`) for workshop users. HDFS ACL on `${WORKSHOP_ROOT}/05-impala/work` is prepared by `05-basics-impala/setup/setup.sh`.
+Same pattern as module 04: `ws_*` database/table privileges and read/write on the default external location `/warehouse/tablespace/external/hive/ws_*`. The lab sets no `LOCATION`, so no URL policy is needed. If Impala has a separate Ranger service, grant `SELECT` (and `CREATE` on `ws_*`) for workshop users. Read on `${WORKSHOP_ROOT}/05-impala/scaled` is prepared by `05-basics-impala/setup/setup.sh`.
+
+## Hive policies for module 08 Atlas (manual, Ranger UI)
+
+Only the `create`/`select`/`insert` privileges on personal databases from module 04. The lab creates managed tables at the default location (no `LOCATION`, no files copied), so no URL or HDFS policy is needed. Atlas itself needs the Hive hook enabled and, for classifications and glossary, Atlas permissions (see the module trainer notes).
 
 ## Iceberg policies for module 07 (manual, Ranger UI)
 
