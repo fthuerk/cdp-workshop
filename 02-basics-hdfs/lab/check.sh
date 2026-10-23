@@ -14,7 +14,7 @@ pass() { echo "[PASS] $*"; }
 fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
-USER_HOME="/user/${WS_USER}"
+USER_HOME="${WORKSHOP_HOME}"
 HDFS_LAB="${WORKSHOP_ROOT}/02-hdfs/lab"
 
 if hdfs dfs -test -d "${USER_HOME}" 2>/dev/null; then

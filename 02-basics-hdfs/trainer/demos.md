@@ -3,7 +3,7 @@
 Run **one section at a time** on an edge node while participants watch. Paths match module setup under `${WORKSHOP_ROOT}/02-hdfs`.
 
 ```bash
-export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust from config.env
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust from config.env
 export HDFS_MODULE="${WORKSHOP_ROOT}/02-hdfs"
 export HDFS_LAB="${HDFS_MODULE}/lab"
 export HDFS_QUOTA="${HDFS_MODULE}/quota_reached"

@@ -37,7 +37,7 @@ fi
 
 check hdfs dfs -test -d /warehouse/tablespace/external/hive
 
-echo "[INFO] Not checked here: Ranger policies for ws_* (Hive: create/all on database ws_*; HDFS: rwx for workshop users on /warehouse/tablespace/external/hive/ws_*). See 00-setup/admin/ranger/README.md"
+echo "[INFO] Not checked here: Ranger policies for {USER} (Hive: create/all on database {USER}; HDFS: rwx for workshop users on /warehouse/tablespace/external/hive/{USER}.db). See 00-setup/admin/ranger/README.md"
 
 if [[ ${fail} -ne 0 ]]; then exit 1; fi
 echo "04-basics-hive setup verify complete."

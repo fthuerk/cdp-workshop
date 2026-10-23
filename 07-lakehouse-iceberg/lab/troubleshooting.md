@@ -4,7 +4,7 @@ For Kerberos, Hue, and Ranger basics see the [Hive troubleshooting](../../04-bas
 
 ## `Table does not exist: landisgyr_changes` (or `stations`, `market_prices`, `landisgyr_csv`)
 
-The source tables of lab section 0 are missing or you are in another database. Run `USE ws_<your_user>;` (or pick the database in Hue) and the section 0 block again — it is safe to repeat.
+The source tables of lab section 0 are missing or you are in another database. Run `USE <your_user>;` (or pick the database in Hue) and the section 0 block again — it is safe to repeat.
 
 ## Source tables are empty
 
@@ -16,7 +16,7 @@ The placeholder has no value. Type your `WORKSHOP_USER` into the `ws_user` input
 
 ## `CREATE TABLE … STORED AS ICEBERG` is denied or fails with an authorization error
 
-Iceberg needs **two** Ranger policies: the usual Hive table policy on `ws_*`, and the Hadoop SQL **storage handler** policy (storage-type `iceberg`, storage-url `*`, permission *RW Storage*) for the workshop users. A missing second policy shows up when you create or alter an Iceberg table. Trainers: see the [ranger README](../../00-setup/admin/ranger/README.md), section module 07.
+Iceberg needs **two** Ranger policies: the usual Hive table policy on `{USER}`, and the Hadoop SQL **storage handler** policy (storage-type `iceberg`, storage-url `*`, permission *RW Storage*) for the workshop users. A missing second policy shows up when you create or alter an Iceberg table. Trainers: see the [ranger README](../../00-setup/admin/ranger/README.md), section module 07.
 
 ## `UPDATE` / `DELETE` / `MERGE` fails on `ice_meter` with a message about the format version or row-level operations
 
@@ -28,15 +28,15 @@ Impala `UPDATE` and `MERGE` need Cloudera Runtime **7.3.1.500 or later**; check 
 
 ## `.snapshots`, `.files`, or `.history` is not found
 
-Impala metadata tables need the full name: `ws_<your_user>.ice_meter.snapshots` — database, table, metadata table. In Hue use `ws_${ws_user}.ice_meter.snapshots`. If your release does not support them, use `DESCRIBE HISTORY ice_meter;` and `SHOW FILES IN ice_meter;`.
+Impala metadata tables need the full name: `<your_user>.ice_meter.snapshots` — database, table, metadata table. In Hue use `${ws_user}.ice_meter.snapshots`. If your release does not support them, use `DESCRIBE HISTORY ice_meter;` and `SHOW FILES IN ice_meter;`.
 
 ## `snap_first` (or `snap_now`, `snap_good`) is empty or wrong
 
-The ID must come from the snapshot query of the section (`… FROM ws_${ws_user}.ice_meter.snapshots …`). Copy only the number, without spaces. IDs are long (19 digits); check the last digits.
+The ID must come from the snapshot query of the section (`… FROM ${ws_user}.ice_meter.snapshots …`). Copy only the number, without spaces. IDs are long (19 digits); check the last digits.
 
 ## `Cannot find snapshot` / time travel fails
 
-The snapshot was expired (lab section 7) or the ID was copied wrongly. List the IDs again with `SELECT snapshot_id, committed_at FROM ws_<user>.ice_meter.snapshots;` — after `EXPIRE_SNAPSHOTS` only the current snapshot is left.
+The snapshot was expired (lab section 7) or the ID was copied wrongly. List the IDs again with `SELECT snapshot_id, committed_at FROM <user>.ice_meter.snapshots;` — after `EXPIRE_SNAPSHOTS` only the current snapshot is left.
 
 ## `EXPIRE_SNAPSHOTS` removed nothing
 

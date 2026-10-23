@@ -43,8 +43,19 @@ export WORKSHOP_ROOT=/user/<you>/cdp_workshop
 ```
 
 Remove everything again with `./00-setup/participant/setup.sh --remove`.
-Limits: no HDFS space quota (module 02 quota exercise) and no shared Ranger policies, so the shared-access
-and Ranger-dependent steps behave according to your account's permissions.
+
+Every script and `check.sh` takes the location from the environment first, then `config.env`. Run a single module
+setup with `./02-basics-hdfs/setup/setup.sh --skip-kinit --root /user/<you>/cdp_workshop`. In the labs, the header block
+keeps your exported `WORKSHOP_ROOT`; set `WORKSHOP_HOME` there too if you want lab output outside `/user/<you>`.
+
+**What differs in self-service mode**
+
+| Module | Difference |
+|--------|------------|
+| 02 HDFS | No space quota (the quota upload does not fail). You own `secret`, so `cat` works: use another user's path or skip. |
+| 04, 05, 07, 10 | Use the shared Hive warehouse (`ws_<you>` database); your account needs the usual Hive/HDFS rights there. |
+| 06 Spark | Output goes to `WORKSHOP_HOME`; the table step needs the same Hive rights. |
+| 08 Atlas | Needs the Atlas Hive hook on the cluster; no setup script. |
 
 ## What the trainer prepares (Path A) (summary)
 
@@ -57,3 +68,6 @@ Details: [admin/README.md](admin/README.md)
 ## Next module
 
 [01-basics-kerberos](../01-basics-kerberos/README.md)
+
+---
+*The generation of these labs was supported by AI.*

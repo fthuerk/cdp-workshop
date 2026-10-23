@@ -41,3 +41,6 @@ Pre-create glossary **Metering** with term **Active Power** in Atlas if particip
 ## Next module
 
 Continue with [07-lakehouse-iceberg](../07-lakehouse-iceberg/README.md) or [10-advanced-hive](../10-advanced-hive/README.md) per your cohort schedule.
+
+---
+*The generation of these labs was supported by AI.*

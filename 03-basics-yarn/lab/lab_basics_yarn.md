@@ -7,7 +7,8 @@ Set your Kerberos identity and paths once for the whole lab. `WORKSHOP_USER` is 
 ```bash
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
-export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
+export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you may write to works
 export YARN_LAB="${WORKSHOP_ROOT}/03-yarn"
 ```
 
@@ -72,7 +73,7 @@ The Hadoop examples JAR ships with every cluster. Submit the `wordcount` example
 yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
   wordcount \
   "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
-  "/user/${WORKSHOP_USER}/wordcount-mr"
+  "${WORKSHOP_HOME}/wordcount-mr"
 ```
 
 The JAR path above is the CDP parcel default — ask your instructor if it differs on your cluster. While the job runs, the console prints the YARN application ID (`application_…`) and the map/reduce progress.
@@ -80,8 +81,8 @@ The JAR path above is the CDP parcel default — ask your instructor if it diffe
 List the output directory. Each line of the result file is a word, a tab, and its count. Show the ten most frequent words by sorting on the count (second column, descending):
 
 ```bash
-hdfs dfs -ls "/user/${WORKSHOP_USER}/wordcount-mr"
-hdfs dfs -cat "/user/${WORKSHOP_USER}/wordcount-mr/part-r-00000" | sort -k2 -nr | head -10
+hdfs dfs -ls "${WORKSHOP_HOME}/wordcount-mr"
+hdfs dfs -cat "${WORKSHOP_HOME}/wordcount-mr/part-r-00000" | sort -k2 -nr | head -10
 ```
 
 You should see a `_SUCCESS` marker and at least one `part-r-*` file, and common German words such as `der`, `die`, and `und` at the top.
@@ -175,13 +176,13 @@ Submit the job. The JAR file name contains the Tez version of your cluster, so t
 yarn jar /opt/cloudera/parcels/CDH/lib/tez/bin/tez-examples-*.jar \
   wordcount \
   "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
-  "/user/${WORKSHOP_USER}/wordcount-tez"
+  "${WORKSHOP_HOME}/wordcount-tez"
 ```
 
 If the shell reports more than one match or `No such file`, ask your instructor for the exact JAR path. Note the application ID in the console output, then check the output and list Tez applications. Look at the application type column:
 
 ```bash
-hdfs dfs -ls "/user/${WORKSHOP_USER}/wordcount-tez"
+hdfs dfs -ls "${WORKSHOP_HOME}/wordcount-tez"
 yarn application -list -appStates FINISHED -appTypes TEZ
 ```
 
@@ -205,19 +206,19 @@ hdfs dfs -ls "${YARN_LAB}/input-many" | head -5
 Run word count with MapReduce and with Tez on that **folder**. Use the same terminal as in section 6 for the Tez command, and note the `real` time that `time` prints:
 
 ```bash
-hdfs dfs -rm -r -f -skipTrash "/user/${WORKSHOP_USER}/wordcount-mr-many" "/user/${WORKSHOP_USER}/wordcount-tez-many"
+hdfs dfs -rm -r -f -skipTrash "${WORKSHOP_HOME}/wordcount-mr-many" "${WORKSHOP_HOME}/wordcount-tez-many"
 time yarn jar /opt/cloudera/parcels/CDH/lib/hadoop-mapreduce/hadoop-mapreduce-examples.jar \
-  wordcount "${YARN_LAB}/input-many" "/user/${WORKSHOP_USER}/wordcount-mr-many"
+  wordcount "${YARN_LAB}/input-many" "${WORKSHOP_HOME}/wordcount-mr-many"
 time yarn jar /opt/cloudera/parcels/CDH/lib/tez/bin/tez-examples-*.jar \
-  wordcount "${YARN_LAB}/input-many" "/user/${WORKSHOP_USER}/wordcount-tez-many"
+  wordcount "${YARN_LAB}/input-many" "${WORKSHOP_HOME}/wordcount-tez-many"
 ```
 
 Run the Tez job a **second time**. The first run had the one-time cost of distributing the Tez libraries to the nodes; the second one shows what Tez costs when it is warm. Remove its output first:
 
 ```bash
-hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/wordcount-tez-many"
+hdfs dfs -rm -r -skipTrash "${WORKSHOP_HOME}/wordcount-tez-many"
 time yarn jar /opt/cloudera/parcels/CDH/lib/tez/bin/tez-examples-*.jar \
-  wordcount "${YARN_LAB}/input-many" "/user/${WORKSHOP_USER}/wordcount-tez-many"
+  wordcount "${YARN_LAB}/input-many" "${WORKSHOP_HOME}/wordcount-tez-many"
 ```
 
 Now count the containers of each application. List the applications, then list the containers of the MapReduce run and of the last Tez run. The first container of every application (`…_000001`) is its ApplicationMaster:
@@ -251,7 +252,7 @@ spark-submit --master yarn --deploy-mode cluster \
   --name "linecount-hdfs-${WORKSHOP_USER}" \
   "hdfs://${YARN_LAB}/assets/spark_linecount.py" \
   "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
-  "/user/${WORKSHOP_USER}/linecount-spark"
+  "${WORKSHOP_HOME}/linecount-spark"
 ```
 
 **8b. Script on the local disk.** Copy the script from HDFS to your current node first, then submit the local path. `spark-submit` uploads it to the `.sparkStaging` directory in HDFS (watch for the `Uploading resource file:...` line in the output) and YARN ships it to the containers:
@@ -264,7 +265,7 @@ spark-submit --master yarn --deploy-mode cluster \
   --name "linecount-local-${WORKSHOP_USER}" \
   /tmp/spark_linecount.py \
   "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" \
-  "/user/${WORKSHOP_USER}/linecount-spark-local"
+  "${WORKSHOP_HOME}/linecount-spark-local"
 ```
 
 Without the first step, the same command fails with `FileNotFoundException: File file:/tmp/spark_linecount.py does not exist` — the local path only exists on the node where you created it.
@@ -272,8 +273,8 @@ Without the first step, the same command fails with `FileNotFoundException: File
 Read the results from HDFS — both runs should print the same value:
 
 ```bash
-hdfs dfs -cat "/user/${WORKSHOP_USER}/linecount-spark/part-*"
-hdfs dfs -cat "/user/${WORKSHOP_USER}/linecount-spark-local/part-*"
+hdfs dfs -cat "${WORKSHOP_HOME}/linecount-spark/part-*"
+hdfs dfs -cat "${WORKSHOP_HOME}/linecount-spark-local/part-*"
 ```
 
 You should see one line `line_count=…`. Compare it with the line count of the file itself:
@@ -413,7 +414,7 @@ yarn top
 
 - Tez multi-stage: run `orderedwordcount` (same JAR and `HADOOP_CLASSPATH` as in section 6, same arguments, new output path) and compare its vertices with the single-stage `wordcount` in the ResourceManager UI.  
 - ResourceManager UI: open one finished application and find its containers and the node each ran on.  
-- Hue: browse `/user/${WORKSHOP_USER}/wordcount-mr` in File Browser.
+- Hue: browse `${WORKSHOP_HOME}/wordcount-mr` in File Browser.
 
 ---
 

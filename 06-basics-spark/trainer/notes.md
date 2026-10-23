@@ -35,7 +35,7 @@ If time is tight, skip section 8 and stretch; run section 7 as a trainer demo wi
 | No rows after join | Participant joined on wrong column names — weather first field must be timestamp typed as `ts_utc` |
 | Section 7 `saveAsTable` fails | Enable Hive support (`spark.sql.catalogImplementation=hive`) if your cluster requires it. Do not switch to a custom `LOCATION` (needs Ranger URL policies); check the table location with `DESCRIBE FORMATTED` — it must be under the default external warehouse. Verify once on your cluster that Spark creates it as an external table |
 | Small cluster, slow local check | `check.sh` uses `local[2]` — acceptable on edge node; warn if laptops not used |
-| Ranger | Module 04 Hive policies on `ws_*` plus HDFS home write; optional path `${WORKSHOP_ROOT}/06-spark/work` if you redirect tables there |
+| Ranger | Module 04 Hive policies on `{USER}` plus HDFS home write; optional path `${WORKSHOP_ROOT}/06-spark/work` if you redirect tables there |
 
 ## Admin
 

@@ -6,8 +6,10 @@ set -euo pipefail
 _ws_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _ws_repo_root="$(cd "${_ws_script_dir}/.." && pwd)"
 
+# Precedence: environment (WORKSHOP_ROOT, WORKSHOP_LOCAL, HS2_URL) > config.env > config.env.example.
 load_config() {
   local cfg="${CDP_WORKSHOP_CONFIG:-${_ws_repo_root}/config.env}"
+  local env_root="${WORKSHOP_ROOT:-}" env_local="${WORKSHOP_LOCAL:-}" env_hs2="${HS2_URL:-}"
   if [[ -f "${cfg}" ]]; then
     # shellcheck disable=SC1090
     source "${cfg}"
@@ -19,8 +21,15 @@ load_config() {
     echo "No config.env or config.env.example found under ${_ws_repo_root}" >&2
     exit 1
   fi
+  WORKSHOP_ROOT="${env_root:-${WORKSHOP_ROOT:-}}"
+  WORKSHOP_LOCAL="${env_local:-${WORKSHOP_LOCAL:-${_ws_repo_root}}}"
+  HS2_URL="${env_hs2:-${HS2_URL:-}}"
+  [[ -d "${WORKSHOP_LOCAL}/data/samples" ]] || WORKSHOP_LOCAL="${_ws_repo_root}"   # not at the configured path: use this clone
   : "${WORKSHOP_ROOT:?WORKSHOP_ROOT must be set}"
-  : "${WORKSHOP_LOCAL:?WORKSHOP_LOCAL must be set}"
+  # Participant HDFS home for lab output; override for a different folder.
+  WORKSHOP_USER="${WORKSHOP_USER:-${USER:-}}"
+  WORKSHOP_HOME="${WORKSHOP_HOME:-/user/${WORKSHOP_USER}}"
+  export WORKSHOP_ROOT WORKSHOP_LOCAL HS2_URL WORKSHOP_HOME
 }
 
 log_info() { echo "[INFO] $*"; }
@@ -50,6 +59,10 @@ parse_workshop_admin_args() {
         CDP_WORKSHOP_SKIP_ADMIN_KINIT=1
         shift
         ;;
+      --root)
+        export WORKSHOP_ROOT="${2:?--root needs an HDFS path}"
+        shift 2
+        ;;
       -h|--help)
         workshop_admin_usage
         exit 0
@@ -65,10 +78,13 @@ parse_workshop_admin_args() {
 
 workshop_admin_usage() {
   cat <<EOF
-Usage: $(basename "${0}") [--skip-kinit]
+Usage: $(basename "${0}") [--skip-kinit] [--root HDFS_DIR]
 
   --skip-kinit, --use-existing-ticket
     Use your current Kerberos ticket instead of kinit via the HDFS NameNode keytab.
+
+  --root HDFS_DIR
+    Workshop location on HDFS (default: WORKSHOP_ROOT from the environment or config.env).
 
   Environment: CDP_WORKSHOP_SKIP_ADMIN_KINIT=1 has the same effect as --skip-kinit.
 EOF

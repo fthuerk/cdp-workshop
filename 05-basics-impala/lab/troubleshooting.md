@@ -16,7 +16,7 @@ Only needed for section 4. Verify you have a valid ticket (`klist`) and that pla
 
 ## `AnalysisException: Could not resolve path` or `Table not found`
 
-- Run `USE ws_<your_username>;` in Impala.  
+- Run `USE <your_username>;` in Impala.  
 - In section 1, create the table without a `LOCATION` clause and copy the CSV into `${IMPALA_EXT}/impala_meter` (no typos in `WORKSHOP_USER`), then run `REFRESH impala_meter;`.  
 - If the table exists but counts are wrong after section 5, run `INVALIDATE METADATA impala_meter;`.
 
@@ -26,7 +26,7 @@ Table data must live in the default external folder `${IMPALA_EXT}/impala_meter`
 
 ## Ranger: `does not have privilege` on database or HDFS
 
-Same pattern as the Hive module: policies on `ws_*` and read/write on `/warehouse/tablespace/external/hive/ws_*`. No URL policy is needed. Ask your instructor.
+Same pattern as the Hive module: policies on `{USER}` and read/write on `/warehouse/tablespace/external/hive/{USER}.db`. No URL policy is needed. Ask your instructor.
 
 ## UPDATE / DELETE errors in section 4
 

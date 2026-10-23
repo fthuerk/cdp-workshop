@@ -17,7 +17,7 @@ pass() { echo "[PASS] $*"; }
 fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
-DB="ws_${WS_USER}"
+DB="${WS_USER}"
 
 # Run SQL in your database; print the last output line (empty if the query failed).
 sql() {

@@ -19,7 +19,7 @@ check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
 check hdfs dfs -test -d /warehouse/tablespace/external/hive
 
-echo "[INFO] Not checked here: Ranger policies for ws_* (see 00-setup/admin/ranger/README.md)"
+echo "[INFO] Not checked here: Ranger policies for {USER} (see 00-setup/admin/ranger/README.md)"
 
 if [[ ${fail} -ne 0 ]]; then exit 1; fi
 echo "10-advanced-hive setup verify complete."

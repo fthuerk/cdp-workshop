@@ -19,9 +19,9 @@ If a file is missing, ask your instructor to run the module setup.
 MapReduce, Tez, and Spark refuse to write into an existing output path. Remove it and resubmit:
 
 ```bash
-hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/wordcount-mr"
-hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/wordcount-tez"
-hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/linecount-spark"
+hdfs dfs -rm -r -skipTrash "${WORKSHOP_HOME}/wordcount-mr"
+hdfs dfs -rm -r -skipTrash "${WORKSHOP_HOME}/wordcount-tez"
+hdfs dfs -rm -r -skipTrash "${WORKSHOP_HOME}/linecount-spark"
 ```
 
 ## An example JAR is not found
@@ -75,8 +75,8 @@ Container listings only work while the application is running. Start a longer `p
 Killed or failed `pi` runs leave their temporary directory behind. Remove them:
 
 ```bash
-hdfs dfs -ls "/user/${WORKSHOP_USER}"
-hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/<QuasiMonteCarlo-directory>"
+hdfs dfs -ls "${WORKSHOP_HOME}"
+hdfs dfs -rm -r -skipTrash "${WORKSHOP_HOME}/<QuasiMonteCarlo-directory>"
 ```
 
 ## My oversized job is still waiting

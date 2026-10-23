@@ -128,7 +128,7 @@ impala-shell --kerberos
 
 ```sql
 -- Session setup (workshop pattern)
-USE ws_${WORKSHOP_USER};
+USE ${WORKSHOP_USER};
 SHOW TABLES;
 ```
 

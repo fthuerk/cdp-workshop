@@ -14,7 +14,8 @@ Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you
 ```bash
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
-export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
+export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you may write to works
 export SPARK_LAB="${WORKSHOP_ROOT}/06-spark"
 export METER_CSV="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
 export WEATHER_CSV="${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
@@ -89,6 +90,7 @@ The shell inherits the exports of the terminal that started it. Pull paths and y
 import org.apache.spark.sql.functions._
 
 val workshopUser = sys.env("WORKSHOP_USER")
+val workshopHome = sys.env("WORKSHOP_HOME")
 val meterCsv     = sys.env("METER_CSV")
 val weatherCsv   = sys.env("WEATHER_CSV")
 val awattarCsv   = sys.env("AWATTAR_CSV")
@@ -239,16 +241,16 @@ curated.show(5, false)
 **Goal:** Persist the joined dataset as partitioned Parquet under your HDFS home.
 
 ```scala
-val outInteractive = s"/user/$workshopUser/spark-curated"
+val outInteractive = s"$workshopHome/spark-curated"
 curated.write.mode("overwrite").partitionBy("station_id").parquet(outInteractive)
 ```
 
 Exit the shell (`:quit` or Ctrl-D) and inspect the layout from bash:
 
 ```bash
-hdfs dfs -ls "/user/${WORKSHOP_USER}/spark-curated"
-hdfs dfs -ls "/user/${WORKSHOP_USER}/spark-curated/station_id=TS-101"
-hdfs dfs -du -s -h "/user/${WORKSHOP_USER}/spark-curated"
+hdfs dfs -ls "${WORKSHOP_HOME}/spark-curated"
+hdfs dfs -ls "${WORKSHOP_HOME}/spark-curated/station_id=TS-101"
+hdfs dfs -du -s -h "${WORKSHOP_HOME}/spark-curated"
 ```
 
 You should see `_SUCCESS`, one directory per `station_id`, and Parquet part files inside. This is your **curated** layer: columnar files ready for Hive, Impala, or the next Spark job — landing CSVs stay untouched under `${WORKSHOP_ROOT}/data`.
@@ -297,7 +299,7 @@ spark-submit --master yarn --deploy-mode cluster \
   --name "spark-batch-${WORKSHOP_USER}" \
   "hdfs://${SPARK_LAB}/assets/spark_cleanse_join.py" \
   "${METER_CSV}" "${WEATHER_CSV}" "${AWATTAR_CSV}" \
-  "/user/${WORKSHOP_USER}/spark-batch-curated"
+  "${WORKSHOP_HOME}/spark-batch-curated"
 ```
 
 Note how the command ends: the four trailing values are **arguments to the script** (three inputs, one output path), replacing the `sys.env` lookups and hard-coded paths you used in the shell.
@@ -310,13 +312,13 @@ spark-submit --master yarn --deploy-mode cluster \
   --name "spark-batch-local-${WORKSHOP_USER}" \
   /tmp/spark_cleanse_join.py \
   "${METER_CSV}" "${WEATHER_CSV}" "${AWATTAR_CSV}" \
-  "/user/${WORKSHOP_USER}/spark-batch-curated-local"
+  "${WORKSHOP_HOME}/spark-batch-curated-local"
 ```
 
 When the application state is `FINISHED`, confirm output:
 
 ```bash
-hdfs dfs -ls "/user/${WORKSHOP_USER}/spark-batch-curated"
+hdfs dfs -ls "${WORKSHOP_HOME}/spark-batch-curated"
 yarn application -list -appStates FINISHED -appTypes SPARK | tail -5
 ```
 
@@ -338,7 +340,8 @@ spark-shell --master yarn --name "spark-metastore-${WORKSHOP_USER}"
 
 ```scala
 val workshopUser = sys.env("WORKSHOP_USER")
-val batchPath = s"/user/$workshopUser/spark-batch-curated"
+val workshopHome = sys.env("WORKSHOP_HOME")
+val batchPath = s"$workshopHome/spark-batch-curated"
 ```
 
 Create your personal database and save the batch output as a table. There is no `LOCATION` clause: Spark writes the table files into the default external warehouse folder of your database.
@@ -357,12 +360,12 @@ You should see **24** rows and **3** stations. **Optional cross-check** in Beeli
 
 ```bash
 beeline -u "${HS2_URL}" -e "
-USE ws_${WORKSHOP_USER};
+USE ${WORKSHOP_USER};
 SELECT station_id, COUNT(*) AS n FROM spark_curated_join GROUP BY station_id ORDER BY station_id;
 "
 ```
 
-Hive and Impala read the same Metastore entry. In the `DESCRIBE FORMATTED` output, find the `Location`: it sits under the default external warehouse folder of `ws_<your_user>`, not under `/user/...`. The batch Parquet in `/user/${WORKSHOP_USER}/spark-batch-curated` stays untouched (managed table semantics are covered in the Hive basics module).
+Hive and Impala read the same Metastore entry. In the `DESCRIBE FORMATTED` output, find the `Location`: it sits under the default external warehouse folder of `<your_user>`, not under `/user/...`. The batch Parquet in `${WORKSHOP_HOME}/spark-batch-curated` stays untouched (managed table semantics are covered in the Hive basics module).
 
 ---
 
@@ -379,9 +382,9 @@ spark.read.csv("/no/such/workshop/path").count()
 **Output path already exists** (in `spark-shell`) — reload the batch output and write again without `overwrite`:
 
 ```scala
-val u = sys.env("WORKSHOP_USER")
-val again = spark.read.parquet(s"/user/$u/spark-batch-curated")
-again.write.parquet(s"/user/$u/spark-batch-curated")
+val wh = sys.env("WORKSHOP_HOME")
+val again = spark.read.parquet(s"$wh/spark-batch-curated")
+again.write.parquet(s"$wh/spark-batch-curated")
 ```
 
 **Executor memory too small** (from bash, `spark-submit`) — submit the batch script with an unrealistically tiny executor heap (may stay `ACCEPTED` or fail with `Container killed`):
@@ -392,7 +395,7 @@ spark-submit --master yarn --deploy-mode cluster \
   --name "spark-oom-demo-${WORKSHOP_USER}" \
   "hdfs://${SPARK_LAB}/assets/spark_cleanse_join.py" \
   "${METER_CSV}" "${WEATHER_CSV}" "${AWATTAR_CSV}" \
-  "/user/${WORKSHOP_USER}/spark-oom-demo"
+  "${WORKSHOP_HOME}/spark-oom-demo"
 ```
 
 Find the application id and skim logs:

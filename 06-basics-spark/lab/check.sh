@@ -14,7 +14,7 @@ pass() { echo "[PASS] $*"; }
 fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
-USER_HOME="/user/${WS_USER}"
+USER_HOME="${WORKSHOP_HOME}"
 SPARK_LAB="${WORKSHOP_ROOT}/06-spark"
 BATCH_OUT="${USER_HOME}/spark-batch-curated"
 INTERACTIVE_OUT="${USER_HOME}/spark-curated"

@@ -46,3 +46,6 @@ After this module you can:
 ## Next module
 
 [04-basics-hive](../04-basics-hive/README.md)
+
+---
+*The generation of these labs was supported by AI.*

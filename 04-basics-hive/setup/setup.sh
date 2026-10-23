@@ -40,6 +40,6 @@ hdfs dfs -chmod 755 "${MODULE_ROOT}"
 hdfs dfs -chmod -R 755 "${MODULE_ROOT}/landing"
 
 log_info "Hive module setup complete under ${MODULE_ROOT}"
-# Participants create ws_<user> databases and tables with the default external location and copy
-# files into /warehouse/tablespace/external/hive/ws_<user>.db/<table>. That needs Ranger policies.
-log_warn "Ranger: workshop users need Hive and HDFS policies for ws_* - see 00-setup/admin/ranger/README.md (module 04)"
+# Participants create <user> databases and tables with the default external location and copy
+# files into /warehouse/tablespace/external/hive/<user>.db/<table>. That needs Ranger policies.
+log_warn "Ranger: workshop users need Hive and HDFS policies for {USER} - see 00-setup/admin/ranger/README.md (module 04)"

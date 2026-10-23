@@ -65,3 +65,6 @@ docs/workshop-guidelines.md  # how to author labs and modules
 3. Participants: read each module’s lab markdown (for example `lab/lab_basics_hdfs.md`) and run commands with a personal Kerberos principal.
 
 Labs define success through outcomes and `lab/check.sh`, not fixed sample transcripts.
+
+---
+*The generation of these labs was supported by AI.*

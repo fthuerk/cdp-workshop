@@ -1,19 +1,19 @@
 # Impala hands-on lab
 
-Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need **two terminals** on the edge node: one for `impala-shell` and one for `beeline` (Hive) in sections 4 and 5 only.
+Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. This lab is **Hue-based**: run all SQL in **Hue → Editor → Impala** (and **Editor → Hive** in sections 4 and 5); URL from your handout. Use one terminal on the edge node only for `hdfs` commands, a single `impala-shell` example (section 0) and a Python `impyla` example (section 7). Your personal database has the same name as your user (`WORKSHOP_USER`). Where the SQL shows `<your_user>`, type your user name; in Hue you can also select the database in the drop-down.
 
-Set your Kerberos identity and paths once in **both** terminals. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_EXT` is the default external warehouse folder of your database: you never set a table location in this lab — the engine creates a folder per table below `IMPALA_EXT`, and you copy files into it. `IMPALA_OPTS` holds the `impala-shell` connection options (HiveServer2 over HTTP on port 28000, Kerberos, TLS).
+Set your Kerberos identity and paths once in the terminal. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_EXT` is the default external warehouse folder of your database: you never set a table location in this lab — the engine creates a folder per table below `IMPALA_EXT`, and you copy files into it. `IMPALA_OPTS` holds the `impala-shell` connection options (used by the one shell example and the self-check) (HiveServer2 over HTTP on port 28000, Kerberos, TLS).
 
 ```bash
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
-export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export IMPALA_LAB="${WORKSHOP_ROOT}/05-impala"
-export IMPALA_EXT="/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db"   # adjust if needed
+export IMPALA_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"   # adjust if needed
 export IMPALA_OPTS="-i <impala-host>:28000 --protocol=hs2-http -d default -k --ssl --ca_cert=/var/lib/cloudera-scm-agent/agent-cert/cm-auto-global_cacerts.pem"
 ```
 
-Replace `<impala-host>` with the Impala coordinator host from your handout. Every `impala-shell ${IMPALA_OPTS}` call below uses these options; a later `-d ws_${WORKSHOP_USER}` overrides `-d default`.
+Replace `<impala-host>` with the Impala coordinator host from your handout. The `impala-shell` call in section 0 and the self-check use these options.
 
 **Impala** and **Hive** share the **Hive Metastore**: table names, columns, and HDFS locations are the same catalog. Impala daemons read files directly and return results with low latency; Hive compiles most queries into **Tez** jobs on YARN (as in the YARN basics module). This lab builds its own database and external table — nothing from other modules is required.
 
@@ -23,26 +23,23 @@ Replace `<impala-host>` with the Impala coordinator host from your handout. Ever
 
 **Goal:** Open an Impala session and create a personal database in the shared Metastore.
 
-Create your database from the shell so `${WORKSHOP_USER}` expands correctly.
-```bash
-impala-shell ${IMPALA_OPTS} -q "
-CREATE DATABASE IF NOT EXISTS ws_${WORKSHOP_USER};
-USE ws_${WORKSHOP_USER};
+In **Hue → Editor → Impala**, replace `<your_user>` with your user name and run:
+
+```sql
+CREATE DATABASE IF NOT EXISTS <your_user>;
+USE <your_user>;
 SELECT current_database(), user();
-"
 ```
 
-Open an interactive session on that database for the rest of the lab:
+You should see your database name and your user name in the result.
+
+**Impala shell (the one shell example):** the same query from the terminal, with the connection options from the intro:
 
 ```bash
-impala-shell ${IMPALA_OPTS} -d ws_${WORKSHOP_USER}
+impala-shell ${IMPALA_OPTS} -d ${WORKSHOP_USER} -q "SELECT current_database(), user();"
 ```
 
-You should see your database name and Kerberos user in the `-q` output.
-
-Optional: run the same statements in **Hue → Editor → Impala** (URL from your handout).
-
-**Check question:** If Hive and Impala both list `ws_<your_user>`, where is that definition stored — in HDFS or in the Metastore?
+**Check question:** If Hive and Impala both list `<your_user>`, where is that definition stored — in HDFS or in the Metastore?
 
 ---
 
@@ -50,10 +47,9 @@ Optional: run the same statements in **Hue → Editor → Impala** (URL from you
 
 **Goal:** Register an external table Impala can query and copy workshop CSV data into its default folder.
 
-Define the table in Impala. Column names are yours; Hive and Impala map CSV fields **by position**. The header line is skipped with a table property. There is no `LOCATION` clause: the table folder is `${IMPALA_EXT}/impala_meter`.
+Define the table in the Hue Impala editor. Column names are yours; Hive and Impala map CSV fields **by position**. The header line is skipped with a table property. There is no `LOCATION` clause: the table folder is `${IMPALA_EXT}/impala_meter`.
 
-```bash
-impala-shell ${IMPALA_OPTS} -d ws_${WORKSHOP_USER} -q "
+```sql
 CREATE EXTERNAL TABLE IF NOT EXISTS impala_meter (
   ts_utc STRING,
   station_id STRING,
@@ -73,16 +69,18 @@ CREATE EXTERNAL TABLE IF NOT EXISTS impala_meter (
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
 TBLPROPERTIES ('skip.header.line.count'='1');
-"
 ```
 
-Admin setup placed a **15,000-row** smart-meter file under `${IMPALA_LAB}/scaled/` (many copies of the small sample — enough rows to feel a speed difference). Copy it into the table folder and tell Impala that files arrived:
+Admin setup placed a **15,000-row** smart-meter file under `${IMPALA_LAB}/scaled/` (many copies of the small sample — enough rows to feel a speed difference). Copy it into the table folder (terminal), then tell Impala that files arrived (Hue):
 
 ```bash
 hdfs dfs -mkdir -p "${IMPALA_EXT}/impala_meter"
 hdfs dfs -cp -f "${IMPALA_LAB}/scaled/meter-15k.csv" "${IMPALA_EXT}/impala_meter/"
 hdfs dfs -ls -h "${IMPALA_EXT}/impala_meter"
-impala-shell ${IMPALA_OPTS} -d ws_${WORKSHOP_USER} -q "REFRESH impala_meter;"
+```
+
+```sql
+REFRESH impala_meter;
 ```
 
 Sanity checks:
@@ -173,31 +171,18 @@ Statistics do **not** update themselves when files change. After new data lands 
 
 **Goal:** Run one heavy scan twice and compare wall-clock time and what happens on YARN.
 
-Use the same aggregation in both engines. In the **Impala** terminal, time one run (Impala prints elapsed time when the shell exits):
+Use the same aggregation in both engines:
 
-```bash
-time impala-shell ${IMPALA_OPTS} -q "
-USE ws_${WORKSHOP_USER};
+```sql
 SELECT station_id, COUNT(*), AVG(active_power_kw), MAX(transformer_load_pct)
 FROM impala_meter
 GROUP BY station_id
 ORDER BY station_id;
-"
 ```
 
-In the **Hive** terminal, run the equivalent through Beeline. The first statement in a session often pays a **Tez startup** cost; that is normal:
+Run it in **Hue → Editor → Impala** and note the execution time Hue shows under the result. Then run the identical statement in **Hue → Editor → Hive** (select your database first). The first Hive statement in a session often pays a **Tez startup** cost; that is normal.
 
-```bash
-time beeline --silent=true -e "
-USE ws_${WORKSHOP_USER};
-SELECT station_id, COUNT(*), AVG(active_power_kw), MAX(transformer_load_pct)
-FROM impala_meter
-GROUP BY station_id
-ORDER BY station_id;
-"
-```
-
-While Hive runs, you may see Tez vertex progress in Beeline. When it finishes, list YARN applications for your user:
+While Hive runs, Hue shows Tez progress in the query log. When it finishes, list YARN applications for your user in the terminal:
 
 ```bash
 yarn application -list -appStates FINISHED,RUNNING | grep "${WORKSHOP_USER}" | head -5
@@ -213,7 +198,7 @@ You should see a **Tez** application for the Hive query and **no** comparable ba
 
 **Goal:** See that neither Impala nor Hive can patch rows in place on this **external** table, and read the error messages.
 
-An operator asks you to mark every `WARN` reading as reviewed. Try an update in **Impala** first:
+An operator asks you to mark every `WARN` reading as reviewed. Try an update in the **Hue Impala editor** first:
 
 ```sql
 UPDATE impala_meter SET quality_flag = 'REVIEWED' WHERE quality_flag = 'WARN';
@@ -229,13 +214,7 @@ DELETE FROM impala_meter WHERE station_id = 'TS-305';
 
 Same story — external HDFS files are **immutable**; engines append new files or rewrite partitions instead of editing bytes in place.
 
-Switch to the **Hive** terminal and open Beeline on the same database:
-
-```bash
-beeline -e "USE ws_${WORKSHOP_USER};"
-```
-
-Run the same two statements in Beeline (paste into an interactive session or use `-e`):
+Switch to **Hue → Editor → Hive** (same database) and run the same two statements:
 
 ```sql
 UPDATE impala_meter SET quality_flag = 'REVIEWED' WHERE quality_flag = 'WARN';
@@ -258,7 +237,7 @@ Append another copy of the data file without changing the table DDL:
 hdfs dfs -cp -f "${IMPALA_EXT}/impala_meter/meter-15k.csv" "${IMPALA_EXT}/impala_meter/extra-copy.csv"
 ```
 
-In Impala, count rows — you may still see **15,000** until metadata catches up:
+In the Hue Impala editor, count rows — you may still see **15,000** until metadata catches up:
 
 ```sql
 SELECT COUNT(*) FROM impala_meter;
@@ -274,7 +253,7 @@ Remove the extra file so the self-check stays predictable:
 hdfs dfs -rm -f "${IMPALA_EXT}/impala_meter/extra-copy.csv"
 ```
 
-In Impala:
+In the Hue Impala editor:
 
 ```sql
 INVALIDATE METADATA impala_meter;
@@ -287,9 +266,63 @@ You should be back at **15,000** rows.
 
 ---
 
+## 7. Python with impyla
+
+**Goal:** Query Impala from a Python script using the same Kerberos/HTTP/TLS connection as the shell.
+
+Install the client once (in a virtualenv, if you like) and make sure your `kinit` ticket is valid:
+
+```bash
+pip install --user impyla kerberos thrift_sasl
+```
+
+Save as `impyla_meter.py`:
+
+```python
+import os
+from impala.dbapi import connect
+
+user = os.environ["WORKSHOP_USER"]
+
+conn = connect(
+    host=os.environ.get("IMPALA_HOST", "<impala-host>"),   # coordinator from your handout
+    port=28000,
+    database=f"{user}",
+    use_http_transport=True,
+    http_path="cliservice",
+    use_ssl=True,
+    ca_cert="/var/lib/cloudera-scm-agent/agent-cert/cm-auto-global_cacerts.pem",
+    auth_mechanism="GSSAPI",          # Kerberos ticket from kinit
+)
+
+cur = conn.cursor()
+cur.execute("""
+    SELECT station_id, COUNT(*) AS readings, ROUND(AVG(active_power_kw), 1) AS avg_kw
+    FROM impala_meter
+    GROUP BY station_id
+    ORDER BY station_id
+""")
+for station_id, readings, avg_kw in cur.fetchall():
+    print(f"{station_id}: {readings} readings, avg {avg_kw} kW")
+
+cur.close()
+conn.close()
+```
+
+Run it:
+
+```bash
+IMPALA_HOST=<impala-host> python3 impyla_meter.py
+```
+
+You should see one line per station, matching the Hue result from section 2.
+
+**Check question:** Which ticket does `impyla` use to authenticate — a password in the script, or your `kinit` ticket?
+
+---
+
 ## Stretch (optional)
 
-- Hue: run section 4’s aggregation in **Editor → Impala** and compare with **Editor → Hive**.  
 - `EXPLAIN` the aggregation in Impala and compare with `EXPLAIN` in Hive — notice Impala’s plan without YARN stages.  
 - Create a tiny **managed transactional** table in Hive (`TBLPROPERTIES ('transactional'='true')`), insert a few rows, `UPDATE` one row successfully in Hive, then try the same `UPDATE` in Impala and compare errors.
 

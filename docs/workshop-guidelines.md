@@ -104,6 +104,14 @@ USER_HOME="/user/${WS_USER}"
 
 Participants can `export WORKSHOP_USER="${USER}"` on the edge node if their shell already matches their login.
 
+**Personal database = user name.** Each participant's Hive/Impala database is named exactly like `WORKSHOP_USER` (for example `jdoe`), **not** `ws_<user>` or any other prefix or suffix. This applies to all modules:
+
+- SQL and shell: `CREATE DATABASE IF NOT EXISTS ${WORKSHOP_USER};`, `USE ${WORKSHOP_USER};`, `impala-shell -d "${WORKSHOP_USER}"`; in Hue use the placeholder `${ws_user}` (value = the user name).
+- Default external warehouse folder: `/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db`.
+- Self-check scripts: `DB="${WS_USER}"`.
+- Ranger: Hive policy on database `{USER}` and HDFS policy on `/warehouse/tablespace/external/hive/{USER}.db` (the `{USER}` macro), instead of a `ws_*` wildcard.
+- In prose use `<your_user>` only for the database name; never reintroduce a `ws_` prefix.
+
 ---
 
 ## Lab document structure

@@ -78,3 +78,6 @@ klist
 | `keytab not found` | Run on CM-managed edge node or `kinit` as hdfs manually |
 | `put: Permission denied` | Confirm superuser ticket; check encryption zones |
 | Samples missing | Verify `WORKSHOP_LOCAL/data/samples/*.csv` exists |
+
+---
+*The generation of these labs was supported by AI.*

@@ -1,9 +1,9 @@
 # Trainer live demos — Hive
 
-Run **one section at a time** on an edge node while participants watch. Participant tables live in `ws_<user>` databases with data under `/warehouse/tablespace/external/hive/ws_<user>.db/<table>`.
+Run **one section at a time** on an edge node while participants watch. Participant tables live in `<user>` databases with data under `/warehouse/tablespace/external/hive/<user>.db/<table>`.
 
 ```bash
-export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust from config.env
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust from config.env
 export HIVE_LAB="${WORKSHOP_ROOT}/04-hive"
 ```
 
@@ -29,7 +29,7 @@ Switch to the admin ticket and list the location from the `DESCRIBE` output:
 ```bash
 cd "${WORKSHOP_LOCAL}"    # repo path on the edge node
 source lib/admin_auth.sh
-hdfs dfs -ls -R "/warehouse/tablespace/managed/hive/ws_<demo_user>.db/demo_managed"
+hdfs dfs -ls -R "/warehouse/tablespace/managed/hive/<demo_user>.db/demo_managed"
 ```
 
 Point at the folder names: one `base_…` (from the CTAS), then `delta_…` for the update and `delete_delta_…` for the delete. Look inside one ORC file — ACID files carry hidden columns (operation, transaction ids) around your row:
@@ -63,7 +63,7 @@ DESCRIBE FORMATTED demo_ext;
 ```bash
 hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "<demo_ext-table-location>"
 hdfs dfs -ls "<demo_ext-table-location>"
-hdfs dfs -ls "/warehouse/tablespace/managed/hive/ws_<demo_user>.db/demo_managed"
+hdfs dfs -ls "/warehouse/tablespace/managed/hive/<demo_user>.db/demo_managed"
 ```
 
 Drop both tables as the demo user, then list both locations again:
@@ -99,7 +99,7 @@ INSERT INTO meter_orc SELECT * FROM meter_csv LIMIT 10;
 Repeat the statement several times, then:
 
 ```bash
-hdfs dfs -ls "/warehouse/tablespace/external/hive/ws_<demo_user>.db/meter_orc"
+hdfs dfs -ls "/warehouse/tablespace/external/hive/<demo_user>.db/meter_orc"
 ```
 
 Every run added a file. Fix with a rewrite (`INSERT OVERWRITE … SELECT * FROM meter_csv`) or, for ORC, merge the files of the table:
@@ -133,7 +133,7 @@ Compare `HDFS_BYTES_READ` per query: the text file is read completely, the ORC f
 
 **Goal:** Show that Hive access is governed by policy, not by file permissions alone.
 
-As a participant account, try to read another participant's database (for example `SELECT * FROM ws_<other_user>.landisgyr_csv LIMIT 1;`). If your Ranger policies allow it, skip this section. Otherwise the statement fails; open **Ranger → Audit** and find the denied request.
+As a participant account, try to read another participant's database (for example `SELECT * FROM <other_user>.landisgyr_csv LIMIT 1;`). If your Ranger policies allow it, skip this section. Otherwise the statement fails; open **Ranger → Audit** and find the denied request.
 
 **Talking point:** Hive column and row policies (masking) arrive in the governance module.
 

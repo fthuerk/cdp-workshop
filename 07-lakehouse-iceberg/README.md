@@ -45,8 +45,11 @@ After this module you can:
 ./07-lakehouse-iceberg/setup/verify.sh
 ```
 
-The module has no data of its own: participants create their database and Iceberg tables in the default external warehouse folder of their `ws_<user>` database. What is needed is Ranger: Hive/Impala policies on `ws_*`, HDFS `rwx` on `/warehouse/tablespace/external/hive/ws_*`, plus the **storage handler policy for Iceberg** — see the [ranger README](../00-setup/admin/ranger/README.md).
+The module has no data of its own: participants create their database and Iceberg tables in the default external warehouse folder of their `<user>` database. What is needed is Ranger: Hive/Impala policies on `{USER}`, HDFS `rwx` on `/warehouse/tablespace/external/hive/{USER}.db`, plus the **storage handler policy for Iceberg** — see the [ranger README](../00-setup/admin/ranger/README.md).
 
 ## Next module
 
 [10-advanced-hive](../README.md) (planned — see root README): window functions, ranking, and performance tuning on the same tables.
+
+---
+*The generation of these labs was supported by AI.*

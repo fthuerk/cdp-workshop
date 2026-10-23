@@ -52,3 +52,6 @@ Window functions, complex joins, complex types, and WKT geo data are in [10-adva
 ## Next module
 
 [05-basics-impala](../05-basics-impala/README.md)
+
+---
+*The generation of these labs was supported by AI.*

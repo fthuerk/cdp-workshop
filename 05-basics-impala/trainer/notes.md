@@ -33,7 +33,7 @@ If time is tight, shorten section 5 to a verbal demo (you append a file and inva
 | Hive faster once | Second Hive query reuses Tez session — tell room to compare **first** Hive run after `kinit` or use a fresh Beeline JVM |
 | Copy lands in wrong folder | No `LOCATION` is used: the CSV must go to `${IMPALA_EXT}/impala_meter` (default external folder), then `REFRESH impala_meter` |
 | Section 4 scares people | Say loudly: **red errors are the learning goal** |
-| Ranger | Same `ws_*` policies and default external warehouse access as Hive; no URL policy and no extra HDFS path |
+| Ranger | Same `{USER}` policies and default external warehouse access as Hive; no URL policy and no extra HDFS path |
 
 ## Admin
 

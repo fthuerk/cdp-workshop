@@ -44,3 +44,6 @@ After this module you can:
 ## Next module
 
 [03-basics-yarn](../03-basics-yarn/README.md)
+
+---
+*The generation of these labs was supported by AI.*

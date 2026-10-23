@@ -47,3 +47,6 @@ After this module you can:
 ## Next module
 
 [06-basics-spark](../06-basics-spark/README.md)
+
+---
+*The generation of these labs was supported by AI.*

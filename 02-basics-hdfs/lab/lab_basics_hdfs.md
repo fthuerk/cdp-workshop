@@ -10,7 +10,8 @@ export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
 
 # Workshop paths on HDFS (adjust WORKSHOP_ROOT if needed)
-export WORKSHOP_ROOT=/2026_cdp_workshop
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"
+export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you may write to works
 export HDFS_LAB="${WORKSHOP_ROOT}/02-hdfs/lab"
 ```
 
@@ -49,7 +50,7 @@ Optional: open **Hue → File Browser** and browse to the same paths.
 
 ## 2. Personal workspace
 
-**Goal:** Create `/user/${WORKSHOP_USER}` and copy small workshop files (not the 192 MB demo file).
+**Goal:** Create `${WORKSHOP_HOME}` and copy small workshop files (not the 192 MB demo file).
 
 Your HDFS home is where you can read and write during the workshop. Create it if it does not exist yet.
 
@@ -57,15 +58,15 @@ Upload a tiny file from the edge node (`-put`), copy workshop samples into your 
 
 ```bash
 # Create your home and upload a local file from the edge node
-hdfs dfs -mkdir -p "/user/${WORKSHOP_USER}"
-hdfs dfs -put /etc/hosts "/user/${WORKSHOP_USER}/hosts"
+hdfs dfs -mkdir -p "${WORKSHOP_HOME}"
+hdfs dfs -put /etc/hosts "${WORKSHOP_HOME}/hosts"
 
 # Copy files within HDFS
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "/user/${WORKSHOP_USER}/"
-hdfs dfs -cp "${HDFS_LAB}/dummy.txt" "/user/${WORKSHOP_USER}/"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${WORKSHOP_HOME}/"
+hdfs dfs -cp "${HDFS_LAB}/dummy.txt" "${WORKSHOP_HOME}/"
 
 # List the result
-hdfs dfs -ls -h "/user/${WORKSHOP_USER}"
+hdfs dfs -ls -h "${WORKSHOP_HOME}"
 ```
 
 You should see `hosts`, the Landis&Gyr sample, and `dummy.txt`. The big block demo file stays under `${HDFS_LAB}`.
@@ -81,8 +82,8 @@ HDFS reports both **logical file size** and **space with replication** — impor
 Count entries under your home, then print a few metadata fields for one CSV:
 
 ```bash
-hdfs dfs -count -h "/user/${WORKSHOP_USER}"
-hdfs dfs -stat "%n size=%y repl=%r owner=%o" "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
+hdfs dfs -count -h "${WORKSHOP_HOME}"
+hdfs dfs -stat "%n size=%y repl=%r owner=%o" "${WORKSHOP_HOME}/sample-landisgyr-data.csv"
 ```
 
 `-count` prints no header. Columns: **directories, files, size, path** (e.g. `1  3  2.1 K  /user/your_name`). `-stat` prints the fields from your format string: name, size in bytes, replication, owner.
@@ -90,8 +91,8 @@ hdfs dfs -stat "%n size=%y repl=%r owner=%o" "/user/${WORKSHOP_USER}/sample-land
 Compare per-file usage with one summary line for the whole directory:
 
 ```bash
-hdfs dfs -du -h "/user/${WORKSHOP_USER}"
-hdfs dfs -du -s -h "/user/${WORKSHOP_USER}"
+hdfs dfs -du -h "${WORKSHOP_HOME}"
+hdfs dfs -du -s -h "${WORKSHOP_HOME}"
 ```
 
 `-du` also has no header. Columns: **file size, size including all replicas, path**. With `-s` you get one total line for the directory.
@@ -139,21 +140,21 @@ A normal `-rm` moves data into your user trash first (recovery window), unlike a
 Remove `hosts`, then list trash recursively and note the full path where `hosts` appears — layout can include your username under `.Trash/Current`:
 
 ```bash
-hdfs dfs -rm "/user/${WORKSHOP_USER}/hosts"
-hdfs dfs -ls -R "/user/${WORKSHOP_USER}/.Trash/Current"
+hdfs dfs -rm "${WORKSHOP_HOME}/hosts"
+hdfs dfs -ls -R "${WORKSHOP_HOME}/.Trash/Current"
 ```
 
 Move the file from that trash path back to your home and confirm content:
 
 ```bash
-hdfs dfs -mv "<path-to-hosts-in-trash>" "/user/${WORKSHOP_USER}/hosts"
-hdfs dfs -cat "/user/${WORKSHOP_USER}/hosts" | head -3
+hdfs dfs -mv "<path-to-hosts-in-trash>" "${WORKSHOP_HOME}/hosts"
+hdfs dfs -cat "${WORKSHOP_HOME}/hosts" | head -3
 ```
 
 For `dummy.txt`, skip trash so the file is removed immediately — typical when you must free space or comply with retention rules:
 
 ```bash
-hdfs dfs -rm -skipTrash "/user/${WORKSHOP_USER}/dummy.txt"
+hdfs dfs -rm -skipTrash "${WORKSHOP_HOME}/dummy.txt"
 ```
 
 Confirm `dummy.txt` is gone from your home listing. Optionally look in `.Trash` again to compare with the earlier delete.
@@ -170,7 +171,7 @@ First download the CSV (suffix with your username so shared edge nodes do not cl
 
 ```bash
 # Download the file and count its lines
-hdfs dfs -get "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv" "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}"
+hdfs dfs -get "${WORKSHOP_HOME}/sample-landisgyr-data.csv" "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}"
 wc -l "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}"
 ```
 
@@ -181,8 +182,8 @@ Create a small local file with one new reading that matches the CSV columns (the
 echo "2026-01-15T09:15:00Z,TS-305,LG-TS-305-C,L3,266.5,52.1,228.3,413.9,0.975,50.00,84.8,OK,,ONLINE" > "/tmp/new-reading.${WORKSHOP_USER}.csv"
 
 # Append it to the file in HDFS and look at the end
-hdfs dfs -appendToFile "/tmp/new-reading.${WORKSHOP_USER}.csv" "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
-hdfs dfs -tail "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
+hdfs dfs -appendToFile "/tmp/new-reading.${WORKSHOP_USER}.csv" "${WORKSHOP_HOME}/sample-landisgyr-data.csv"
+hdfs dfs -tail "${WORKSHOP_HOME}/sample-landisgyr-data.csv"
 ```
 
 The last line of the HDFS file should be your `09:15` reading, and the file has one more row than your local download.
@@ -199,8 +200,8 @@ Inspect your home directory entry, tighten permissions on your own tree (`750` �
 
 ```bash
 # Your home directory: show, then restrict
-hdfs dfs -ls -d "/user/${WORKSHOP_USER}"
-hdfs dfs -chmod 750 "/user/${WORKSHOP_USER}"
+hdfs dfs -ls -d "${WORKSHOP_HOME}"
+hdfs dfs -chmod 750 "${WORKSHOP_HOME}"
 
 # The protected directory and file
 hdfs dfs -ls -d "${WORKSHOP_ROOT}/02-hdfs/secret"
@@ -233,14 +234,14 @@ Make a fresh copy of the CSV and compare it with the original and with your appe
 
 ```bash
 # Fresh copy of the original
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "/user/${WORKSHOP_USER}/landisgyr-copy.csv"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${WORKSHOP_HOME}/landisgyr-copy.csv"
 
 # Original vs. fresh copy
 hdfs dfs -checksum "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
-hdfs dfs -checksum "/user/${WORKSHOP_USER}/landisgyr-copy.csv"
+hdfs dfs -checksum "${WORKSHOP_HOME}/landisgyr-copy.csv"
 
 # Your appended file from section 6
-hdfs dfs -checksum "/user/${WORKSHOP_USER}/sample-landisgyr-data.csv"
+hdfs dfs -checksum "${WORKSHOP_HOME}/sample-landisgyr-data.csv"
 ```
 
 The first two checksums should match. The third should differ because you appended a row.
@@ -253,11 +254,11 @@ Copy the awattar dataset into your home. `-m 2` limits the job to two parallel m
 # First run: copies everything
 hadoop distcp -m 2 -update -p \
   "${WORKSHOP_ROOT}/data/awattar" \
-  "/user/${WORKSHOP_USER}/awattar-copy"
+  "${WORKSHOP_HOME}/awattar-copy"
 
 # Compare source and target
 hdfs dfs -du -s -h "${WORKSHOP_ROOT}/data/awattar"
-hdfs dfs -du -s -h "/user/${WORKSHOP_USER}/awattar-copy"
+hdfs dfs -du -s -h "${WORKSHOP_HOME}/awattar-copy"
 ```
 
 Watch the console output: distcp prints a YARN application ID (open it in the **YARN ResourceManager UI** or Hue Job Browser) and, at the end, counters such as `BYTESCOPIED`, `COPY` and `SKIP`.
@@ -269,7 +270,7 @@ Finally verify one file with the checksum technique from above:
 ```bash
 hdfs dfs -ls "${WORKSHOP_ROOT}/data/awattar"
 hdfs dfs -checksum "${WORKSHOP_ROOT}/data/awattar/<file-name>"
-hdfs dfs -checksum "/user/${WORKSHOP_USER}/awattar-copy/<file-name>"
+hdfs dfs -checksum "${WORKSHOP_HOME}/awattar-copy/<file-name>"
 ```
 
 The checksums should match. Note the path semantics: with `-update`, the *contents* of the source folder land directly in the target folder. Without `-update`, distcp would create `awattar-copy/awattar/...`.
@@ -279,12 +280,12 @@ The checksums should match. Note the path semantics: with `-update`, the *conten
 Clean up when done:
 
 ```bash
-hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/awattar-copy"
+hdfs dfs -rm -r -skipTrash "${WORKSHOP_HOME}/awattar-copy"
 ```
 
 **Optional (UI):**
 
-- Hue: upload a small text file to `/user/${WORKSHOP_USER}` and download it again.
+- Hue: upload a small text file to `${WORKSHOP_HOME}` and download it again.
 - NameNode UI: locate block information for the big file (use the URL from your workshop handout).
 
 ---

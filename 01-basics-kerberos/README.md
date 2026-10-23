@@ -38,3 +38,6 @@ After this module you can:
 ## Next module
 
 [02-basics-hdfs](../02-basics-hdfs/README.md)
+
+---
+*The generation of these labs was supported by AI.*

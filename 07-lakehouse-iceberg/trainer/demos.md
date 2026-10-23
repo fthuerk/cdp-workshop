@@ -1,6 +1,6 @@
 # Trainer demos — Module 07 Lakehouse (Iceberg)
 
-Run **one section at a time** while participants watch. Each demo uses a throw-away table `demo_ice` in your own `ws_<trainer_user>` database. Use two Hue Impala editor tabs (**A** and **B**) and one terminal for `hdfs`. The setup for all demos:
+Run **one section at a time** while participants watch. Each demo uses a throw-away table `demo_ice` in your own `<trainer_user>` database. Use two Hue Impala editor tabs (**A** and **B**) and one terminal for `hdfs`. The setup for all demos:
 
 ```sql
 CREATE EXTERNAL TABLE demo_ice (id INT, name STRING, amount DOUBLE)
@@ -58,7 +58,7 @@ INSERT INTO demo_ice VALUES (12, 'x', 1.0);
 ```
 
 ```bash
-hdfs dfs -ls -R "/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db/demo_ice/data"
+hdfs dfs -ls -R "/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db/demo_ice/data"
 ```
 
 Every statement added a Parquet file (and a metadata file and a snapshot). Compact and list again:
@@ -73,7 +73,7 @@ Expire the old snapshots afterwards (`ALTER TABLE demo_ice EXECUTE EXPIRE_SNAPSH
 
 **Goal:** Show that Iceberg tables are governed by the same Ranger policies as any other table.
 
-As a participant account without access to your `ws_<trainer_user>` database, run `SELECT * FROM ws_<trainer_user>.demo_ice;` in Hue (Impala). Open **Ranger → Audit** and find the denied request. A direct read of the files on HDFS is governed by the HDFS policy: show the HDFS audit entry too.
+As a participant account without access to your `<trainer_user>` database, run `SELECT * FROM <trainer_user>.demo_ice;` in Hue (Impala). Open **Ranger → Audit** and find the denied request. A direct read of the files on HDFS is governed by the HDFS policy: show the HDFS audit entry too.
 
 ## 5. Drop
 
@@ -85,7 +85,7 @@ DROP TABLE demo_ice;
 ```
 
 ```bash
-hdfs dfs -ls "/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db/demo_ice"
+hdfs dfs -ls "/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db/demo_ice"
 ```
 
 Check whether the table folder is still there (depends on `external.table.purge`) and remove it if needed.

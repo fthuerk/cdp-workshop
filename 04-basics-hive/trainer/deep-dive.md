@@ -177,7 +177,7 @@ landisgyr_managed/
 
 ```bash
 export WORKSHOP_USER=<your_username>
-export WORKSHOP_ROOT=/2026_cdp_workshop
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"
 kinit "${WORKSHOP_USER}"
 ```
 

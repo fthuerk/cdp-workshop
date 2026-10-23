@@ -25,10 +25,10 @@ else
   fail_msg "Missing ${WORKSHOP_ROOT}/data/landisgyr (bootstrap incomplete?)"
 fi
 
-if hdfs dfs -test -d "/user/${USER}" 2>/dev/null; then
-  pass "Personal HDFS home exists: /user/${USER}"
+if hdfs dfs -test -d "${WORKSHOP_HOME}" 2>/dev/null; then
+  pass "Personal HDFS home exists: ${WORKSHOP_HOME}"
 else
-  echo "[WARN] /user/${USER} not found — you will create it in module 02"
+  echo "[WARN] ${WORKSHOP_HOME} not found — you will create it in module 02"
 fi
 
 if command -v beeline >/dev/null 2>&1; then

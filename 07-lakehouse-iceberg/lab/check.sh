@@ -17,7 +17,7 @@ pass() { echo "[PASS] $*"; }
 fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
-DB="ws_${WS_USER}"
+DB="${WS_USER}"
 # default external warehouse folder of your database (same default as in the lab)
 HIVE_EXT="${HIVE_EXT:-/warehouse/tablespace/external/hive/${DB}.db}"
 

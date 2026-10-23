@@ -14,7 +14,7 @@ pass() { echo "[PASS] $*"; }
 fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
-USER_HOME="/user/${WS_USER}"
+USER_HOME="${WORKSHOP_HOME}"
 YARN_LAB="${WORKSHOP_ROOT}/03-yarn"
 
 if hdfs dfs -test -e "${YARN_LAB}/input/die-verwandlung-kapitel-1.txt" 2>/dev/null; then

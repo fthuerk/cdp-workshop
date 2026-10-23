@@ -55,6 +55,8 @@ log_info "Wrote ${CFG} (WORKSHOP_ROOT=${ROOT})"
 
 # Run the admin scripts with your own ticket; no admin rights are needed under your home.
 export CDP_WORKSHOP_SKIP_ADMIN_KINIT=1
+export CDP_WORKSHOP_SELF_SERVICE=1   # bootstrap: no participants.txt / other users' homes
+export WORKSHOP_ROOT="${ROOT}" WORKSHOP_LOCAL="${REPO_ROOT}"
 
 log_info "Uploading sample data"
 "${REPO_ROOT}/00-setup/admin/bootstrap.sh" --skip-kinit
@@ -76,6 +78,5 @@ In every lab, use this instead of the default:
 
   export WORKSHOP_ROOT=${ROOT}
 
-Limits of the self-service path: no HDFS space quota (module 02 quota exercise), and no Ranger
-policies (the Ranger-based steps in modules 02, 04, 05, 06 and 07 depend on what your account may do).
+Limits of the self-service path: no HDFS space quota (module 02), no shared Ranger policies. See 00-setup/README.md.
 MSG

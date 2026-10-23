@@ -22,8 +22,8 @@ An external Hive table is **a folder plus a definition in the Metastore**. Every
 ```bash
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
-export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
-export HIVE_EXT="/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db"   # adjust if needed
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
+export HIVE_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"   # adjust if needed
 export ICE_META="${HIVE_EXT}/ice_meter"
 export IMPALA_OPTS="<impala-shell-options-from-handout>"   # only needed for check.sh at the end
 ```
@@ -32,7 +32,7 @@ export IMPALA_OPTS="<impala-shell-options-from-handout>"   # only needed for che
 
 - Run a statement with **Ctrl+Enter**. Hue runs the statement under the cursor; to run several statements one after another, select them first. Run the statements of a block **one at a time** when you want to look at each result.
 - The lab SQL contains placeholders like `${ws_user}`. As soon as the editor contains one, Hue shows an **input field** below the editor. Type your `WORKSHOP_USER` into `ws_user`. Later sections use `${snap_first}`, `${snap_now}`, and `${snap_good}` the same way: you paste a snapshot ID from a query result into the field.
-- Hue can also show HDFS: open **Files**, click the path at the top, and type a path such as `/warehouse/tablespace/external/hive/ws_<your_username>.db`. Every `hdfs dfs -ls` of the lab has this equivalent. The terminal is only needed for `hdfs dfs -cat`, `-cp`, `-count`, and `-rm`.
+- Hue can also show HDFS: open **Files**, click the path at the top, and type a path such as `/warehouse/tablespace/external/hive/<your_username>.db`. Every `hdfs dfs -ls` of the lab has this equivalent. The terminal is only needed for `hdfs dfs -cat`, `-cp`, `-count`, and `-rm`.
 
 ---
 
@@ -43,8 +43,8 @@ export IMPALA_OPTS="<impala-shell-options-from-handout>"   # only needed for che
 In Hue (Impala editor). All statements use `IF NOT EXISTS`, so you can run the block again safely:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS ws_${ws_user};
-USE ws_${ws_user};
+CREATE DATABASE IF NOT EXISTS ${ws_user};
+USE ${ws_user};
 
 CREATE EXTERNAL TABLE IF NOT EXISTS landisgyr_csv (
   ts_utc STRING,
@@ -360,7 +360,7 @@ Find `format-version`, the `schemas` (your columns), the `partition-specs`, and 
 
 ```sql
 SELECT content, file_path, record_count, file_size_in_bytes
-FROM ws_${ws_user}.ice_meter.files;
+FROM ${ws_user}.ice_meter.files;
 ```
 
 `content = 0` means a data file. Compare the paths with your `hdfs dfs -ls -R` output. `SHOW FILES IN ice_meter;` shows the same list.
@@ -395,7 +395,7 @@ hdfs dfs -ls "${ICE_META}/metadata"
 The old data files are **still there**, unchanged. With merge-on-read Iceberg writes small **delete files** next to them (Parquet files that list the file path and row position of every deleted row) and, for an `UPDATE`, a delete file plus a new data file with the new row versions. Readers combine data and delete files. Ask the `files` table which is which:
 
 ```sql
-SELECT content, file_path, record_count FROM ws_${ws_user}.ice_meter.files ORDER BY content, file_path;
+SELECT content, file_path, record_count FROM ${ws_user}.ice_meter.files ORDER BY content, file_path;
 ```
 
 `content = 1` means a **position delete** file. Every statement also added a `*.metadata.json` file and a snapshot.
@@ -419,7 +419,7 @@ Look at the snapshots Impala has created so far. Each statement is one row:
 
 ```sql
 DESCRIBE HISTORY ice_meter;
-SELECT committed_at, snapshot_id, operation FROM ws_${ws_user}.ice_meter.snapshots ORDER BY committed_at;
+SELECT committed_at, snapshot_id, operation FROM ${ws_user}.ice_meter.snapshots ORDER BY committed_at;
 ```
 
 Compare the effort with section 1: five row-level changes, five statements, no partition rewriting, no manual file handling, and a list of everything that happened.
@@ -435,7 +435,7 @@ Compare the effort with section 1: five row-level changes, five statements, no p
 Each commit created a **snapshot**: a complete, consistent state of the table. Old snapshots stay readable until you expire them (section 7). Get the ID of the first snapshot — your first `INSERT`, the table as you loaded it — and paste it into the `snap_first` field of Hue:
 
 ```sql
-SELECT snapshot_id, committed_at FROM ws_${ws_user}.ice_meter.snapshots ORDER BY committed_at LIMIT 1;
+SELECT snapshot_id, committed_at FROM ${ws_user}.ice_meter.snapshots ORDER BY committed_at LIMIT 1;
 ```
 
 Ask for the table as of that snapshot, and for the table now:
@@ -459,7 +459,7 @@ You can also travel by **time** instead of by ID: `FOR SYSTEM_TIME AS OF '<times
 `history` shows the lineage of the snapshots. The column `is_current_ancestor` is `true` for every snapshot that leads to the current table — it becomes interesting after a rollback in section 7:
 
 ```sql
-SELECT * FROM ws_${ws_user}.ice_meter.history ORDER BY made_current_at;
+SELECT * FROM ${ws_user}.ice_meter.history ORDER BY made_current_at;
 ```
 
 What this replaces: with plain external tables, "what did the table look like at 09:00?" is only answerable if somebody kept a copy. And because snapshots are read-only, an auditor's query on `snap_first` gives the same result next week as today, no matter what the pipelines change in the meantime.
@@ -475,7 +475,7 @@ What this replaces: with plain external tables, "what did the table look like at
 Take the current snapshot as a reference point and paste its ID into the `snap_now` field:
 
 ```sql
-SELECT snapshot_id, committed_at FROM ws_${ws_user}.ice_meter.snapshots ORDER BY committed_at DESC LIMIT 1;
+SELECT snapshot_id, committed_at FROM ${ws_user}.ice_meter.snapshots ORDER BY committed_at DESC LIMIT 1;
 ```
 
 ```bash
@@ -603,7 +603,7 @@ You should see 17 rows: 3 unchanged (`TS-305`), 8 changed (the five remaining or
 First remember the good state: get the ID of the current snapshot and paste it into the `snap_good` field of Hue:
 
 ```sql
-SELECT snapshot_id, committed_at FROM ws_${ws_user}.ice_meter.snapshots ORDER BY committed_at DESC LIMIT 1;
+SELECT snapshot_id, committed_at FROM ${ws_user}.ice_meter.snapshots ORDER BY committed_at DESC LIMIT 1;
 ```
 
 Then make a mistake. Somebody wanted to delete the `REVIEWED` readings, but typed the wrong condition:
@@ -618,7 +618,7 @@ Almost every reading had the flag `OK`, so the table is nearly empty. Roll the t
 ```sql
 ALTER TABLE ice_meter EXECUTE ROLLBACK(${snap_good});
 SELECT COUNT(*) FROM ice_meter;
-SELECT snapshot_id, parent_id, is_current_ancestor FROM ws_${ws_user}.ice_meter.history ORDER BY made_current_at;
+SELECT snapshot_id, parent_id, is_current_ancestor FROM ${ws_user}.ice_meter.history ORDER BY made_current_at;
 ```
 
 The count is 13 again. In the history the wrong `DELETE` is still listed, but with `is_current_ancestor = false`: it is not part of the table's lineage any more. Compare with section 1, where the same mistake on an external table would have been permanent.

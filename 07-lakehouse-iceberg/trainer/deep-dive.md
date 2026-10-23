@@ -111,13 +111,13 @@ flowchart TB
 
 ```bash
 export WORKSHOP_USER=<your_username>
-export WORKSHOP_ROOT=/2026_cdp_workshop
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"
 kinit "${WORKSHOP_USER}"
 ```
 
 ```sql
 -- Iceberg table (Impala pattern; exact STORED BY syntax varies by CDP version)
-CREATE TABLE ws_${WORKSHOP_USER}.meters_iceberg (
+CREATE TABLE ${WORKSHOP_USER}.meters_iceberg (
   ts_utc TIMESTAMP,
   station_id STRING,
   current_a DOUBLE
@@ -128,8 +128,8 @@ LOCATION '/user/${WORKSHOP_USER}/iceberg/meters';
 
 ```sql
 -- Idempotent upsert from staging
-MERGE INTO ws_${WORKSHOP_USER}.meters_iceberg t
-USING ws_${WORKSHOP_USER}.meters_staging s
+MERGE INTO ${WORKSHOP_USER}.meters_iceberg t
+USING ${WORKSHOP_USER}.meters_staging s
 ON t.station_id = s.station_id AND t.ts_utc = s.ts_utc
 WHEN MATCHED THEN UPDATE SET current_a = s.current_a
 WHEN NOT MATCHED THEN INSERT *;
@@ -138,14 +138,14 @@ WHEN NOT MATCHED THEN INSERT *;
 ```sql
 -- Time travel (syntax may vary slightly by engine)
 SELECT station_id, current_a
-FROM ws_${WORKSHOP_USER}.meters_iceberg
+FROM ${WORKSHOP_USER}.meters_iceberg
 FOR SYSTEM_TIME AS OF '2024-06-01 00:00:00'
 WHERE station_id = 'ST001';
 ```
 
 ```sql
 -- Inspect snapshots (Impala/Hive Iceberg procedures or metadata tables)
--- SELECT * FROM ws_${WORKSHOP_USER}.meters_iceberg.snapshots;
+-- SELECT * FROM ${WORKSHOP_USER}.meters_iceberg.snapshots;
 ```
 
 ```bash
@@ -159,7 +159,7 @@ Spark (conceptual):
 ```python
 spark.sql("""
   CALL catalog.system.expire_snapshots(
-    table => 'ws_user.meters_iceberg',
+    table => '<your_user>.meters_iceberg',
     older_than => TIMESTAMP '2024-01-01 00:00:00',
     retain_last => 5
   )

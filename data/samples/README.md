@@ -15,3 +15,6 @@ Bootstrap uploads each file into its own HDFS folder, for example:
 `/2026_cdp_workshop/data/landisgyr/sample-landisgyr-data.csv`
 
 Hive modules can point `LOCATION` at the folder level.
+
+---
+*The generation of these labs was supported by AI.*

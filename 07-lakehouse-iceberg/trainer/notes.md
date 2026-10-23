@@ -59,7 +59,7 @@ If you run short, shorten section 1 (run only the partition overwrite and the me
 
 ## Ranger and permissions summary
 
-Permissions: Hive/Impala policies on `ws_*` (create database and tables), HDFS `rwx` on `/warehouse/tablespace/external/hive/ws_*` for the workshop users (they copy files into table folders), and:
+Permissions: Hive/Impala policies on `{USER}` (create database and tables), HDFS `rwx` on `/warehouse/tablespace/external/hive/{USER}.db` for the workshop users (they copy files into table folders), and:
 
 1. **Storage handler policy:** in the Hadoop SQL service edit the policy "all - storage-type, storage-url": storage-type `iceberg`, storage-url `*`, permission *RW Storage* for the workshop users (or `public`). Without it, creating or altering an Iceberg table fails.
 2. **HDFS:** Impala runs as the `impala` user, which already has access to the warehouse; participants need HDFS access to **look at** the table folders.
@@ -67,7 +67,7 @@ Permissions: Hive/Impala policies on `ws_*` (create database and tables), HDFS `
 
 ## Admin
 
-[setup/setup.sh](../setup/setup.sh) only checks the prerequisites (it creates no folders). Participant databases and Iceberg tables live in the Hive warehouse; drop the `ws_<user>` databases (`DROP DATABASE … CASCADE`). Iceberg table folders under `/warehouse/tablespace/external/hive/ws_<user>.db/ice_*` may remain if the tables are not purged — check `external.table.purge` and delete the folders by hand.
+[setup/setup.sh](../setup/setup.sh) only checks the prerequisites (it creates no folders). Participant databases and Iceberg tables live in the Hive warehouse; drop the `<user>` databases (`DROP DATABASE … CASCADE`). Iceberg table folders under `/warehouse/tablespace/external/hive/<user>.db/ice_*` may remain if the tables are not purged — check `external.table.purge` and delete the folders by hand.
 
 ## After module
 

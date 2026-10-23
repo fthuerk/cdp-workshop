@@ -7,8 +7,8 @@ Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you
 ```bash
 export WORKSHOP_USER=<your_username>
 kinit "${WORKSHOP_USER}"
-export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
-export HIVE_EXT="/warehouse/tablespace/external/hive/ws_${WORKSHOP_USER}.db"   # adjust if needed
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
+export HIVE_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"   # adjust if needed
 export HS2_URL="<jdbc-url-from-your-handout>"
 ```
 
@@ -30,8 +30,8 @@ beeline -u "${HS2_URL}" \
 Create your database (if it does not exist yet) and the four external tables: meter readings, station reference data, hourly market prices, and operator weather. All fields are read by position, and the header line is skipped:
 
 ```sql
-CREATE DATABASE IF NOT EXISTS ws_${ws_user};
-USE ws_${ws_user};
+CREATE DATABASE IF NOT EXISTS ${ws_user};
+USE ${ws_user};
 
 CREATE EXTERNAL TABLE IF NOT EXISTS landisgyr_csv (
   ts_utc STRING, station_id STRING, device_id STRING, phase STRING,

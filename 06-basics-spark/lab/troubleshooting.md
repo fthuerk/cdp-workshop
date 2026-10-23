@@ -32,15 +32,15 @@ You submitted a **local** script path without copying the file to that node firs
 
 ## `Permission denied` on HDFS write under `/user/...`
 
-Your Kerberos user must own `/user/${WORKSHOP_USER}`. Ask your instructor if your home directory is missing.
+Your Kerberos user must own `${WORKSHOP_HOME}`. Ask your instructor if your home directory is missing.
 
 ## Beeline / Metastore section 7: `GSS initiate failed`
 
 Verify `HS2_URL` from your handout and a valid ticket (`klist`).
 
-## Ranger: `does not have privilege` on `ws_*` or HDFS
+## Ranger: `does not have privilege` on `{USER}` or HDFS
 
-Workshop users need Hive policies on database `ws_*` (same pattern as the Hive basics module) and HDFS write on your `/user/<name>` path. Ask your instructor.
+Workshop users need Hive policies on database `{USER}` (same pattern as the Hive basics module) and HDFS write on your `/user/<name>` path. Ask your instructor.
 
 ## Self-check: row count not 24 or 12
 

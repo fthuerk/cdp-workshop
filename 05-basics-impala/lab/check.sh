@@ -15,7 +15,7 @@ pass() { echo "[PASS] $*"; }
 fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
-DB="ws_${WS_USER}"
+DB="${WS_USER}"
 IMPALA_EXT="${IMPALA_EXT:-/warehouse/tablespace/external/hive/${DB}.db}"
 SCALED="${WORKSHOP_ROOT}/05-impala/scaled/meter-15k.csv"
 REPEAT=1000

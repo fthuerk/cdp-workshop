@@ -11,7 +11,7 @@ This lab starts **without** a ticket on purpose, so you see what a missing ticke
 export WORKSHOP_USER=<your_username>
 
 # Workshop path on HDFS (adjust WORKSHOP_ROOT if needed)
-export WORKSHOP_ROOT=/2026_cdp_workshop
+export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"
 ```
 
 Your full identity is called a **principal**: `<user>@<REALM>`. The realm is the name of the Kerberos domain of your cluster; `kinit` fills it in for you.

@@ -46,4 +46,4 @@ hdfs dfs -chmod -R 755 "${SCALED}"
 total_rows=$(( body_lines * REPEAT ))
 log_info "Scaled meter file: ${total_rows} data rows at ${SCALED_FILE}"
 log_info "Impala module setup complete under ${MODULE_ROOT}"
-log_warn "Ranger: workshop users need Hive/Impala policies on ws_* and HDFS access to /warehouse/tablespace/external/hive/ws_* (default locations, no URL policy) - see 00-setup/admin/ranger/README.md (module 05)"
+log_warn "Ranger: workshop users need Hive/Impala policies on {USER} and HDFS access to /warehouse/tablespace/external/hive/{USER}.db (default locations, no URL policy) - see 00-setup/admin/ranger/README.md (module 05)"

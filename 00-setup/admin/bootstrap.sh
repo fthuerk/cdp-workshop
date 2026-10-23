@@ -49,7 +49,7 @@ for entry in "${DATASETS[@]}"; do
 done
 
 PARTICIPANTS_FILE="${REPO_ROOT}/00-setup/admin/participants.txt"
-if [[ -f "${PARTICIPANTS_FILE}" ]]; then
+if [[ "${CDP_WORKSHOP_SELF_SERVICE:-0}" != "1" && -f "${PARTICIPANTS_FILE}" ]]; then
   while IFS= read -r u || [[ -n "${u}" ]]; do
     [[ -z "${u}" || "${u}" =~ ^# ]] && continue
     hdfs dfs -mkdir -p "/user/${u}"

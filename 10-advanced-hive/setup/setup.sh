@@ -11,7 +11,7 @@ require_admin_hdfs_kinit
 require_cmd hdfs
 
 # This module has no shared folders: participants create their database and external tables in the
-# default external warehouse folder of ws_<user> and copy the sample files there (lab section 0,
+# default external warehouse folder of <user> and copy the sample files there (lab section 0,
 # safe to repeat). Nothing to create here; the script only checks what the lab copies from.
 if ! hdfs dfs -test -d /warehouse/tablespace/external/hive; then
   log_err "Missing /warehouse/tablespace/external/hive - check the Hive warehouse location"
@@ -26,4 +26,4 @@ for f in landisgyr/sample-landisgyr-data.csv basemap/sample-basemap-at-locations
 done
 
 log_info "Advanced Hive module has no folders to prepare."
-log_warn "Ranger: same policies as module 04 (Hive on ws_*, HDFS rwx on /warehouse/tablespace/external/hive/ws_*, read on ${WORKSHOP_ROOT}/data) - see 00-setup/admin/ranger/README.md"
+log_warn "Ranger: same policies as module 04 (Hive on {USER}, HDFS rwx on /warehouse/tablespace/external/hive/{USER}.db, read on ${WORKSHOP_ROOT}/data) - see 00-setup/admin/ranger/README.md"

@@ -46,8 +46,8 @@ If you run short, shorten section 8 (they are the most "self-service") and keep 
 
 | Issue | Mitigation |
 |-------|------------|
-| Participants cannot `hdfs dfs -cp` into `/warehouse/tablespace/external/hive/ws_<user>.db/<table>` (folders are created by Hive as `hive`) | Ranger HDFS policy: `read`/`write`/`execute` on `/warehouse/tablespace/external/hive/ws_*` for the workshop users. Test with a normal participant account before the session |
-| `CREATE DATABASE` / `CREATE TABLE` denied | Ranger Hive policies needed — see [ranger README](../../00-setup/admin/ranger/README.md): create on `ws_*`, all on `ws_*` tables. No URL policy needed: the lab never sets a `LOCATION` |
+| Participants cannot `hdfs dfs -cp` into `/warehouse/tablespace/external/hive/<user>.db/<table>` (folders are created by Hive as `hive`) | Ranger HDFS policy: `read`/`write`/`execute` on `/warehouse/tablespace/external/hive/{USER}.db` for the workshop users. Test with a normal participant account before the session |
+| `CREATE DATABASE` / `CREATE TABLE` denied | Ranger Hive policies needed — see [ranger README](../../00-setup/admin/ranger/README.md): create on `{USER}`, all on `{USER}` tables. No URL policy needed: the lab never sets a `LOCATION` |
 | Warehouse path differs on your cluster | `DESCRIBE DATABASE EXTENDED` shows it; adjust `HIVE_EXT` in the lab intro (and `check.sh` reads `HIVE_EXT` if exported) |
 | Managed table files not readable by participants | Intentional (owner `hive`). Lab handles both outcomes; show the files yourself in [demos.md](demos.md) |
 | Background partition discovery makes `MSCK REPAIR` step look "automatic" | Lab sets `discover.partitions=false` on the partitioned table. If your version ignores the property, tell participants to run the query right after the copy |
@@ -65,14 +65,14 @@ If you run short, shorten section 8 (they are the most "self-service") and keep 
 
 Participants need (details for admins in the [ranger README](../../00-setup/admin/ranger/README.md)):
 
-1. Create database and tables named `ws_<user>` / inside it (Hive policy on `ws_*`).  
-2. Read/write/execute on `/warehouse/tablespace/external/hive/ws_*` (HDFS policy) so they can copy, list, and delete files in their table folders; read on `${WORKSHOP_ROOT}/data` and `${WORKSHOP_ROOT}/04-hive/landing`. The lakehouse module needs nothing new here: Iceberg tables live in the same default external folders.  
+1. Create database and tables named `<user>` / inside it (Hive policy on `{USER}`).  
+2. Read/write/execute on `/warehouse/tablespace/external/hive/{USER}.db` (HDFS policy) so they can copy, list, and delete files in their table folders; read on `${WORKSHOP_ROOT}/data` and `${WORKSHOP_ROOT}/04-hive/landing`. The lakehouse module needs nothing new here: Iceberg tables live in the same default external folders.  
 3. No Hive URL policy: custom `LOCATION` clauses are left for a later lab.  
 4. Compaction needs no extra permission (it runs inside the Metastore).
 
 ## Admin
 
-Run [setup/setup.sh](../setup/setup.sh) after bootstrap: it splits the Landis&Gyr sample into one folder per station under `${WORKSHOP_ROOT}/04-hive/landing/` (nothing else; participant data lives in the default Hive warehouse). Participant databases (`ws_<user>`) and their external table folders are **not** removed by [setup/teardown.sh](../setup/teardown.sh) — drop the databases as a Hive admin and delete leftover folders under `/warehouse/tablespace/external/hive/ws_<user>.db`.
+Run [setup/setup.sh](../setup/setup.sh) after bootstrap: it splits the Landis&Gyr sample into one folder per station under `${WORKSHOP_ROOT}/04-hive/landing/` (nothing else; participant data lives in the default Hive warehouse). Participant databases (`<user>`) and their external table folders are **not** removed by [setup/teardown.sh](../setup/teardown.sh) — drop the databases as a Hive admin and delete leftover folders under `/warehouse/tablespace/external/hive/<user>.db`.
 
 ## After module
 

@@ -37,4 +37,4 @@ hdfs dfs -chmod -R 755 "${ASSETS}" 2>/dev/null || true
 hdfs dfs -chmod 1777 "${WORK}" 2>/dev/null || true
 
 log_info "Spark module setup complete under ${MODULE_ROOT}"
-log_warn "Ranger: workshop users need Hive policies on ws_* and HDFS write on /user/<participant> — see 00-setup/admin/ranger/README.md (module 06)"
+log_warn "Ranger: workshop users need Hive policies on {USER} and HDFS write on /user/<participant> — see 00-setup/admin/ranger/README.md (module 06)"

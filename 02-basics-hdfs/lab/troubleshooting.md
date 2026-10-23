@@ -9,7 +9,7 @@ Wrong username or realm. Use the principal provided by the trainer (`user@REALM`
 - Run `klist` — ticket expired?  
 - Trainer: re-run [bootstrap](../../00-setup/admin/bootstrap.sh) and confirm you can `hdfs dfs -ls` as superuser then as participant.
 
-## `mkdir /user/${WORKSHOP_USER}` fails
+## `mkdir ${WORKSHOP_HOME}` fails
 
 Home directory creation may be disabled. Ask trainer to add you to `participants.txt` and re-run bootstrap, or use a personal subfolder under `${WORKSHOP_ROOT}/02-hdfs/public/${USER}` (if enabled).
 
@@ -18,7 +18,7 @@ Home directory creation may be disabled. Ask trainer to add you to `participants
 Trash layout varies by CDP version. List recursively:
 
 ```bash
-hdfs dfs -ls -R "/user/${WORKSHOP_USER:-${USER}}/.Trash"
+hdfs dfs -ls -R "${WORKSHOP_HOME}/.Trash"
 ```
 
 Move from the path that ends with `/hosts`.

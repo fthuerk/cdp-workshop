@@ -17,17 +17,17 @@ Module setup also sets POSIX permissions so labs work if Ranger is delayed.
 
 The JSON templates only cover HDFS. The Hive lab needs these policies in the **Hive** service (adjust names to your deployment; not validated):
 
-1. **Databases and tables:** allow `create`, `select`, `update`, `drop`, `alter`, `index`, `lock` on database `ws_*`, table `*`, column `*` for the workshop users (or group). Participants create `ws_<user>` themselves.  
-2. **HDFS for participants:** the lab uses the **default external location** only (no `LOCATION` clauses). Participants copy files into `/warehouse/tablespace/external/hive/ws_<user>.db/<table>`, so allow `read`/`write`/`execute` for the workshop users on `/warehouse/tablespace/external/hive/ws_*` (recursive), and read on `${WORKSHOP_ROOT}/data` and `${WORKSHOP_ROOT}/04-hive/landing`. Hive itself writes there as the `hive` user, which already has access to the warehouse.  
+1. **Databases and tables:** allow `create`, `select`, `update`, `drop`, `alter`, `index`, `lock` on database `{USER}` (Ranger macro: each user gets access to the database named like the user), table `*`, column `*` for the workshop users (or group). Participants create `<user>` themselves.  
+2. **HDFS for participants:** the lab uses the **default external location** only (no `LOCATION` clauses). Participants copy files into `/warehouse/tablespace/external/hive/<user>.db/<table>`, so allow `read`/`write`/`execute` for the workshop users on `/warehouse/tablespace/external/hive/{USER}.db` (recursive; `{USER}` macro again), and read on `${WORKSHOP_ROOT}/data` and `${WORKSHOP_ROOT}/04-hive/landing`. Hive itself writes there as the `hive` user, which already has access to the warehouse.  
 3. **No URL policy needed** for module 04, because tables never set a custom location (this comes in a later lab).
 
 ## Hive policies for module 06 Spark (manual, Ranger UI)
 
-Same **`ws_*` database/table** pattern as module 04. Participants write Parquet files under **`/user/<participant>/`** (their HDFS home; default home ownership is enough) and save the final table with `saveAsTable` at the **default location** — no `LOCATION` clause, so no URL policy. Spark and Hive need the same access to `/warehouse/tablespace/external/hive/ws_*` as in module 04.
+Same **`{USER}` database/table** pattern as module 04. Participants write Parquet files under **`/user/<participant>/`** (their HDFS home; default home ownership is enough) and save the final table with `saveAsTable` at the **default location** — no `LOCATION` clause, so no URL policy. Spark and Hive need the same access to `/warehouse/tablespace/external/hive/{USER}.db` as in module 04.
 
 ## Hive / Impala policies for module 05 (manual, Ranger UI)
 
-Same pattern as module 04: `ws_*` database/table privileges and read/write on the default external location `/warehouse/tablespace/external/hive/ws_*`. The lab sets no `LOCATION`, so no URL policy is needed. If Impala has a separate Ranger service, grant `SELECT` (and `CREATE` on `ws_*`) for workshop users. Read on `${WORKSHOP_ROOT}/05-impala/scaled` is prepared by `05-basics-impala/setup/setup.sh`.
+Same pattern as module 04: `{USER}` database/table privileges and read/write on the default external location `/warehouse/tablespace/external/hive/{USER}.db`. The lab sets no `LOCATION`, so no URL policy is needed. If Impala has a separate Ranger service, grant `SELECT` (and `CREATE` on `{USER}`) for workshop users. Read on `${WORKSHOP_ROOT}/05-impala/scaled` is prepared by `05-basics-impala/setup/setup.sh`.
 
 ## Hive policies for module 08 Atlas (manual, Ranger UI)
 
@@ -35,10 +35,10 @@ Only the `create`/`select`/`insert` privileges on personal databases from module
 
 ## Iceberg policies for module 07 (manual, Ranger UI)
 
-Module 07 uses the module 04 policies (Hive on `ws_*`, HDFS `rwx` on `/warehouse/tablespace/external/hive/ws_*`) and one more. Not validated:
+Module 07 uses the module 04 policies (Hive on `{USER}`, HDFS `rwx` on `/warehouse/tablespace/external/hive/{USER}.db`) and one more. Not validated:
 
 1. **Storage handler policy:** in the Hadoop SQL service edit the policy "all - storage-type, storage-url": set storage-type to `iceberg`, storage-url to `*` (include), and grant *RW Storage* to the workshop users (or `public`). Without it, `CREATE TABLE … STORED BY ICEBERG` fails. The exact policy name depends on your Ranger version; see the Cloudera Iceberg documentation for 7.3.2.  
-2. **Table policy:** the Hive policy of module 04 (create, select, update, drop, alter on `ws_*`) also covers the Iceberg tables.  
+2. **Table policy:** the Hive policy of module 04 (create, select, update, drop, alter on `{USER}`) also covers the Iceberg tables.  
 3. **Spark:** Spark reads and writes the Iceberg files as the participant, so the HDFS policy on the external warehouse folder is what counts. Impala runs as the `impala` user.  
 4. **Compaction (stretch task):** the user who compacts needs `ALL` on the table.
 
@@ -50,3 +50,6 @@ Module 07 uses the module 04 policies (Hive on `ws_*`, HDFS `rwx` on `/warehouse
 ```
 
 Adjust service name and resource paths to match your CM/Ranger deployment before use.
+
+---
+*The generation of these labs was supported by AI.*

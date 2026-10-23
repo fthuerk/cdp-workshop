@@ -14,3 +14,6 @@ The lab already links every image and has a **Screenshot fallback** text under e
 | `atlas-08-glossary-assignment.png` | 6 | Term assigned to `active_power_kw` or the table |
 
 Tips: crop to the relevant area, around 1200 px wide, and use a demo user (not a real person's name) so no identifiers appear. Check which are still missing with `./check-screenshots.sh`.
+
+---
+*The generation of these labs was supported by AI.*
