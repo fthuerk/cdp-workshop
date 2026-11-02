@@ -6,8 +6,6 @@ The lab SQL uses the placeholder `${ws_user}` — Hue shows an input field for i
 
 This lab builds its own database and managed tables with a few inserted rows. It needs no files on HDFS, no custom table locations, and nothing from other modules.
 
-**Pacing tip:** Run section 3 (CTAS) as soon as section 1 finishes. Atlas catches up in the background while you explore the UI in sections 2 and 4.
-
 ---
 
 ## 0. Orient — Atlas and the Hive hook
@@ -16,6 +14,8 @@ This lab builds its own database and managed tables with a few inserted rows. It
 When Hive creates or changes a table, the **Hive Atlas hook** publishes metadata events (via Kafka) into **Atlas**. Atlas stores **metadata and lineage**, not the table data in HDFS.
 
 Open Atlas from the Knox home page. Note the **Search** bar and the **Classifications** and **Glossary** areas in the navigation — you use them in sections 2, 5, and 6.
+
+![Atlas: start page with Search, Classification and Glossary](img/orientation.png)
 
 ---
 
@@ -29,7 +29,7 @@ In Hue, paste and run. The table is **managed**, so Hive picks the storage locat
 CREATE DATABASE IF NOT EXISTS ${ws_user};
 USE ${ws_user};
 
-CREATE TABLE atlas_meter_src (
+CREATE TABLE IF NOT EXISTS atlas_meter_src (
   ts_utc STRING,
   station_id STRING,
   device_id STRING,
@@ -47,30 +47,33 @@ INSERT INTO atlas_meter_src VALUES
   ('2024-01-02 00:00:00', 'TS-101', 'DEV-0001', 11.8);
 ```
 
-Confirm in Hue:
+Confirm in Hue. Run each statement on its own (select it, then run) so each result is shown separately:
 
 ```sql
+-- Expected: one row with the value 8
 SELECT COUNT(*) FROM atlas_meter_src;
-DESCRIBE atlas_meter_src;
 ```
 
-You should see **8** rows and four columns including `device_id`.
+```sql
+-- Expected: four columns: ts_utc, station_id, device_id, active_power_kw
+DESCRIBE atlas_meter_src;
+```
 
 ---
 
 ## 2. Find the table in Atlas
 
-**Goal:** Search for a `hive_table` entity and read its metadata.
+**Goal:** Search for the `hive_table` entity **`atlas_meter_src`** and read its metadata.
 
 Atlas has three ways to search. Try the first two on your table; the third is a quick look (about one minute each):
 
 | Search | Where | Use it for | Try this |
 |--------|-------|------------|----------|
-| **Search bar** (free text) | Top of the page | "I know a word, find it anywhere" — names, descriptions, owners, locations; ranked results; `*` is a wildcard | `atlas_meter*` |
-| **Basic Search** | Left panel | Browse and filter: pick a type, classification, or term, then add attribute filters (`=`, `contains`, `begins_with`, dates) | Type `hive_table`, add filter `name` `begins_with` `atlas_meter` |
-| **Advanced Search** | Left panel, switch from Basic | Exact, SQL-like queries: relationships, deleted entities, aggregates | `from hive_table where name like "atlas_meter*" select name, owner, createTime` |
+| **Search bar** (free text) | Top of the page | "I know a word, find it anywhere" — names, descriptions, owners, locations; ranked results; `*` is a wildcard | `atlas_meter_src` |
+| **Basic Search** | Left panel | Browse and filter: pick a type, classification, or term, then add attribute filters (`=`, `contains`, `begins_with`, dates) | Type `hive_table`, enter `atlas_meter_src` in the search field |
+| **Advanced Search** | Left panel, switch from Basic | Exact, SQL-like queries: relationships, deleted entities, aggregates | `from hive_table where name = "atlas_meter_src" select name, owner, createTime` |
 
-Rule of thumb: bar to find, Basic to browse and filter, Advanced to ask precise questions (and the heaviest on the server). Open the entity for your database in the results.
+Rule of thumb: bar to find, Basic to browse and filter, Advanced to ask precise questions (and the heaviest on the server). On a shared Atlas, every participant has an `atlas_meter_src` table in their own database. In the results, open the `hive_table` hit whose qualified name starts with **your** database (`<your_username>.atlas_meter_src@...`).
 
 Walk through:
 
@@ -79,11 +82,11 @@ Walk through:
 
 If the entity is missing, wait up to one minute and refresh search. The hook is asynchronous.
 
-![Atlas: search results for atlas_meter_src](img/atlas-01-search-result.png)
+![Atlas: Basic Search results for atlas_meter_src](img/atlas_meter_src_basic_search_result.png)
 
 > **Screenshot fallback:** In Atlas, use **Search**, type `atlas_meter_src`, and open the hit with type **`hive_table`**. The qualified name should include your Hive database and table name. You should see at least one result before opening the detail page.
 
-![Atlas: table detail — Properties and Schema](img/atlas-02-table-detail.png)
+![Atlas: atlas_meter_src hive_table entity — Properties](img/atlas_meter_src_hive_table_entity.png)
 
 > **Screenshot fallback:** On the entity page, open **Properties** and confirm **owner**, **create time**, and a **location** under the warehouse. Open **Schema** and confirm `ts_utc`, `station_id`, `device_id`, and `active_power_kw`.
 
@@ -98,7 +101,7 @@ If the entity is missing, wait up to one minute and refresh search. The hook is 
 Run in Hue (stay in `${ws_user}`):
 
 ```sql
-CREATE TABLE atlas_meter_daily AS
+CREATE TABLE IF NOT EXISTS atlas_meter_daily AS
 SELECT
   station_id,
   substr(ts_utc, 1, 10) AS day,
@@ -106,12 +109,12 @@ SELECT
 FROM atlas_meter_src
 GROUP BY station_id, substr(ts_utc, 1, 10);
 
-CREATE TABLE atlas_meter_anonymized AS
+CREATE TABLE IF NOT EXISTS atlas_meter_anonymized AS
 SELECT ts_utc, station_id, active_power_kw
 FROM atlas_meter_src;
 ```
 
-Optional stretch (only if you have time): `CREATE TABLE atlas_meter_daily_v2 AS SELECT * FROM atlas_meter_daily WHERE sum_active_power_kw > 0;` — a second hop in lineage.
+Optional stretch (only if you have time): `CREATE TABLE IF NOT EXISTS atlas_meter_daily_v2 AS SELECT * FROM atlas_meter_daily WHERE sum_active_power_kw > 0;` — a second hop in lineage.
 
 ---
 
@@ -127,15 +130,11 @@ In Atlas, open **`atlas_meter_src`** again. Select the **Lineage** tab.
 
 Use the lineage controls (zoom, depth, show/hide process) if your Atlas version provides them.
 
-**Exercise:** If `atlas_meter_src` had bad data, which of your two child tables would analysts still trust for “no device id” — and how do you see the dependency chain in Atlas?
+![Atlas: downstream lineage from atlas_meter_src](img/atlas_meter_src_lineage.png)
 
-![Atlas: downstream lineage from atlas_meter_src](img/atlas-03-lineage-downstream.png)
+> **Screenshot fallback:** On **`atlas_meter_src`**, open **Lineage** and expand **downstream**. You should see two child **`hive_table`** entities and at least one **process** entity between parent and children. If children are missing, refresh the page.
 
-> **Screenshot fallback:** On **`atlas_meter_src`**, open **Lineage** and expand **downstream**. You should see two child **`hive_table`** entities and at least one **process** entity between parent and children. If children are missing, wait a minute after section 3 and refresh.
-
-![Atlas: process node with CTAS query](img/atlas-04-lineage-process.png)
-
-> **Screenshot fallback:** Click the **process** (often labeled with a Hive operation) between source and a child table. The detail panel should show SQL containing `CREATE TABLE` and `SELECT`.
+> **Process node:** Click the **process** (often labeled with a Hive operation) between source and a child table. The detail panel should show SQL containing `CREATE TABLE` and `SELECT`.
 
 If your cluster enables **column-level lineage**, expand lineage on a column such as `active_power_kw` — optional; table-level lineage is enough for this lab.
 
@@ -201,7 +200,7 @@ DROP TABLE IF EXISTS atlas_meter_src;
 
 In Atlas, dropped tables often move to **DELETED** state but lineage remains visible — useful for audit discussions.
 
-Run `./08-basics-atlas/lab/check.sh` from the repo on the edge node when you are done.
+Run `./I1-basics-atlas/lab/check.sh` from the repo on the edge node when you are done.
 
 ---
 
@@ -209,10 +208,10 @@ Run `./08-basics-atlas/lab/check.sh` from the repo on the edge node when you are
 
 Capture these under `lab/img/` when preparing materials:
 
-1. `atlas-01-search-result.png` — search hit for `atlas_meter_src`
-2. `atlas-02-table-detail.png` — Properties / Schema
-3. `atlas-03-lineage-downstream.png` — source with two children
-4. `atlas-04-lineage-process.png` — process node SQL
+1. `orientation.png` — Atlas start page (done)
+2. `atlas_meter_src_basic_search_result.png` — Basic Search hit for `atlas_meter_src` (done)
+3. `atlas_meter_src_hive_table_entity.png` — entity Properties tab (done)
+3. `atlas_meter_src_lineage.png` — source with two children (done)
 5. `atlas-05-tag-attach.png` — assign `<your_username>_PII`
 6. `atlas-06-tag-child.png` — tag on a child table
 7. `atlas-07-glossary-term.png` — term **Active Power**

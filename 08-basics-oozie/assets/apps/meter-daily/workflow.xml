@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Workshop 08: daily pipeline = decision -> fork (hive2 || spark3) -> join. Run by a coordinator. -->
+<workflow-app name="meter-daily-wf" xmlns="uri:oozie:workflow:1.0">
+
+  <credentials>
+    <credential name="hs2-creds" type="hive2">
+      <property>
+        <name>hive2.server.principal</name>
+        <value>${jdbcPrincipal}</value>
+      </property>
+      <property>
+        <name>hive2.jdbc.url</name>
+        <value>${jdbcURL}</value>
+      </property>
+    </credential>
+  </credentials>
+
+  <start to="check-input"/>
+
+  <!-- Run only if the landing folder exists and has data -->
+  <decision name="check-input">
+    <switch>
+      <case to="load-fork">${fs:exists(inputDir) and fs:dirSize(inputDir) gt 0}</case>
+      <default to="input-missing"/>
+    </switch>
+  </decision>
+
+  <!-- Both branches start at the same time -->
+  <fork name="load-fork">
+    <path start="summary"/>
+    <path start="weather-daily"/>
+  </fork>
+
+  <action name="summary" cred="hs2-creds">
+    <hive2 xmlns="uri:oozie:hive2-action:1.0">
+      <resource-manager>${resourceManager}</resource-manager>
+      <name-node>${nameNode}</name-node>
+      <jdbc-url>${jdbcURL}</jdbc-url>
+      <script>station_summary.q</script>
+      <param>DB=${database}</param>
+      <param>INPUT_DIR=${inputDir}</param>
+      <param>RUN_DATE=${runDate}</param>
+    </hive2>
+    <ok to="load-join"/>
+    <error to="fail"/>
+  </action>
+
+  <action name="weather-daily">
+    <spark3 xmlns="uri:oozie:spark3-action:1.0">
+      <resource-manager>${resourceManager}</resource-manager>
+      <name-node>${nameNode}</name-node>
+      <prepare>
+        <delete path="${outputRoot}/weather_daily/${runDate}"/>
+      </prepare>
+      <master>yarn</master>
+      <mode>cluster</mode>
+      <name>weather-daily</name>
+      <jar>${wf:appPath()}/lib/weather_daily.py</jar>
+      <spark-opts>--num-executors 1 --executor-memory 1g --driver-memory 1g</spark-opts>
+      <arg>${weatherDir}</arg>
+      <arg>${outputRoot}/weather_daily/${runDate}</arg>
+    </spark3>
+    <ok to="load-join"/>
+    <error to="fail"/>
+  </action>
+
+  <!-- Continues only when BOTH branches arrived -->
+  <join name="load-join" to="end"/>
+
+  <kill name="input-missing">
+    <message>No data in landing folder: ${inputDir}</message>
+  </kill>
+
+  <kill name="fail">
+    <message>Pipeline failed in ${wf:lastErrorNode()}: ${wf:errorMessage(wf:lastErrorNode())}</message>
+  </kill>
+
+  <end name="end"/>
+</workflow-app>

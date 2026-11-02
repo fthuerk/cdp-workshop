@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Workshop 08: time-based coordinator. Starts landing-check-wf every 5 minutes. -->
+<coordinator-app name="landing-check-coord"
+                 frequency="${coord:minutes(5)}"
+                 start="${start}" end="${end}" timezone="UTC"
+                 xmlns="uri:oozie:coordinator:0.5">
+
+  <controls>
+    <!-- how many actions of this coordinator may run at the same time, and in which order -->
+    <concurrency>1</concurrency>
+    <execution>FIFO</execution>
+  </controls>
+
+  <action>
+    <workflow>
+      <app-path>${wfAppPath}</app-path>
+      <configuration>
+        <property>
+          <name>inputFile</name>
+          <value>${inputFile}</value>
+        </property>
+        <!-- nominal time = the time slot this action is FOR, not when it actually runs -->
+        <property>
+          <name>workDir</name>
+          <value>${workRoot}/${coord:formatTime(coord:nominalTime(), 'yyyyMMdd_HHmm')}</value>
+        </property>
+      </configuration>
+    </workflow>
+  </action>
+</coordinator-app>

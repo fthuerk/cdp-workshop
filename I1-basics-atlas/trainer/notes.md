@@ -1,4 +1,4 @@
-# Trainer notes — Module 08 Atlas (UI)
+# Trainer notes — Module I1 Atlas (UI)
 
 **Dry-run:** complete sections 1–6 with a participant account; capture screenshots for `lab/img/` if you want embedded images in the lab.
 

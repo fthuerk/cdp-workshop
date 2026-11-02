@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Workshop 08: one spark3 action running a PySpark script from the app's lib/ folder. -->
+<workflow-app name="meter-weather-wf" xmlns="uri:oozie:workflow:1.0">
+
+  <start to="weather-daily"/>
+
+  <action name="weather-daily">
+    <spark3 xmlns="uri:oozie:spark3-action:1.0">
+      <resource-manager>${resourceManager}</resource-manager>
+      <name-node>${nameNode}</name-node>
+      <!-- prepare runs before the job: makes a rerun safe -->
+      <prepare>
+        <delete path="${outputRoot}/weather_daily/${runDate}"/>
+      </prepare>
+      <master>yarn</master>
+      <mode>cluster</mode>
+      <name>weather-daily</name>
+      <jar>${wf:appPath()}/lib/weather_daily.py</jar>
+      <spark-opts>--num-executors 1 --executor-memory 1g --driver-memory 1g</spark-opts>
+      <arg>${weatherDir}</arg>
+      <arg>${outputRoot}/weather_daily/${runDate}</arg>
+    </spark3>
+    <ok to="end"/>
+    <error to="fail"/>
+  </action>
+
+  <kill name="fail">
+    <message>Spark action failed: ${wf:errorMessage(wf:lastErrorNode())}</message>
+  </kill>
+
+  <end name="end"/>
+</workflow-app>

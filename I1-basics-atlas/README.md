@@ -1,8 +1,8 @@
-# Module 08 — Basics: Atlas (UI)
+# Module I1 — Basics: Atlas (UI)
 
 Twenty-minute lab in **Hue** and **Atlas**: create Hive tables, find them in Atlas, build two **CTAS** children, explore **lineage**, add **classifications** (with propagation), and assign a **business glossary** term.
 
-**Estimated time:** ~20 minutes.
+**Estimated time:** ~20 minutes. **Format:** instructor-led (the `I` prefix): the trainer drives the session in the UI and you follow along.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ After this module you can:
 | Phase | Content |
 |-------|---------|
 | Core lab | [lab_basics_atlas.md](lab/lab_basics_atlas.md) sections 0–6 |
-| Self-check | `./08-basics-atlas/lab/check.sh` |
+| Self-check | `./I1-basics-atlas/lab/check.sh` |
 
 ## Trainer materials
 

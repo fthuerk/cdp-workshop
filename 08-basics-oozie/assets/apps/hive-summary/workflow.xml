@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Workshop 08: one hive2 action. Needs a hive2 credential on a Kerberos cluster. -->
+<workflow-app name="meter-hive-wf" xmlns="uri:oozie:workflow:1.0">
+
+  <!-- Oozie fetches a HiveServer2 delegation token for you with these two values -->
+  <credentials>
+    <credential name="hs2-creds" type="hive2">
+      <property>
+        <name>hive2.server.principal</name>
+        <value>${jdbcPrincipal}</value>
+      </property>
+      <property>
+        <name>hive2.jdbc.url</name>
+        <value>${jdbcURL}</value>
+      </property>
+    </credential>
+  </credentials>
+
+  <start to="summary"/>
+
+  <action name="summary" cred="hs2-creds">
+    <hive2 xmlns="uri:oozie:hive2-action:1.0">
+      <resource-manager>${resourceManager}</resource-manager>
+      <name-node>${nameNode}</name-node>
+      <jdbc-url>${jdbcURL}</jdbc-url>
+      <script>station_summary.q</script>
+      <param>DB=${database}</param>
+      <param>INPUT_DIR=${inputDir}</param>
+      <param>RUN_DATE=${runDate}</param>
+    </hive2>
+    <ok to="end"/>
+    <error to="fail"/>
+  </action>
+
+  <kill name="fail">
+    <message>Hive2 action failed: ${wf:errorMessage(wf:lastErrorNode())}</message>
+  </kill>
+
+  <end name="end"/>
+</workflow-app>

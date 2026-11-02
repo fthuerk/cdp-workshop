@@ -55,7 +55,8 @@ keeps your exported `WORKSHOP_ROOT`; set `WORKSHOP_HOME` there too if you want l
 | 02 HDFS | No space quota (the quota upload does not fail). You own `secret`, so `cat` works: use another user's path or skip. |
 | 04, 05, 07, 10 | Use the shared Hive warehouse (`ws_<you>` database); your account needs the usual Hive/HDFS rights there. |
 | 06 Spark | Output goes to `WORKSHOP_HOME`; the table step needs the same Hive rights. |
-| 08 Atlas | Needs the Atlas Hive hook on the cluster; no setup script. |
+| 08 Oozie | Needs a running Oozie server with the `hive2` and `spark3` ShareLibs; the setup script only stages the example applications in your root. |
+| I1 Atlas | Needs the Atlas Hive hook on the cluster; no setup script. |
 
 ## What the trainer prepares (Path A) (summary)
 

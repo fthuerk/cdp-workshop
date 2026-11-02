@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Workshop 08: control flow only (decision, fs action, kill). No cluster engine involved. -->
+<workflow-app name="landing-check-wf" xmlns="uri:oozie:workflow:1.0">
+
+  <start to="check-input"/>
+
+  <!-- Decision: continue only if the input file exists and is not empty -->
+  <decision name="check-input">
+    <switch>
+      <case to="prepare-work">${fs:exists(inputFile) and fs:fileSize(inputFile) gt 0}</case>
+      <default to="input-missing"/>
+    </switch>
+  </decision>
+
+  <!-- fs action: HDFS housekeeping done by Oozie itself (no container needed) -->
+  <action name="prepare-work">
+    <fs>
+      <delete path="${workDir}"/>
+      <mkdir path="${workDir}/archive"/>
+      <touchz path="${workDir}/_CHECKED"/>
+    </fs>
+    <ok to="end"/>
+    <error to="fail"/>
+  </action>
+
+  <kill name="input-missing">
+    <message>Input missing or empty: ${inputFile}</message>
+  </kill>
+
+  <kill name="fail">
+    <message>Action failed: ${wf:errorMessage(wf:lastErrorNode())}</message>
+  </kill>
+
+  <end name="end"/>
+</workflow-app>

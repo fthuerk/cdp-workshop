@@ -29,7 +29,7 @@ Same **`{USER}` database/table** pattern as module 04. Participants write Parque
 
 Same pattern as module 04: `{USER}` database/table privileges and read/write on the default external location `/warehouse/tablespace/external/hive/{USER}.db`. The lab sets no `LOCATION`, so no URL policy is needed. If Impala has a separate Ranger service, grant `SELECT` (and `CREATE` on `{USER}`) for workshop users. Read on `${WORKSHOP_ROOT}/05-impala/scaled` is prepared by `05-basics-impala/setup/setup.sh`.
 
-## Hive policies for module 08 Atlas (manual, Ranger UI)
+## Hive policies for module I1 Atlas (manual, Ranger UI)
 
 Only the `create`/`select`/`insert` privileges on personal databases from module 04. The lab creates managed tables at the default location (no `LOCATION`, no files copied), so no URL or HDFS policy is needed. Atlas itself needs the Hive hook enabled and, for classifications and glossary, Atlas permissions (see the module trainer notes).
 

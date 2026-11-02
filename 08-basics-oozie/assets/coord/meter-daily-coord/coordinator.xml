@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Workshop 08: data-triggered coordinator. One action per day, waits until the day's landing
+     folder contains the done-flag file _SUCCESS, then runs meter-daily-wf. -->
+<coordinator-app name="meter-daily-coord"
+                 frequency="${coord:days(1)}"
+                 start="${start}" end="${end}" timezone="UTC"
+                 xmlns="uri:oozie:coordinator:0.5">
+
+  <controls>
+    <!-- give up waiting for the input after 120 minutes (action becomes TIMEDOUT) -->
+    <timeout>120</timeout>
+    <concurrency>1</concurrency>
+  </controls>
+
+  <datasets>
+    <dataset name="landing" frequency="${coord:days(1)}" initial-instance="${start}" timezone="UTC">
+      <uri-template>${landingRoot}/${YEAR}${MONTH}${DAY}</uri-template>
+      <done-flag>_SUCCESS</done-flag>
+    </dataset>
+  </datasets>
+
+  <input-events>
+    <data-in name="input" dataset="landing">
+      <instance>${coord:current(0)}</instance>
+    </data-in>
+  </input-events>
+
+  <action>
+    <workflow>
+      <app-path>${wfAppPath}</app-path>
+      <configuration>
+        <property>
+          <name>inputDir</name>
+          <value>${coord:dataIn('input')}</value>
+        </property>
+        <property>
+          <name>runDate</name>
+          <value>${coord:formatTime(coord:nominalTime(), 'yyyy-MM-dd')}</value>
+        </property>
+      </configuration>
+    </workflow>
+  </action>
+</coordinator-app>
