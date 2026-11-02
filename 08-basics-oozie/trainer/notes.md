@@ -7,7 +7,7 @@
 | Minutes | Activity |
 |---------|----------|
 | 0–10 | Concept (whiteboard): client → Oozie server → database; launcher on YARN; workflow / coordinator / bundle; ShareLib |
-| 10–18 | Section 1: server status, ShareLib list, `common.properties` |
+| 10–15 | Section 1: paths and `common.properties` (ShareLib: explain in concept slide; optional live `oozie admin -shareliblist` for admins only) |
 | 18–33 | Section 2: hello workflow; **walk the room** at `oozie job -info` and `yarn logs` |
 | 33–45 | Section 3: decision, fs, kill; the failing run |
 | 45–57 | Section 4: hive2 action, credentials, idempotent rerun |
@@ -20,8 +20,8 @@ If you run short, drop section 5 (and the Spark branch of the pipeline stays as 
 
 ## Pre-session checklist (admin)
 
-1. `./08-basics-oozie/setup/setup.sh` and `./08-basics-oozie/setup/verify.sh` (set `OOZIE_URL` in `config.env`).
-2. **Oozie service healthy** in Cloudera Manager; ShareLib installed with `hive2` and `spark3` (Oozie → Actions → Install Oozie ShareLib; Spark 3 may need Update the Spark3 ShareLib after a Spark 3 parcel change).
+1. `./08-basics-oozie/setup/setup.sh` and `./08-basics-oozie/setup/verify.sh` (set `OOZIE_URL` in `config.env`). That script runs `oozie admin -status` and `-shareliblist` — **trainer/admin only**, not in the participant lab.
+2. **Oozie service healthy** in Cloudera Manager; ShareLib installed with `hive2` and `spark3` (Oozie → Actions → Install Oozie ShareLib; Spark 3 may need Update the Spark3 ShareLib after a Spark 3 parcel change). Optionally dry-run the same commands as a **participant** principal: on most Kerberos clusters any logged-in user may **read** admin status and ShareLib lists; write admin commands (`-sharelibupdate`, purge, and so on) require the Oozie admin group.
 3. **hive2 credential enabled:** `oozie.credentials.credentialclasses` must contain `hive2=org.apache.oozie.action.hadoop.Hive2Credentials`. Without it the `hive2` action fails with a Kerberos error.
 4. **Proxy user rights:** Oozie must be allowed to impersonate workshop users (default on CDP when users are in the proxy groups). Symptom otherwise: error about the Oozie user not being allowed to impersonate.
 5. **Handout values** for participants: `OOZIE_URL`, ResourceManager `host:port` (or the logical name your Oozie accepts), HiveServer2 JDBC URL, HiveServer2 principal.

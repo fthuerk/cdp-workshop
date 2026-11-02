@@ -8,7 +8,7 @@ The lab builds one small pipeline step by step:
 
 | Sections | You build | Concept |
 |----------|-----------|---------|
-| 1–2 | Server check, `hello` workflow | Application folder, `job.properties`, launcher, job states |
+| 1–2 | Paths and `common.properties`, then `hello` workflow | HDFS application folder, `job.properties`, launcher, job states |
 | 3 | `landing-check` workflow | Decision, fs action, kill node, error handling |
 | 4–5 | Hive and Spark workflows | `hive2` and `spark3` actions, credentials, parameters |
 | 6 | `meter-daily` workflow | Fork and join, failure, rerun |
@@ -32,29 +32,15 @@ Oozie does not process data itself. For every action it starts a small **launche
 
 ---
 
-## 1. Orient — server and ShareLib
+## 1. Orient — paths and shared job properties
 
-**Goal:** Confirm that the Oozie server is up and see which action types the cluster supports.
+**Goal:** Set the HDFS and edge-node folders you use in every section, and write the shared `job.properties` snippet.
 
-Ask the server for its state and version:
+Your instructor confirms that Oozie is running and that Hive and Spark actions are supported on the cluster before you start (that check uses admin tooling, not something you need for the lab).
 
-```bash
-# Server state: should be NORMAL
-oozie admin -status
+Oozie never reads files from your edge node while a job runs. Your **application** is a folder on HDFS (`workflow.xml` plus scripts). The **`job.properties`** file stays on the edge node and points Oozie at that folder. For Hive and Spark actions the cluster also uses a shared jar library on HDFS (**ShareLib**); your properties file turns that on with `oozie.use.system.libpath=true` — you do not upload those jars yourself.
 
-# Version of the server
-oozie admin -version
-```
-
-The **ShareLib** is a set of jar folders on HDFS. The launcher of an action loads the folder that matches the action type, so you do not ship Hive or Spark libraries with your workflow. List the folders:
-
-```bash
-oozie admin -shareliblist
-```
-
-You should see at least `oozie`, `hive2` and `spark3`.
-
-Oozie never reads files from your edge node while a job runs. Your applications live on HDFS. Create the folders you need and your local working folder:
+Create the folders you need and your local working folder:
 
 ```bash
 # HDFS: applications, outputs, scratch space

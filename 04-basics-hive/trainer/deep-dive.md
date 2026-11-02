@@ -64,6 +64,23 @@ flowchart LR
 
 **Schema on read** — SerDe parses bytes at query time; bad CSV rows become `NULL` without failing the query.
 
+**`LOAD DATA`** — places files that already exist into a table or partition directory. Hive moves the file (`LOCAL` copies it from the Beeline machine). When you name a partition, Hive registers it. The file is parsed later, at query time; statistics change only when you run `ANALYZE TABLE`.
+
+```sql
+LOAD DATA [LOCAL] INPATH 'filepath' [OVERWRITE] INTO TABLE tablename [PARTITION (partcol=val, ...)];
+```
+
+| Clause | What it does |
+|--------|----------------|
+| `INPATH` | Absolute path on the same filesystem as the table (HDFS). Hive moves that file, or every non-hidden file in that directory, into the table location. The source path is gone. Names starting with `.` or `_` (for example `_SUCCESS`) are skipped when the path is a directory. |
+| `LOCAL INPATH` | Copies from the local disk of the Beeline client. The local file stays. Hue submits SQL on the server, so it cannot see an edge-node path such as `/tmp/…`. |
+| `OVERWRITE` | Deletes the files already in the target table or partition directory, then moves the new files in. Without it, files accumulate and the next query reads all of them. |
+| `PARTITION` | Creates the partition in the Metastore when it is missing, and moves the files into that partition folder. Copying a `station_id=…` directory into the table folder only does the file half; the Metastore still needs `ADD PARTITION` or `MSCK REPAIR`. |
+
+The file name is kept, and the bytes stay as staged. A CSV loaded into an ORC table sits in the folder until a query tries to read it. `skip.header.line.count` applies per file at read time, so each loaded copy of a headered CSV skips its own first line.
+
+Stage the file under `/user/<user>/…` and load that copy. `INPATH` pointed at a shared landing path moves the shared file into one person's table. On a transactional managed table, use `INSERT`: several CDP versions reject `LOAD` there. `numRows` stays at the previous value until `ANALYZE TABLE`.
+
 **Partitioning** — Partition columns become HDFS subdirectories. The optimizer **prunes** only when predicates reference partition columns (e.g. `dt = '2024-01-01'`). `MSCK REPAIR` discovers new folders; `ALTER TABLE ADD PARTITION` is explicit and cheap for pipelines.
 
 **File formats** — **ORC** and **Parquet** are columnar: projection and predicate pushdown read fewer bytes. ORC integrates tightly with Hive (stripes, indexes); Parquet is common for Spark interchange. **CTAS** (`CREATE TABLE AS SELECT`) materializes curated layers from staging SQL.
@@ -204,6 +221,13 @@ LOCATION '${hivevar:workshop_root}/data/landisgyr/';
 ```
 
 ```sql
+-- Lab table (no LOCATION): file lands in the warehouse folder. Source path disappears.
+-- Point INPATH at a staged copy, never at the shared data directory above.
+LOAD DATA INPATH '/user/${hivevar:ws_user}/hive-staging/loaded-copy.csv'
+  INTO TABLE landisgyr_csv;
+```
+
+```sql
 -- Partition maintenance
 ALTER TABLE meter_partitioned ADD PARTITION (dt='2024-01-02')
   LOCATION '${hivevar:workshop_root}/data/landisgyr/dt=2024-01-02/';
@@ -233,6 +257,7 @@ GROUP BY station_id;
 |--------|------------|
 | `UPDATE` on external table | Use managed ACID, Iceberg, or rewrite via `INSERT OVERWRITE` |
 | `INSERT INTO` retry | Duplicates — prefer overwrite partition or Iceberg merge |
+| `LOAD DATA INPATH` on a shared path | Moves the file out of the shared folder. Copy it under `/user/<you>/` first, then load that copy. Use `OVERWRITE` only when the whole table or partition should be replaced |
 | New folder, no partition row | Query returns no rows until ADD PARTITION or REPAIR |
 | Filter on non-partition column | Full scan of all `dt=` folders |
 | Tiny ORC files | Batch inserts; compact |

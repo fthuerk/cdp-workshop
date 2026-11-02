@@ -86,7 +86,7 @@ Optional: run the same statements in **Hue → Editor → Hive** (see [the Hue s
 
 ## 1. External table over a CSV copy
 
-**Goal:** Create an external table, copy a smart-meter CSV into its folder, and query it.
+**Goal:** Create an external table, copy a smart-meter CSV into its folder, move a second copy in with `LOAD DATA`, and query it.
 
 An external table is a table definition on top of files that you manage yourself. Hive reads **every file in the table's folder**. Without a `LOCATION` clause that folder is created for you under `HIVE_EXT`, named like the table. (Choosing your own location comes in a later lab.)
 
@@ -159,6 +159,45 @@ SELECT COUNT(*) FROM landisgyr_csv;
 ```
 
 **Check question:** Nobody ran a load command, yet new rows appeared. What does that mean for a pipeline that lands files into a folder that a table already points at?
+
+**`LOAD DATA` places a file from SQL.** `hdfs dfs -cp` leaves the source where it is. `LOAD DATA INPATH` moves an HDFS file into the table folder; the SerDe still reads the bytes on the next query. The source path disappears, so copy the shared CSV into your own HDFS home first. Loading `${WORKSHOP_ROOT}/data/...` directly would remove that file for the whole room.
+
+In Hue, copy the file with the File Browser into `/user/<your_username>/hive-staging/`, then run the `LOAD` statement in the editor.
+
+```bash
+hdfs dfs -mkdir -p "/user/${WORKSHOP_USER}/hive-staging"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "/user/${WORKSHOP_USER}/hive-staging/loaded-copy.csv"
+hdfs dfs -ls "/user/${WORKSHOP_USER}/hive-staging"
+```
+
+You should see `loaded-copy.csv` under your HDFS home. Move it into the table. The header is skipped in each file, so this copy adds the same number of readings as the first:
+
+```sql
+LOAD DATA INPATH '/user/${ws_user}/hive-staging/loaded-copy.csv' INTO TABLE landisgyr_csv;
+SELECT COUNT(*) FROM landisgyr_csv;
+```
+
+```bash
+hdfs dfs -ls "/user/${WORKSHOP_USER}/hive-staging"
+hdfs dfs -ls "${HIVE_EXT}/landisgyr_csv"
+```
+
+The staging folder is empty, and `loaded-copy.csv` sits next to the original CSV. The count doubled again. `OVERWRITE` (written before `INTO TABLE`) would delete every file already in the table folder and then move the new one in — leave it out, because the self-check looks for `sample-landisgyr-data.csv`. Statistics stay as they were until section 10.
+
+Put the table back to the original file before you continue:
+
+```bash
+hdfs dfs -rm -skipTrash "${HIVE_EXT}/landisgyr_csv/loaded-copy.csv"
+hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/hive-staging"
+```
+
+```sql
+SELECT COUNT(*) FROM landisgyr_csv;
+```
+
+The count matches the single original CSV again.
+
+**Check question:** After `LOAD DATA INPATH`, what is left at the staging path? What would `OVERWRITE` have done to `sample-landisgyr-data.csv`?
 
 ---
 
@@ -746,7 +785,7 @@ You should get one row per station. `landisgyr_v` is the view from section 8; Hi
 
 **Goal:** Collect table and column statistics, and see how they change what Hive knows about your data.
 
-Hive plans a query before it runs it. For a good plan (how many reducers, which join strategy) the optimizer needs to know how big the data is. That knowledge is **statistics** in the Metastore: row counts and sizes per table, and per column the number of distinct values, `NULL`s, minimum, and maximum. Files that you copied into an external table folder yourself (section 1) have no statistics yet. Check the table parameters and look for `numRows` and `totalSize`:
+Hive plans a query before it runs it. For a good plan (how many reducers, which join strategy) the optimizer needs to know how big the data is. That knowledge is **statistics** in the Metastore: row counts and sizes per table, and per column the number of distinct values, `NULL`s, minimum, and maximum. Files that you copied or loaded into an external table folder yourself (section 1) have no statistics yet. Check the table parameters and look for `numRows` and `totalSize`:
 
 ```sql
 DESCRIBE FORMATTED landisgyr_csv;

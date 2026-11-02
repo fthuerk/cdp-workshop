@@ -52,7 +52,7 @@ Oozie runs the action as you. You need the same Hive and HDFS rights as in the H
 ## Spark action: `Spark action is disabled`, class not found, or missing ShareLib
 
 - The action element is `spark3`, not `spark`. The older Spark 2 action is disabled by default.
-- `oozie admin -shareliblist` must list `spark3`. If not, ask your instructor.
+- The cluster ShareLib must include `spark3` (your instructor checks this before the session). If Spark actions fail with missing ShareLib errors, ask your instructor — fixing ShareLib is not a participant step.
 - `oozie.use.system.libpath=true` must be in your properties file (it is in `common.properties`).
 
 ## Spark action: `Path does not exist`

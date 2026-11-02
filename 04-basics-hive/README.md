@@ -15,7 +15,7 @@ SQL over the grid monitoring pilot data: put external and managed Hive tables on
 
 After this module you can:
 
-- Create external tables on CSV files you copied to HDFS, and explain why the table is "just a folder"
+- Create external tables on CSV files you copied to HDFS or moved in with `LOAD DATA`, and explain why the table is "just a folder"
 - Add partitions to an external table with `ADD PARTITION` and `MSCK REPAIR TABLE`
 - Store the same data as text, ORC, and Parquet, and inspect the files on HDFS to see columnar storage
 - Explain why `UPDATE` and `DELETE` fail on external tables, and why `INSERT INTO` is not safe to retry (`INSERT OVERWRITE` is)

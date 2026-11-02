@@ -32,6 +32,10 @@ DROP TABLE meter_orc;
 
 If a table sits on top of files you want to start over with, also remove the files in that table's folder with `hdfs dfs -rm -skipTrash "${HIVE_EXT}/<table>/*"` (the folder itself belongs to the table).
 
+## `LOAD DATA` cannot find the file
+
+`LOAD DATA INPATH` moves `/user/<your_username>/hive-staging/loaded-copy.csv`. If that folder is already empty, run the `hdfs dfs -cp` from [section 1](lab_basics_hive.md#1-external-table-over-a-csv-copy) again, then `LOAD`. A second `LOAD` without a new copy fails, because the first one removed the source. If you loaded twice while `loaded-copy.csv` was still in the table, Hive keeps the extra file as `loaded-copy_copy_1.csv` — remove that too, or the row count stays high. If `${ws_user}` shows up literally in the path, restart Beeline with `--hivevar` (see above).
+
 ## `Permission denied: user=hive, access=WRITE, inode=…`
 
 You cannot write into the table folder under `HIVE_EXT` (for example `hdfs dfs -cp` fails with permission denied). Check with `hdfs dfs -ls -d "${HIVE_EXT}"` that the folder exists and that `WORKSHOP_USER` is your own name, then ask your instructor — an HDFS policy for the workshop users on `{USER}` folders is missing. Trainers: see [ranger README](../../00-setup/admin/ranger/README.md).

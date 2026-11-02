@@ -15,7 +15,7 @@ Scheduling and orchestration for the grid monitoring use case: build a small dai
 
 After this module you can:
 
-- Explain the parts of an Oozie application: `workflow.xml` on HDFS, `job.properties` on the edge node, launcher, ShareLib
+- Explain the parts of an Oozie application: `workflow.xml` on HDFS, `job.properties` on the edge node, launcher, and why `oozie.use.system.libpath=true` uses the cluster ShareLib
 - Write and run a workflow with a shell action; find the launcher on YARN and read its log
 - Use **control nodes** (decision, fork, join, kill) and **EL functions** to build a workflow that checks its input and fails with a clear message
 - Run **fs**, **hive2** and **spark3** actions, including the credential that a Kerberos cluster needs for Hive
