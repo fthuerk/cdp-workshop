@@ -1,640 +1,462 @@
-# Oozie hands-on lab
+# Oozie in Hue — hands-on tour
 
-Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need one terminal on the edge node. Keep a second one open for sections 7 and 8, where you wait for scheduled jobs.
+Run sections in order. You work in the Hue web UI only (URL and login from your handout). Menu names can differ slightly between Hue versions; the screenshots show the workshop cluster.
 
-**Oozie** is the workflow scheduler of the platform. You describe a pipeline as a **workflow** (a graph of actions), start it by hand or let a **coordinator** start it on a schedule or when data arrives. Hive, Spark, shell scripts and HDFS operations all run as **actions** of such a workflow.
+**Oozie** is the scheduler of the platform. A **workflow** is a graph of actions (shell script, Hive query, Spark job, HDFS operation). A **coordinator** starts a workflow on a schedule or when data arrives. Hue gives you editors for both. They do not run anything themselves: they **write XML files to HDFS** and submit them to the Oozie server.
 
-The lab builds one small pipeline step by step:
+In this lab you build three things and, after each, look at the XML that Hue generated. **Do not edit the XML** — reading it is the point. Writing it by hand is the topic of module [11-advanced-oozie](../../11-advanced-oozie/README.md).
 
-| Sections | You build | Concept |
-|----------|-----------|---------|
-| 1–2 | Paths and `common.properties`, then `hello` workflow | HDFS application folder, `job.properties`, launcher, job states |
-| 3 | `landing-check` workflow | Decision, fs action, kill node, error handling |
-| 4–5 | Hive and Spark workflows | `hive2` and `spark3` actions, credentials, parameters |
-| 6 | `meter-daily` workflow | Fork and join, failure, rerun |
-| 7 | Time-based coordinator | Frequency, nominal time, catch-up |
-| 8 | Data-triggered coordinator | Dataset, done-flag, input event |
-| 9 | Monitor and clean up | Suspend, resume, kill |
+| Section | You build | You look at |
+|---------|-----------|-------------|
+| 0 | Nothing — find your way around | Menus, Job Browser |
+| 1 | Workflow `hello-wf` (shell + fs action) | `workflow.xml` |
+| 2 | Break it on purpose | Failed action, kill node |
+| 3 | Time-based schedule | `coordinator.xml`, nominal time |
+| 4 | Hive load triggered by data | Dataset, done-flag, Hive action, daily partition |
+| 5 | Clean up | — |
 
-Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `OOZIE_LAB` holds the shared example applications on HDFS (the name of the HDFS folder is `08-oozie`). `OOZIE_HDFS` is your own Oozie folder on HDFS, `OOZIE_LOCAL` your working folder on the edge node. `OOZIE_URL` is the Oozie server URL from your handout; the `oozie` command reads it automatically.
-
-```bash
-export WORKSHOP_USER=<your_username>
-kinit "${WORKSHOP_USER}"
-export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
-export OOZIE_LAB="${WORKSHOP_ROOT}/08-oozie"
-export OOZIE_HDFS="/user/${WORKSHOP_USER}/oozie"
-export OOZIE_LOCAL="${HOME}/oozie-lab"
-export OOZIE_URL="<oozie-url-from-your-handout>"   # for example https://<host>:11443/oozie
-```
-
-Oozie does not process data itself. For every action it starts a small **launcher** application on YARN, and the launcher starts your script, Beeline or `spark-submit`. Everything you know from the YARN, Hive and Spark labs applies here.
+Names in the lab contain your user name so that your jobs are easy to find in the shared Oozie server. `<your_user>` below is your `WORKSHOP_USER` (the short name you use with `kinit`). The lab only needs one output folder, `/user/<your_user>/oozie_lab`, which the workflow itself creates.
 
 ---
 
-## 1. Orient — paths and shared job properties
+## 0. Orient — log in and find the editors
 
-**Goal:** Set the HDFS and edge-node folders you use in every section, and write the shared `job.properties` snippet.
+**Goal:** Know where workflows, schedules and running jobs live in Hue.
 
-Your instructor confirms that Oozie is running and that Hive and Spark actions are supported on the cluster before you start (that check uses admin tooling, not something you need for the lab).
+1. Open Hue and log in with your user.
+2. In the left menu, open **Scheduler**. It has three entries: **Workflow**, **Schedule** and **Bundle**. Below them are **Documents**, **Storage Browser** (HDFS files), **Tables**, **Jobs** and **Importer**.
 
-Oozie never reads files from your edge node while a job runs. Your **application** is a folder on HDFS (`workflow.xml` plus scripts). The **`job.properties`** file stays on the edge node and points Oozie at that folder. For Hive and Spark actions the cluster also uses a shared jar library on HDFS (**ShareLib**); your properties file turns that on with `oozie.use.system.libpath=true` — you do not upload those jars yourself.
+   ![Hue left menu with the Scheduler entries](images/0_hue_oozie_navigation.png)
+3. Open **Jobs** (the Job Browser). Besides the general **Jobs** tab it has the tabs **Workflows**, **Schedules** (coordinators), **Bundles** and **SLAs**. Type `user:<your_user>` in the filter field to see only your jobs. Everything Oozie starts shows up here, also its launchers (type *Oozie Launcher*).
 
-Create the folders you need and your local working folder:
+   ![Job Browser with the Workflows and Schedules tabs](images/0_jobs_browser_with_workflow_tab.png)
 
-```bash
-# HDFS: applications, outputs, scratch space
-hdfs dfs -mkdir -p "${OOZIE_HDFS}/apps" "${OOZIE_HDFS}/coord" "${OOZIE_HDFS}/out" "${OOZIE_HDFS}/work"
-
-# Edge node: where you keep job.properties files
-mkdir -p "${OOZIE_LOCAL}"
-cd "${OOZIE_LOCAL}"
-```
-
-Workflows need to know where the NameNode, the ResourceManager and HiveServer2 are. Look up the NameNode, take the other values from your handout:
-
-```bash
-# NameNode URI of the cluster
-export NAME_NODE=$(hdfs getconf -confKey fs.defaultFS)
-echo "${NAME_NODE}"
-
-# From your handout
-export RESOURCE_MANAGER="<resource-manager-host:port-from-your-handout>"
-export HS2_URL="<hiveserver2-jdbc-url-from-your-handout>"
-export HS2_PRINCIPAL="<hiveserver2-principal-from-your-handout>"
-```
-
-Write the properties that every job of this lab shares into one file. Later sections copy it and add their own lines. `oozie.use.system.libpath=true` switches the ShareLib on:
-
-```bash
-cat > common.properties <<EOF
-nameNode=${NAME_NODE}
-resourceManager=${RESOURCE_MANAGER}
-oozie.use.system.libpath=true
-database=${WORKSHOP_USER}
-jdbcURL=${HS2_URL}
-jdbcPrincipal=${HS2_PRINCIPAL}
-outputRoot=${NAME_NODE}${OOZIE_HDFS}/out
-weatherDir=${NAME_NODE}${WORKSHOP_ROOT}/data/operator_weather
-EOF
-```
-
-**Check question:** Oozie keeps the state of every job in a database. What happens to a running workflow if the Oozie server restarts?
+**Check:** Which three kinds of Oozie jobs does the Job Browser list? *(Workflows, coordinators — shown as "Schedules" — and bundles.)*
 
 ---
 
-## 2. Your first workflow — a shell action
+## 1. Create a workflow
 
-**Goal:** Write, submit and inspect a workflow with one shell action.
+**Goal:** Build a two-step workflow, run it, follow it down to YARN, and then read the XML behind it.
 
-An Oozie **application** is a folder on HDFS with a `workflow.xml` and everything the actions need (scripts, jars, SQL). The **`job.properties`** file stays on the edge node: it tells Oozie where the application is and fills the `${...}` variables of the workflow.
+### 1.1 Build it
 
-Create the script that the action will run:
+1. Open the **Workflow** editor (**Scheduler → Workflow**). An empty canvas with a **Start** and an **End** node appears; the palette of actions is the row of icons at the top.
+2. Click the title and name the workflow `hello-wf-<your_user>`.
+3. Drag an **Fs** (HDFS) action onto the canvas, between start and end.
+   - Add one **Create directory** operation with the path `/user/<your_user>/oozie_lab`. The folder does not exist yet; the action creates it.
+   - Name the action `make_dir`.
+4. Drag a **Shell** action behind it.
+   - Command: `echo`
+   - Arguments: `hello` and `world`, one argument per line
+   - Name the action `say_hello`.
+5. Look at the canvas: the flow runs from top to bottom: the flag is the **Start** node, then your two actions, then the **End** node (circle). The grey square below the End node is the **Kill** node, which Hue added for you. The canvas draws no error arrows; every action sends its error to the Kill node by default. You check this in step 6.
 
-```bash
-mkdir -p "${OOZIE_LOCAL}/hello"
-cd "${OOZIE_LOCAL}/hello"
+   ![Workflow canvas with make_dir and say_hello](images/1_workflow.png)
+6. Open the **Transitions** tab of the action `make_dir` (open the action settings with the blue gear icon in the action's top right corner, then choose the tab). **OK** points to the next action, **KO** to the Kill node. Do not change them.
 
-cat > hello.sh <<'EOF'
-#!/bin/bash
-echo "Greeting: $1"
-echo "Running on $(hostname) as $(whoami)"
-EOF
-```
+   ![Transitions tab of the make_dir action](images/1_transitions.png)
+7. **Save** the workflow.
 
-Now the workflow. Read it from top to bottom: `start` points to the first node, the action has an `ok` and an `error` transition, `kill` ends the workflow as failed, `end` as succeeded. `<file>` ships the script to the container.
+### 1.2 Run it and follow the job
 
-```bash
-cat > workflow.xml <<'EOF'
-<workflow-app name="hello-wf" xmlns="uri:oozie:workflow:1.0">
-  <start to="hello"/>
-  <action name="hello">
-    <shell xmlns="uri:oozie:shell-action:1.0">
-      <resource-manager>${resourceManager}</resource-manager>
-      <name-node>${nameNode}</name-node>
-      <exec>hello.sh</exec>
-      <argument>${greeting}</argument>
-      <file>hello.sh#hello.sh</file>
-    </shell>
-    <ok to="end"/>
-    <error to="fail"/>
-  </action>
-  <kill name="fail">
-    <message>Shell action failed: ${wf:errorMessage(wf:lastErrorNode())}</message>
-  </kill>
-  <end name="end"/>
+1. In the workflow editor click **Submit** (play icon) and confirm the small window that appears. Do not change anything in it; Hue fills in the parameters for you.
+2. Hue opens the **Job Browser** with your workflow. Refresh until the status is **SUCCEEDED**. The **Graph** tab shows the same flow as the editor; each action is green when it has finished.
+
+   ![Finished workflow in the Job Browser](images/1_2_finished_job_browser.png)
+3. Look at the left side of the page: job ID, status, progress, duration and submit time. The ID ends in `-oozie-oozi-W`: `W` stands for workflow.
+4. Open the **Logs** tab and find the line of the Fs action (`make_dir`). Server and user name are shown here as placeholders:
+   ```text
+      2026-11-02 11:50:55,814 INFO THREAD[CallableQueue-11] org.apache.oozie.action.hadoop.FsActionExecutor: SERVER[<oozie-server>] USER[<your_user>] GROUP[-] TOKEN[] APP[hello-wf-<your_user>] JOB[0000012-261023121531177-oozie-oozi-W] ACTION[0000012-261023121531177-oozie-oozi-W@fs-5b32] Creating directory [hdfs://nameservice1/user/<your_user>/oozie_lab]
+   ```
+
+      `FsActionExecutor` runs inside the Oozie server. There is no YARN application and no MapReduce job for this action.
+5. Go back to the **Graph** tab and click the shell action. Its **Properties** show `externalId`, the YARN application of this action. `data` holds the captured output (`hello=world`).
+
+   ![Properties of the shell action](images/1_3_shell_action_properties.png)
+6. Follow the application link to YARN and open its log. The output of the command is in the log as `hello world`.
+
+An `echo` is a real process, so it needs a container. Oozie starts a small **launcher** application on YARN for the action, and the launcher runs the command. That is why the shell action has an `externalId` and the Fs action has none.
+
+### 1.3 Look at the XML
+
+Now the technical details. In the job page open the **XML** tab. It shows the `workflow.xml` that Hue generated and Oozie ran. Do not edit it.
+
+![XML tab of the job](images/1_3_xml_tab.png)
+
+The file looks like this (this is the real content from the workshop cluster, only your user name differs):
+
+```xml
+<workflow-app name="hello-wf-<your_user>" xmlns="uri:oozie:workflow:0.5">
+    <start to="fs-5b32"/>
+    <kill name="Kill">
+        <message>Action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <action name="fs-5b32">
+        <fs>
+              <mkdir path='${nameNode}/user/<your_user>/oozie_lab'/>
+        </fs>
+        <ok to="shell-d6bc"/>
+        <error to="Kill"/>
+    </action>
+    <action name="shell-d6bc">
+        <shell xmlns="uri:oozie:shell-action:0.1">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <exec>echo</exec>
+              <argument>hello</argument>
+              <argument>world</argument>
+              <capture-output/>
+        </shell>
+        <ok to="End"/>
+        <error to="Kill"/>
+    </action>
+    <end name="End"/>
 </workflow-app>
-EOF
 ```
 
-Check the XML against the schema, then upload the application folder:
+Match what you clicked with what you read:
 
-```bash
-# Syntax check by the Oozie server
-oozie validate workflow.xml
+| In the UI | In the XML |
+|-----------|-----------|
+| Start node | `<start to="fs-5b32"/>` — the first action |
+| Action | `<action name="...">`. Hue generates the name (`fs-5b32`, `shell-d6bc`); the names `make_dir` and `say_hello` you typed are labels in the editor and the graph only |
+| Order of the actions on the canvas | `<ok to="...">` — the next node on success |
+| Kill node (grey square) | `<error to="Kill"/>` in every action, and `<kill>` with a message |
+| End node | `<end name="End"/>` |
+| Fs operation | `<fs><mkdir path="..."/></fs>` |
+| Command and arguments | `<exec>` and `<argument>` |
 
-# Application folder on HDFS
-hdfs dfs -mkdir -p "${OOZIE_HDFS}/apps/hello"
-hdfs dfs -put -f workflow.xml hello.sh "${OOZIE_HDFS}/apps/hello/"
-```
+Things to notice:
 
-Create the job properties: the shared file plus the application path and the value for `${greeting}`.
+- `${nameNode}` and `${jobTracker}` are **variables**. Hue passes them when it submits the workflow.
+- The `xmlns` values are the schema versions of the workflow and of the action type.
+- `${wf:errorMessage(...)}` in the kill node is an **EL function**: it inserts the error message of the failed action.
+- `<capture-output/>` keeps the output of the command for later nodes. Hue adds it by default; it is the `hello=world` you saw in the shell action's `data`.
 
-```bash
-cd "${OOZIE_LOCAL}"
-cp common.properties hello.properties
-
-cat >> hello.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/hello
-greeting=Hello grid
-EOF
-```
-
-Submit and start the job in one step. Oozie prints a job ID that ends with `-W` (workflow). Copy it into a variable:
-
-```bash
-oozie job -config hello.properties -run
-```
-
-```bash
-export WF_ID="<job-id-from-the-output>"
-```
-
-Look at the job:
-
-```bash
-# State of the workflow and its actions
-oozie job -info "${WF_ID}"
-
-# What Oozie did, node by node
-oozie job -log "${WF_ID}"
-```
-
-Repeat `-info` until the status is `SUCCEEDED`. The top block describes the job (status, user, start and end time). The table below lists one row per node:
-
-- **ID** — `<job-id>@<node name>`
-- **Status** — `OK` means the node finished, `ERROR` or `KILLED` means it did not
-- **Ext ID** — the YARN application of the **launcher** (or `-` for nodes Oozie handles itself)
-- **Ext Status** — state of that YARN application
-- **Err Code** — short error code when something failed
-
-The output of your script is in the log of the launcher. Take the **Ext ID** of the `hello` row (starts with `application_`) and read its log, as in the YARN lab:
-
-```bash
-yarn logs -applicationId "<ext-id-of-the-hello-node>" -log_files stdout
-```
-
-You should find your greeting and the host name.
-
-**Check question:** Which user does the script run as, `oozie` or you? Why is that important for HDFS and Hive permissions?
+**Check:** Which element decides where the workflow goes when the `fs-5b32` action fails? *(*`<error to="Kill"/>` *inside that action.)*
 
 ---
 
-## 3. Control flow — decision, fs action and kill
+## 2. Break it
 
-**Goal:** Let a workflow check its input first and end in a clear failure state when the input is missing.
+**Goal:** Make a workflow fail on purpose and see the kill node.
 
-Real pipelines start with a check: has the file arrived? The shared example `landing-check` does exactly that, with no cluster engine involved. Copy it into your home directory and read it:
+A `mkdir` on a folder that already exists is not an error, so running the workflow again would simply succeed. Add a step that fails:
 
-```bash
-hdfs dfs -cp -f "${OOZIE_LAB}/apps/landing-check" "${OOZIE_HDFS}/apps/"
-hdfs dfs -cat "${OOZIE_HDFS}/apps/landing-check/workflow.xml"
-```
+1. Open the workflow and drag a third **Shell** action behind `say_hello`. Name it `fail_on_purpose`, use the command `ls` and the single argument `/does/not/exist`. Save and submit.
+2. In the Job Browser the workflow ends as **KILLED**. In the **Graph** tab the first two actions are green and `fail_on_purpose` is red. Click it to see its error message. The kill node uses that message in its own text, through `wf:errorMessage(...)`.
 
-Find three things in the file:
+   ![Killed workflow with the failed action marked](images/2_fail_on_purpose.png)
+3. Look at the XML tab: there is a third `<action>`, and `shell-d6bc` now has `<ok to="...">` pointing to it instead of `End`. The first two actions ran again and succeeded; Oozie does not undo them.
+4. Remove `fail_on_purpose` again (the **x** in the top right corner of the action) and save, so that the workflow succeeds in the next sections.
 
-- The `decision` node: the first `case` whose expression is true wins, otherwise `default`. `fs:exists()` and `fs:fileSize()` are **EL functions** that Oozie evaluates itself.
-- The `fs` action: `delete`, `mkdir` and `touchz` are done by the Oozie server, no container needed.
-- Two `kill` nodes with different messages.
-
-Create the properties. `inputFile` is the smart-meter sample, `workDir` is where the fs action works:
-
-```bash
-cd "${OOZIE_LOCAL}"
-cp common.properties landing.properties
-
-cat >> landing.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/landing-check
-inputFile=${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv
-workDir=${NAME_NODE}${OOZIE_HDFS}/work/landing-check
-EOF
-```
-
-Run it. The decision should take the first branch:
-
-```bash
-oozie job -config landing.properties -run
-```
-
-```bash
-export WF_ID="<job-id-from-the-output>"
-oozie job -info "${WF_ID}"
-hdfs dfs -ls -R "${OOZIE_HDFS}/work/landing-check"
-```
-
-The job is `SUCCEEDED` and the fs action created `archive` and `_CHECKED`.
-
-Run it again, but override `inputFile` on the command line with a file that does not exist. `-D` beats the value in the properties file:
-
-```bash
-oozie job -config landing.properties -D inputFile="${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr/does-not-exist.csv" -run
-```
-
-```bash
-export WF_ID="<job-id-from-the-output>"
-oozie job -info "${WF_ID}"
-```
-
-This time the job ends `KILLED`. Look at the table: which node is `KILLED`, and which message do you see?
-
-**Check question:** The script could also have failed on its own. Why is a `decision` and a named `kill` node with a readable message better for the person on call at night?
+**Check:** What are the two end states that a workflow can have? *(SUCCEEDED through the* `end` *node and KILLED through a* `kill` *node.)*
 
 ---
 
-## 4. Hive — the hive2 action
+## 3. Create a time-based schedule
 
-**Goal:** Run a Hive script from a workflow on a Kerberos-secured cluster.
+**Goal:** Start the workflow from a coordinator every few minutes, and read `coordinator.xml`.
 
-The `hive2` action runs your script through Beeline against HiveServer2. Copy the example and read the two parts that are new:
+A **coordinator** wraps a workflow. It knows *when* to start it (a frequency, between a start and an end time). Each start is a **coordinator action** with a **nominal time**: the time the run was *planned* for, which can differ from the time it actually started.
 
-```bash
-hdfs dfs -cp -f "${OOZIE_LAB}/apps/hive-summary" "${OOZIE_HDFS}/apps/"
-hdfs dfs -cat "${OOZIE_HDFS}/apps/hive-summary/workflow.xml"
-hdfs dfs -cat "${OOZIE_HDFS}/apps/hive-summary/station_summary.q"
+To make each run create its own folder, give the path a variable first. In the workflow editor, change the `make_dir` path to:
+
+```
+/user/<your_user>/oozie_lab/${wf_date}
 ```
 
-- The `credentials` block and `cred="hs2-creds"` on the action. The Oozie server has your identity but the launcher does not have your Kerberos ticket. The credential makes Oozie fetch a **delegation token** for HiveServer2 on your behalf.
-- The `param` lines hand values to the script as Hive variables (`${DB}`, `${INPUT_DIR}`, `${RUN_DATE}`).
+Save. Hue asks for a value of `wf_date` when you submit manually; the coordinator will fill it in.
 
-The script loads one folder as a **partition** of an external table and writes a per-station summary into a second table. The summary uses `INSERT OVERWRITE` on one partition, so running it twice does not duplicate rows.
+### 3.1 Build it
 
-Create the properties: the input folder is the shared meter sample and the run date matches its data:
+1. Open the **Schedule** editor (**Scheduler → Schedule**).
+2. Name it `every-5-min-<your_user>`.
+3. Under **Which workflow to schedule?** choose `hello-wf-<your_user>`.
+4. Under **How often?** tick **Advanced syntax** and enter the crontab expression `*/5 * * `* * (every 5 minutes).
+5. Set **From** to the current time (a few minutes ahead of now is fine) and **To** 20 minutes later. Leave the time zone as it is.
+6. In the **Parameters** section, set `wf_date` to the coordinator's date function. If the **Parameter** list does not offer it, type:
+   ```
+     ${coord:formatTime(coord:nominalTime(), 'yyyyMMddHHmm')}
+   ```
+7. **Save** and **Submit**.
 
-```bash
-cd "${OOZIE_LOCAL}"
-cp common.properties hive.properties
+   ![Schedule editor with crontab, time range and parameter](images/3_1_coordinator.png)
 
-cat >> hive.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/hive-summary
-inputDir=${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr
-runDate=2026-01-15
-EOF
+### 3.2 Look at the XML
+
+In the Job Browser open the **Schedules** tab, click your coordinator and switch to its **XML** tab. It shows the `coordinator.xml`.
+
+The file looks like this:
+
+```xml
+<coordinator-app name="every-5-min-<your_user>"
+  frequency="*/5 * * * *"
+  start="${start_date}" end="${end_date}" timezone="Europe/Berlin"
+  xmlns="uri:oozie:coordinator:0.2"
+  >
+  <controls>
+    <execution>FIFO</execution>
+  </controls>
+  <action>
+    <workflow>
+      <app-path>${wf_application_path}</app-path>
+      <configuration>
+        <property>
+            <name>wf_date</name>
+            <value>${coord:formatTime(coord:nominalTime(), 'yyyyMMddHHmm')}</value>
+        </property>
+        <property>
+            <name>oozie.use.system.libpath</name>
+            <value>True</value>
+        </property>
+        <property>
+            <name>start_date</name>
+            <value>${start_date}</value>
+        </property>
+        <property>
+            <name>end_date</name>
+            <value>${end_date}</value>
+        </property>
+      </configuration>
+   </workflow>
+  </action>
+</coordinator-app>
 ```
 
-```bash
-oozie job -config hive.properties -run
-```
+Read it from top to bottom:
 
-```bash
-export WF_ID="<job-id-from-the-output>"
-oozie job -info "${WF_ID}"
-```
+| In the XML | Meaning |
+|------------|---------|
+| `frequency` | How often an action is created. Here the crontab expression `*/5 * * * *`, every 5 minutes |
+| `start`, `end` | The window. Oozie creates one action per interval inside it |
+| `<execution>` | In which order waiting actions run; `FIFO` is first in, first out |
+| `<app-path>` | The workflow to start (the folder with `workflow.xml`) |
+| `<property>` in `<configuration>` | Parameters handed to the workflow for this run |
 
-When the job is `SUCCEEDED`, query the result in Beeline. Your database has the same name as your user:
+The variables `${start_date}`, `${end_date}` and `${wf_application_path}` come from the properties Hue submitted with the schedule. Look for them in the **Configuration** of the job.
 
-```bash
-beeline -e "SELECT * FROM ${WORKSHOP_USER}.oozie_station_summary"
-```
+### 3.3 Watch it run
 
-You should see one row per station for `load_date` `2026-01-15`.
+In the Job Browser open the **Schedules** tab and click your coordinator. The **Tasks** tab lists one row per interval, with the nominal time, the status, and for started runs the external id of the workflow.
 
-Run the same workflow a second time (same command as above), then count the rows per `load_date`:
+- **WAITING**: the nominal time has not been reached yet. **READY**: the action is created and waits to start. Then **RUNNING** and **SUCCEEDED**.
+- Wait until at least two actions have **SUCCEEDED**. Look in `/user/<your_user>/oozie_lab`: one folder per run, named after the nominal time.
 
-```bash
-oozie job -config hive.properties -run
-beeline -e "SELECT load_date, COUNT(*) FROM ${WORKSHOP_USER}.oozie_station_summary GROUP BY load_date"
-```
+![Coordinator actions with nominal times](images/3_2_schedules_list.png)
 
-Wait for the second job to finish before you run the query. The row count must not change.
+**Check:** What happens if you set **Start** one hour in the *past* instead? *(Oozie creates an action for every missed interval; this is catch-up. The nominal times are in the past, the actions all start immediately, subject to concurrency.)*
 
-**Check question:** What would have happened with `INSERT INTO` instead of `INSERT OVERWRITE`? Why does a scheduler make idempotent steps essential?
+Kill the schedule when you have seen enough: in the Job Browser select it and click **Kill**.
 
 ---
 
-## 5. Spark — the spark3 action
+## 4. Load data when it arrives
 
-**Goal:** Run a PySpark script from a workflow and see that it creates a second YARN application.
+**Goal:** Start a Hive job as soon as data has landed, and load it into the partition of the day.
 
-Copy the example. The PySpark script sits in the `lib` folder of the application:
+A coordinator can wait for a **dataset**: a folder that contains a **done-flag** file (by convention an empty file `_SUCCESS`). As long as the flag is missing, the action waits in state **WAITING**. When it appears, the workflow starts. The flag is how a producer says "the data in this folder is complete".
 
-```bash
-hdfs dfs -cp -f "${OOZIE_LAB}/apps/spark-weather" "${OOZIE_HDFS}/apps/"
-hdfs dfs -ls -R "${OOZIE_HDFS}/apps/spark-weather"
-hdfs dfs -cat "${OOZIE_HDFS}/apps/spark-weather/workflow.xml"
+The schedule does not check the folder once. At midnight Oozie creates the action *for that day*, and the action then waits and checks the dataset again and again until the flag appears. So the schedule says **which day** an action is for, and the dataset says **when it may start**. If the file arrives at 14:00, the action starts at 14:00.
+
+The pipeline has three steps:
+
+1. Files arrive in one landing folder in your home directory: `/user/<your_user>/oozie_lab/landing`, followed by the flag `_SUCCESS`.
+2. The workflow adds the partition of the day to a Hive table.
+3. The workflow loads the files of the landing folder into that partition. Loading moves them, so the folder is empty again for the next day.
+
+The table lives in the default warehouse location of Hive, not in the landing folder.
+
+### 4.1 Create the table
+
+Open **Editor → Hive**. Run this once (`${ws_user}` is the input field that Hue shows below the editor; enter your user name):
+
+```sql
+CREATE DATABASE IF NOT EXISTS ${ws_user};
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ${ws_user}.landing_meter (
+  ts_utc STRING, station_id STRING, device_id STRING, phase STRING,
+  active_power_kw DOUBLE, reactive_power_kvar DOUBLE, voltage_v DOUBLE,
+  current_a DOUBLE, power_factor DOUBLE, frequency_hz DOUBLE,
+  transformer_load_pct DOUBLE, quality_flag STRING, event_code STRING,
+  comm_status STRING
+)
+PARTITIONED BY (dt STRING)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+TBLPROPERTIES ('skip.header.line.count'='1', 'external.table.purge'='true');
 ```
 
-Compare with the `spark-submit` command of the Spark lab: `master`, `mode`, `jar` (here a `.py` file), `spark-opts` and the `arg` lines map one to one. The `prepare` block deletes the output folder before the job starts.
+The table has no `LOCATION`, so Hive puts it in the default warehouse folder. You do **not** add partitions or load data yourself. The workflow does that when the data arrives.
 
-```bash
-cd "${OOZIE_LOCAL}"
-cp common.properties spark.properties
+### 4.2 Create the workflow
 
-cat >> spark.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/spark-weather
-runDate=2026-01-15
-EOF
+1. In the **Storage Browser** create the file `/user/<your_user>/oozie_lab/load_partition.hql` (**New → File**), open it for editing and enter:
+   ```sql
+    ALTER TABLE ${ws_user}.landing_meter ADD IF NOT EXISTS PARTITION (dt='${day}');
+    LOAD DATA INPATH '${landing_dir}' INTO TABLE ${ws_user}.landing_meter PARTITION (dt='${day}');
+   ```
+
+    These are the two steps the workflow runs for each day. `${landing_dir}` is the landing folder; the coordinator will provide it. `LOAD DATA INPATH` **moves** the files out of the landing folder into the partition.
+2. Open **Scheduler → Workflow** and create `load-landing-wf-<your_user>`. Drag a **Hive** (HiveServer2) action onto the canvas, name it `load_partition` and choose the file as its script.
+3. Add three parameters, one per line:
+   - `ws_user=${wf:user()}`
+   - `day=${wf_date}`
+   - `landing_dir=${landing_dir}`
+
+    `wf:user()` is the user who runs the workflow; `wf_date` and `landing_dir` come from the coordinator.
+4. In the **Credentials** tab of the action, tick **hive2**. On a Kerberos cluster Oozie needs it to log in to HiveServer2.
+5. **Save**.
+
+   ![Hive action with script and parameters](images/4_2_hive_workflow.png)
+
+### 4.3 Create the schedule
+
+1. Open **Scheduler → Schedule** and name it `on-landing-<your_user>`.
+2. Choose the workflow `load-landing-wf-<your_user>`.
+3. Tick **Advanced syntax** and set the crontab to ``0 0 * * *`` (daily at midnight), with **From** today 00:00 and **To** a few days later. A day is the natural unit: one landing folder per day.
+4. The **Parameters** section now lists `wf_date` and `landing_dir`, the two variables of the workflow. Set `wf_date` to `${coord:formatTime(coord:nominalTime(), 'yyyyMMdd')}`.
+5. For `landing_dir` change the type of the value from **Parameter** to **Input Path** (the button next to the value). Hue creates the dataset for you, so there is no name to enter. Fill in:
+   - Path: `/user/<your_user>/oozie_lab/landing` (with your own user name). Hue shows the result at the right (`Will convert to ...`) and puts `${nameNode}` in front of it.
+   - Tick **Done flag** and enter `_SUCCESS`.
+   - Leave **Same frequency**, **Same start** and **Same timezone** ticked, and **Instance** on **Default**. The path has no date, so the frequency does not change which folder is checked.
+
+    ![Schedule editor with the input path](images/4_3_hive_coordinator.png)
+6. **Save** and **Submit**.
+
+### 4.4 Look at the XML
+
+Open the **XML** tab of the new coordinator in the Job Browser. Compared with the time-based one there are new blocks: `<datasets>`, `<input-events>` and one more property. Hue names the dataset after the parameter, here `landing_dir`:
+
+```xml
+<coordinator-app name="on-landing-<your_user>"
+  frequency="0 0 * * *"
+  start="${start_date}" end="${end_date}" timezone="Europe/Berlin"
+  xmlns="uri:oozie:coordinator:0.2"
+  >
+  <controls>
+    <execution>FIFO</execution>
+  </controls>
+  <datasets>
+    <dataset name="landing_dir" frequency="${coord:days(1)}"
+             initial-instance="${start_date}" timezone="Europe/Berlin">
+      <uri-template>${nameNode}/user/<your_user>/oozie_lab/landing</uri-template>
+      <done-flag>_SUCCESS</done-flag>
+    </dataset>
+  </datasets>
+  <input-events>
+    <data-in name="landing_dir" dataset="landing_dir">
+    <instance>${coord:current(0)}</instance>
+    </data-in>
+  </input-events>
+  <action>
+    <workflow>
+      <app-path>${wf_application_path}</app-path>
+      <configuration>
+          <property>
+            <name>landing_dir</name>
+            <value>${coord:dataIn('landing_dir')}</value>
+          </property>
+        <property>
+            <name>wf_date</name>
+            <value>${coord:formatTime(coord:nominalTime(), &#x27;yyyyMMdd&#x27;)}</value>
+        </property>
+        <property>
+            <name>oozie.use.system.libpath</name>
+            <value>True</value>
+        </property>
+        <property>
+            <name>start_date</name>
+            <value>${start_date}</value>
+        </property>
+        <property>
+            <name>end_date</name>
+            <value>${end_date}</value>
+        </property>
+      </configuration>
+   </workflow>
+  </action>
+</coordinator-app>
 ```
 
-```bash
-oozie job -config spark.properties -run
-```
+- `<dataset>` describes *where* the data lives and which file marks it complete. The path has no date in it: it is the same folder every day. Its `frequency` is `${coord:days(1)}` (from **Same frequency**), even though the schedule itself uses a crontab.
+- `<data-in>` says: this coordinator action needs the instance of the dataset that belongs to its own nominal time (`coord:current(0)`).
+- The first `<property>` of the action, `landing_dir`, gets its value from `${coord:dataIn('landing_dir')}`: the full path of the dataset instance. This is how the folder reaches your `LOAD DATA` statement.
 
-```bash
-export WF_ID="<job-id-from-the-output>"
-oozie job -info "${WF_ID}"
-```
+**Check:** Why is `_SUCCESS` better than "the folder exists"? *(A producer creates the folder first and fills it afterwards; the flag is written last, so the consumer never reads half-written data.)*
 
-While the job runs, list the YARN applications from a second terminal:
+### 4.5 Let the data arrive
 
-```bash
-yarn application -list
-```
+1. In the Job Browser open the **Schedules** tab and your coordinator. All actions are **WAITING**. The column `missingDependencies` shows what Oozie waits for: `.../oozie_lab/landing/_SUCCESS`.
 
-You should see two applications from your run: the Oozie **launcher** (name starts with `oozie:launcher`) and the Spark application `weather-daily`. When the workflow is `SUCCEEDED`, look at the output:
+   ![Coordinator actions waiting for the flag](images/4_5_coordinator_waiting.png)
 
-```bash
-hdfs dfs -ls "${OOZIE_HDFS}/out/weather_daily/2026-01-15"
-```
+2. In the **Storage Browser** open `/user/<your_user>/oozie_lab` and create the folder `landing`. Then go to the workshop folder (`/2026_cdp_workshop/data/landisgyr`, or the root your trainer named), select `sample-landisgyr-data.csv` and use **Actions → Copy** to copy it into the `landing` folder. The actions keep waiting: the flag is still missing.
 
-You should see `_SUCCESS` and one Parquet file.
+   ![Copy the sample file to the landing folder](images/4_5_copy_file_to_landing.png)
 
-**Check question:** Which of the two YARN applications does the **Ext ID** in `oozie job -info` point to? Where would you look for the Spark driver log?
+3. Now create an empty file `_SUCCESS` in the `landing` folder (**New → File**).
+4. Refresh the coordinator. The first action turns **SUCCEEDED** and has started your workflow. The other actions are still **WAITING**: the Hive job moved the files, and the flag with them, so there is nothing left to wait for until the next file arrives.
+
+   ![The first action succeeded](images/4_5_coordinator_landing_first_success.png)
+
+5. In **Editor → Hive** check the result:
+
+   ```sql
+   SHOW PARTITIONS ${ws_user}.landing_meter;
+   SELECT dt, COUNT(*) FROM ${ws_user}.landing_meter GROUP BY dt;
+   ```
+
+   ![Partition and row count in the Hive editor](images/4_5_partition_and_row_count.png)
+
+**Check:** In which state is the coordinator action as long as `_SUCCESS` is missing, and what is its *nominal time* when it finally starts? *(WAITING; the nominal time stays the day the action was planned for, not the time the file arrived.)*
 
 ---
 
-## 6. A pipeline — fork, join, failure and rerun
+## 5. Clean up
 
-**Goal:** Run Hive and Spark in parallel, break one branch on purpose, and repair it with a rerun.
+1. In the Job Browser kill your running coordinators (`every-5-min-<your_user>`, `on-landing-<your_user>`), if they are still running.
+2. In **Editor → Hive** run `DROP TABLE ${ws_user}.landing_meter;`. The table has `external.table.purge`, so this also deletes its data.
+3. Delete the folders you created if you want a clean home directory:
 
-The `meter-daily` application combines the pieces: check the input, then **fork** into the Hive branch and the Spark branch, then **join**. Copy it and find `fork`, `join` and the second `kill` node:
+   Storage Browser → `/user/<your_user>/oozie_lab` → select → **Delete** (with **Skip Trash**).
+4. The workflows and schedules stay in your Hue documents; delete them from the editors if you like.
 
-```bash
-hdfs dfs -cp -f "${OOZIE_LAB}/apps/meter-daily" "${OOZIE_HDFS}/apps/"
-hdfs dfs -cat "${OOZIE_HDFS}/apps/meter-daily/workflow.xml"
-```
-
-Create the properties and run it:
-
-```bash
-cd "${OOZIE_LOCAL}"
-cp common.properties pipeline.properties
-
-cat >> pipeline.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/meter-daily
-inputDir=${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr
-runDate=2026-01-15
-EOF
-```
-
-```bash
-oozie job -config pipeline.properties -run
-```
-
-```bash
-export WF_ID="<job-id-from-the-output>"
-oozie job -info "${WF_ID}"
-```
-
-Both branches (`summary` and `weather-daily`) appear in the table with overlapping start times. The workflow succeeds only when both reach the join.
-
-Now break the Spark branch. Run the same application with a wrong weather folder:
-
-```bash
-oozie job -config pipeline.properties -D weatherDir="${NAME_NODE}${WORKSHOP_ROOT}/data/operator_weather_typo" -run
-```
-
-```bash
-export WF_ID="<job-id-from-the-output>"
-oozie job -info "${WF_ID}"
-```
-
-The job ends `KILLED`. Look at the **Status** and **Err Code** of each action and the error message of the kill node. Find the reason in the log of the failing launcher or Spark application, like you did in section 2.
-
-You do not need to start from the beginning. A **rerun** re-executes only the nodes that did not succeed. `pipeline.properties` has the correct `weatherDir`, so you pass it without the override:
-
-```bash
-oozie job -rerun "${WF_ID}" -config pipeline.properties -D oozie.wf.rerun.failnodes=true
-```
-
-```bash
-oozie job -info "${WF_ID}"
-```
-
-Repeat `-info` until the job is `SUCCEEDED`. It keeps its job ID, the `Run` counter in the job header went from 0 to 1, and a node that had already succeeded was not executed again.
-
-**Check question:** Why does a rerun of a workflow that loads data need every step to be idempotent?
-
----
-
-## 7. Coordinator — start a workflow on a schedule
-
-**Goal:** Run the `landing-check` workflow every five minutes and understand **nominal time**.
-
-A **coordinator** is a second Oozie application type. It does not do work; it creates workflow runs ("actions") for time slots. Copy the coordinator definition and read it:
-
-```bash
-hdfs dfs -cp -f "${OOZIE_LAB}/coord/landing-check-coord" "${OOZIE_HDFS}/coord/"
-hdfs dfs -cat "${OOZIE_HDFS}/coord/landing-check-coord/coordinator.xml"
-```
-
-Find `frequency`, `start`, `end`, the `controls` and the `workflow` with its `app-path`. The workflow gets a different `workDir` per run, built from the **nominal time** — the time slot the action is for.
-
-Choose a window that starts ten minutes in the past and ends ten minutes from now. `date` gives the UTC times in the format Oozie expects:
-
-```bash
-export START=$(date -u -d '10 minutes ago' +%Y-%m-%dT%H:%MZ)
-export END=$(date -u -d '10 minutes' +%Y-%m-%dT%H:%MZ)
-echo "${START} ${END}"
-```
-
-```bash
-cd "${OOZIE_LOCAL}"
-cp common.properties landing-coord.properties
-
-cat >> landing-coord.properties <<EOF
-oozie.coord.application.path=${NAME_NODE}${OOZIE_HDFS}/coord/landing-check-coord
-wfAppPath=${NAME_NODE}${OOZIE_HDFS}/apps/landing-check
-start=${START}
-end=${END}
-inputFile=${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv
-workRoot=${NAME_NODE}${OOZIE_HDFS}/work/landing-check-coord
-EOF
-```
-
-A **dry run** shows what the coordinator would create without starting anything:
-
-```bash
-oozie job -dryrun -config landing-coord.properties
-```
-
-Look for the nominal times in the output: one every five minutes between `start` and `end`. Now start it. The job ID ends with `-C` (coordinator):
-
-```bash
-oozie job -config landing-coord.properties -run
-```
-
-```bash
-export COORD_ID="<job-id-from-the-output>"
-oozie job -info "${COORD_ID}"
-```
-
-The table now lists coordinator **actions**:
-
-- **ID** — `<coordinator-id>@<number>`
-- **Status** — `WAITING`, `READY`, `RUNNING`, `SUCCEEDED`, …
-- **Ext ID** — the workflow job started for this slot
-- **Created** and **Nominal Time** — when Oozie created the action, and which slot it represents
-
-The first actions have a nominal time in the past: Oozie **catches up** and runs them right away (one at a time, because of `concurrency` 1). The later slots wait for their time.
-
-Continue with section 8 while the coordinator works. Come back after about ten minutes:
-
-```bash
-oozie job -info "${COORD_ID}"
-hdfs dfs -ls "${OOZIE_HDFS}/work/landing-check-coord"
-```
-
-The coordinator ends `SUCCEEDED` after the last action. In the work folder you should see one sub-folder per nominal time, named like `20261101_1805`.
-
-**Check question:** The folder names show the nominal time, not the time the workflow actually ran. Why is that the right choice for a daily load that has to be rerun after a failure?
-
----
-
-## 8. Coordinator — start a workflow when data arrives
-
-**Goal:** Let a coordinator wait for a folder with a done-flag and start the pipeline only then.
-
-Time is not always the right trigger. Often the data source delivers "when it is ready". A coordinator can wait for a **dataset** instance. Copy this second coordinator and read it:
-
-```bash
-hdfs dfs -cp -f "${OOZIE_LAB}/coord/meter-daily-coord" "${OOZIE_HDFS}/coord/"
-hdfs dfs -cat "${OOZIE_HDFS}/coord/meter-daily-coord/coordinator.xml"
-```
-
-Find the `dataset` with its `uri-template` (one folder per day) and `done-flag`, the `input-events` that name the instance `coord:current(0)` (= the folder of the nominal day), and how `coord:dataIn('input')` hands that folder to the workflow as `inputDir`.
-
-Define the day. The coordinator runs for today in UTC and has one action:
-
-```bash
-export TODAY=$(date -u +%Y%m%d)
-export DAILY_START=$(date -u +%Y-%m-%dT00:00Z)
-export DAILY_END=$(date -u -d tomorrow +%Y-%m-%dT00:00Z)
-```
-
-```bash
-cd "${OOZIE_LOCAL}"
-cp common.properties daily-coord.properties
-
-cat >> daily-coord.properties <<EOF
-oozie.coord.application.path=${NAME_NODE}${OOZIE_HDFS}/coord/meter-daily-coord
-wfAppPath=${NAME_NODE}${OOZIE_HDFS}/apps/meter-daily
-start=${DAILY_START}
-end=${DAILY_END}
-landingRoot=${NAME_NODE}${OOZIE_HDFS}/landing
-EOF
-```
-
-Start the coordinator. The landing folder for today does not exist yet:
-
-```bash
-oozie job -config daily-coord.properties -run
-```
-
-```bash
-export DAILY_ID="<job-id-from-the-output>"
-oozie job -info "${DAILY_ID}"
-```
-
-After a minute the single action is `WAITING`. Ask for the details of that action to see what it waits for:
-
-```bash
-oozie job -info "${DAILY_ID}@1"
-```
-
-Find **Missing Dependencies**: the path of the `_SUCCESS` file for today.
-
-Now act as the data source. First deliver the data **without** the flag:
-
-```bash
-hdfs dfs -mkdir -p "${OOZIE_HDFS}/landing/${TODAY}"
-hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${OOZIE_HDFS}/landing/${TODAY}/"
-oozie job -info "${DAILY_ID}@1"
-```
-
-The action stays `WAITING`: the file is there, but nobody said it is complete. Now write the done-flag, the same empty file a Spark or MapReduce job writes at the end:
-
-```bash
-hdfs dfs -touchz "${OOZIE_HDFS}/landing/${TODAY}/_SUCCESS"
-```
-
-Oozie checks the input about once a minute. Repeat until the action is `RUNNING` and a workflow ID appears in **Ext ID**, then follow that workflow to `SUCCEEDED`:
-
-```bash
-oozie job -info "${DAILY_ID}"
-oozie job -info "<workflow-id-from-the-ext-id-column>"
-```
-
-The pipeline ran for today's partition. Check both outputs:
-
-```bash
-beeline -e "SELECT load_date, COUNT(*) FROM ${WORKSHOP_USER}.oozie_station_summary GROUP BY load_date"
-hdfs dfs -ls "${OOZIE_HDFS}/out/weather_daily"
-```
-
-You should see a second `load_date` and a second output folder, named like today's date.
-
-**Check question:** What is the difference between waiting for a time and waiting for a `_SUCCESS` file when the source system delivers late? What does `timeout` in the coordinator do about it?
-
----
-
-## 9. Monitor and clean up
-
-**Goal:** Find your jobs, control a running coordinator, and leave nothing running.
-
-List your recent workflows and your coordinators:
-
-```bash
-oozie jobs -jobtype wf -filter "user=${WORKSHOP_USER}" -len 20
-oozie jobs -jobtype coordinator -filter "user=${WORKSHOP_USER}" -len 10
-```
-
-The daily coordinator is still `RUNNING`: its end time is tomorrow. Pause it, look at the state, and resume it:
-
-```bash
-oozie job -suspend "${DAILY_ID}"
-oozie job -info "${DAILY_ID}"
-oozie job -resume "${DAILY_ID}"
-```
-
-Never leave test coordinators running. Kill it:
-
-```bash
-oozie job -kill "${DAILY_ID}"
-oozie job -info "${DAILY_ID}"
-```
-
-The status is `KILLED`. Check that the time-based coordinator from section 7 has ended or kill it too.
-
-**Optional — look at it in Hue.** Open **Jobs** in Hue (Job Browser) and switch to the **Workflows** and **Schedules** tabs. Open `meter-daily-wf`: Hue draws the graph with the fork and the join, and links to the logs of each action.
-
----
-
-## Stretch (optional)
-
-- Add an **email** action to the `error` path of `meter-daily` (needs an SMTP server configured in Oozie; ask your instructor).
-- Start the time-based coordinator with `<execution>LAST_ONLY</execution>` and compare what happens to the catch-up slots.
-- Rerun a single coordinator action: `oozie job -rerun "${COORD_ID}" -action 1`.
-- Read the schema of the `bundle` application type: one bundle starts several coordinators together (for example one per data source).
-- Change the end time of a running coordinator: `oozie job -change "${COORD_ID}" -value endtime=<time>`.
 
 ---
 
 ## Self-check
 
-From the repo on the edge node (with `OOZIE_URL` exported as above):
+You can answer yes to all of these:
 
-```bash
-./08-basics-oozie/lab/check.sh
-```
+- I can name the three kinds of jobs in the Job Browser.
+- I found `workflow.xml` and `coordinator.xml` in the Storage Browser and can say which UI field produced which element.
+- I know what a kill node is and saw a workflow end as **KILLED**.
+- I can explain frequency, nominal time and catch-up.
+- I can explain dataset, done-flag and input event.
+- I found the launcher of an action on YARN or in its log.
 
-If something fails, see [troubleshooting.md](troubleshooting.md).
+---
+
+## Stretch — fork and join
+
+1. Copy the workflow (**Save as** `fork-wf-<your_user>`).
+2. Drag a **Fork** onto the canvas so that `say_hello` and a second shell action `say_bye` (`echo bye`) run in parallel. Hue adds the matching **Join**.
+3. Save and submit. In the Job Browser both actions run at the same time.
+4. Open the new XML and find `<fork>` with two `<path start="..."/>` elements and the `<join>` node. In the Job Browser, open the workflow graph.
+
+![Workflow canvas with fork and join](images/stretch_fork_join.png)
+
+**Question:** What happens if one branch fails? *(The join is never reached; the failed action goes to the kill node and the workflow is KILLED. Module 11 shows how to rerun only the failed part.)*
+
+---
+
+## What Hue generated, and what it did not
+
+Reading the XML shows what the UI can and cannot do. In module [11-advanced-oozie](../../11-advanced-oozie/README.md) you write the same files by hand and add what the editors do not offer:
+
+- `hive2` and `spark3` actions with the **credential** a Kerberos cluster needs
+- **Decision** nodes with a named failure path
+- **Rerun** of only the failed actions
+- Applications kept in Git and deployed with a script, instead of folders generated by Hue

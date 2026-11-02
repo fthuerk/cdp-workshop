@@ -9,5 +9,5 @@ load_config
 
 require_admin_hdfs_kinit
 
-hdfs dfs -rm -r -f -skipTrash "${WORKSHOP_ROOT}/08-oozie"
-log_info "Removed ${WORKSHOP_ROOT}/08-oozie (participant folders /user/<name>/oozie and Oozie jobs are kept)"
+hdfs dfs -rm -r -f -skipTrash "${WORKSHOP_ROOT}/11-oozie"
+log_info "Removed ${WORKSHOP_ROOT}/11-oozie (participant folders /user/<name>/oozie and Oozie jobs are kept)"

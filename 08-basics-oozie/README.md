@@ -1,57 +1,52 @@
-# Module 08 — Basics: Oozie
+# Module 08 — Basics: Oozie in Hue
 
-Scheduling and orchestration for the grid monitoring use case: build a small daily pipeline (check the landing folder, summarize meter data in Hive, summarize operator weather in Spark) as an **Oozie workflow**, then start it on a schedule and when the data arrives with **coordinators**.
+A guided tour through the Oozie editors in Hue. You build a **workflow**, a **time-based coordinator** and a **data-triggered coordinator** (which loads a daily Hive partition) with the mouse, run them, and then open the generated XML to see what Hue wrote for you. You type no XML.
 
-**Estimated time:** ~110 minutes (workflows ~70 min, coordinators ~30 min, wrap-up ~10 min; optional Hue view and stretch).
+The same pipeline written by hand, with Hive and Spark actions, is module [11-advanced-oozie](../11-advanced-oozie/README.md).
+
+**Estimated time:** ~70 minutes (workflow ~25 min, coordinators ~35 min, wrap-up ~10 min).
 
 ## Prerequisites
 
-- Module [00-setup](../00-setup/README.md) complete (`check_env.sh` passes)
-- Valid Kerberos ticket (`WORKSHOP_USER` + `kinit`)
-- The `oozie` command on the edge node and the Oozie server URL (from your handout)
-- Hive and Spark must be usable with your account (same rights as in the Hive and Spark labs)
+- Module [00-setup](../00-setup/README.md) complete (workshop root and sample data exist)
+- Hue URL and login from your handout (the same user as `WORKSHOP_USER`)
+- No terminal is required; the optional Kerberos and YARN checks use the edge node
 
 ## Learning goals
 
 After this module you can:
 
-- Explain the parts of an Oozie application: `workflow.xml` on HDFS, `job.properties` on the edge node, launcher, and why `oozie.use.system.libpath=true` uses the cluster ShareLib
-- Write and run a workflow with a shell action; find the launcher on YARN and read its log
-- Use **control nodes** (decision, fork, join, kill) and **EL functions** to build a workflow that checks its input and fails with a clear message
-- Run **fs**, **hive2** and **spark3** actions, including the credential that a Kerberos cluster needs for Hive
-- Read job and action states with `oozie job -info`, and **rerun** only the failed part of a workflow
-- Start a workflow with a **time-based coordinator** and explain nominal time and catch-up
-- Start a workflow with a **data-triggered coordinator** using a dataset and a `_SUCCESS` done-flag
-- Suspend, resume and kill jobs, and name the usual alternatives for new pipelines
+- Find the **Workflow** and **Schedule** editors and the **Job Browser** in Hue
+- Build a workflow with a shell action and an fs action, and explain start, action, **kill** and end nodes
+- Read the generated `workflow.xml` and `job.properties`-style parameters and map each UI field to an XML element
+- Create a **time-based coordinator**, and explain frequency, start/end and nominal time
+- Create a **data-triggered coordinator** with a dataset and a `_SUCCESS` done-flag that runs a Hive action to add a daily partition, and read `coordinator.xml`
+- Follow workflows and coordinator actions in the Job Browser, and kill what you started
 
 ## Flow
 
 | Phase | Content |
 |-------|---------|
-| Concept (trainer) | Where Oozie sits (server, database, launcher, YARN); workflow vs coordinator vs bundle; why a scheduler needs idempotent steps |
-| Core lab | [lab_basics_oozie.md](lab/lab_basics_oozie.md) sections 1–9 |
-| Optional | Hue job browser view (end of section 9) and stretch tasks |
-| Self-check | `./08-basics-oozie/lab/check.sh` |
+| Concept (trainer) | Server, launcher, workflow vs coordinator; what Hue generates and where it stores it |
+| Core lab | [lab_basics_oozie.md](lab/lab_basics_oozie.md) sections 0–5 |
+| Stretch | Fork and join, a second action type (same lab, end) |
+
+## Screenshots
+
+The lab has placeholders for screenshots. The list of files to produce is in [lab/images/README.md](lab/images/README.md).
 
 ## Trainer materials
 
-- [trainer/notes.md](trainer/notes.md) — timing, check-question answers, pitfalls  
-- [trainer/demos.md](trainer/demos.md) — email action, bundle, SLA, Hue editor (trainer-only)  
-- [trainer/deep-dive.md](trainer/deep-dive.md) — how Oozie works, action catalog, CDP specifics, Oozie and its successors
+- [trainer/notes.md](trainer/notes.md) — timing, check-question answers, pitfalls
+- [trainer/deep-dive.md](trainer/deep-dive.md) — fs vs. shell actions, `capture-output`, what Hue generates
 
 ## Admin (before session)
 
-```bash
-./00-setup/admin/bootstrap.sh
-./08-basics-oozie/setup/setup.sh
-./08-basics-oozie/setup/verify.sh
-```
-
-Set `OOZIE_URL` in `config.env` first so `verify.sh` can check the server and the ShareLib (`hive2`, `spark3`). Details and cluster prerequisites (hive2 credential, YARN capacity for launchers) are in [trainer/notes.md](trainer/notes.md).
+No module setup is needed. Check that your Hue has the Oozie editors enabled and that the Oozie service is running (see [trainer/notes.md](trainer/notes.md)).
 
 ## Next module
 
-[10-advanced-hive](../10-advanced-hive/README.md), or the instructor-led modules [I1-basics-atlas](../I1-basics-atlas/README.md) and [I2-basics-ranger](../I2-basics-ranger/README.md).
+[11-advanced-oozie](../11-advanced-oozie/README.md) (the same topics by hand), or [10-advanced-hive](../10-advanced-hive/README.md).
 
 ---
 *The generation of these labs was supported by AI.*

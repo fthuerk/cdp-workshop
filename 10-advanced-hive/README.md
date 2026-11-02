@@ -45,7 +45,7 @@ The lab is self-contained and safe to repeat: section 0 creates its own database
 
 ## Next module
 
-[11-advanced-spark](../11-advanced-spark/README.md) (planned)
+[12-advanced-spark](../12-advanced-spark/README.md) (planned)
 
 ---
 *The generation of these labs was supported by AI.*

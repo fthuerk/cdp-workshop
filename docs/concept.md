@@ -71,13 +71,13 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 | **05-basics-impala** | Impala fundamentals | 01 | ~45 min | Interactive SQL; Hive vs Impala timing; UPDATE/DELETE errors on external tables |
 | **06-basics-spark** | Spark on YARN | 03, 04 | ~90 min | PySpark cleanse/join on meter and weather CSVs; Parquet curated output; `spark-submit`; external table in `{USER}` |
 | **07-lakehouse-iceberg** | Lakehouse with Iceberg | 04, 05 | ~120 min | Idempotent loads by hand vs Iceberg; `UPDATE`/`DELETE`/`MERGE` in Hue/Impala; files on HDFS; time travel, snapshot isolation, rollback; joins |
-| **08-basics-oozie** | Oozie workflows and coordinators | 03, 04, 06 | ~110 min | Shell, fs, hive2, spark3 actions; decision, fork/join, kill; rerun of failed nodes; time-based and data-triggered (`_SUCCESS`) coordinators on the use case data |
+| **08-basics-oozie** | Oozie in Hue (UI tour) | 03, 04 | ~70 min | Build a workflow, a time-based and a data-triggered coordinator (Hive action adds a daily partition) in the Hue editors; read the generated `workflow.xml` and `coordinator.xml`; follow runs in the Job Browser |
 | **I1-basics-atlas** | Atlas UI (metadata & lineage) | 04 | ~20 min | Hive tables in Hue; search entities in Atlas; CTAS lineage; classifications with propagation; business glossary term assignment |
 | **I2-basics-ranger** | Ranger (Hive authorization) | 04 | ~30 min | Shared `ranger_lab` tables; allow/deny; column masking; row-level filter; Ranger audit (policies created live by trainer) |
 | **10-advanced-hive** | Advanced Hive SQL | 04 | ~75 min | Complex joins, window functions (rank, lag, running totals), complex types, ROLLUP, WKT geo data on use case |
-| **11-advanced-spark** | Spark pipelines | 06, 10 | ~90 min | Multi-source alignment, derived features |
-| **12-advanced-impala** | Impala for analytics | 05, 11 | ~60 min | Aggregations, KPIs for pilot sensors |
-| **13-advanced-oozie** | Workflow orchestration (advanced) | 08, 11 | ~75 min | Builds on 08: bundles, SLA, email alerts, sub-workflows, parametrized pipeline with a quality gate |
+| **11-advanced-oozie** | Oozie workflows and coordinators by hand | 03, 04, 06, 08 | ~110 min | Shell, fs, hive2, spark3 actions; decision, fork/join, kill; rerun of failed nodes; time-based and data-triggered (`_SUCCESS`) coordinators written as XML on the use case data |
+| **12-advanced-spark** | Spark pipelines | 06, 10 | ~90 min | Multi-source alignment, derived features |
+| **13-advanced-impala** | Impala for analytics | 05, 12 | ~60 min | Aggregations, KPIs for pilot sensors |
 | **20-mvp-pipeline** | Full pipeline | 10–13 | ~120 min | End-to-end run, documentation, governance checklist |
 
 ## Use case data on HDFS

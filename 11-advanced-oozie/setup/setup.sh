@@ -10,8 +10,8 @@ load_config
 require_admin_hdfs_kinit
 require_cmd hdfs
 
-MODULE_ROOT="${WORKSHOP_ROOT}/08-oozie"
-LOCAL_ASSETS="${WORKSHOP_LOCAL}/08-basics-oozie/assets"
+MODULE_ROOT="${WORKSHOP_ROOT}/11-oozie"
+LOCAL_ASSETS="${WORKSHOP_LOCAL}/11-advanced-oozie/assets"
 
 for dataset in landisgyr/sample-landisgyr-data.csv operator_weather/sample-operator-weather.csv; do
   if ! hdfs dfs -test -e "${WORKSHOP_ROOT}/data/${dataset}"; then
@@ -55,5 +55,5 @@ done
 hdfs dfs -chmod -R 755 "${MODULE_ROOT}"
 
 log_info "Oozie module setup complete under ${MODULE_ROOT}"
-log_warn "Check the platform side with 08-basics-oozie/setup/verify.sh (Oozie URL, ShareLib, hive2 credential)."
+log_warn "Check the platform side with 11-advanced-oozie/setup/verify.sh (Oozie URL, ShareLib, hive2 credential)."
 log_warn "Ranger: same Hive {USER} pattern as module 04; Oozie runs actions as the participant (proxy user)."

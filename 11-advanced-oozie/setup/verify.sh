@@ -10,7 +10,7 @@ load_config
 require_admin_hdfs_kinit
 require_cmd hdfs
 
-MODULE_ROOT="${WORKSHOP_ROOT}/08-oozie"
+MODULE_ROOT="${WORKSHOP_ROOT}/11-oozie"
 
 fail=0
 check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
@@ -37,4 +37,4 @@ else
 fi
 
 if [[ ${fail} -ne 0 ]]; then exit 1; fi
-echo "08-basics-oozie setup verify complete."
+echo "11-advanced-oozie setup verify complete."

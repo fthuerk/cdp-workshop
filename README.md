@@ -24,20 +24,20 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 | 05 | [Basics: Impala](05-basics-impala/README.md) | Basics | ~45 min | Draft (not yet dry-run on a cluster) |
 | 06 | [Basics: Spark](06-basics-spark/README.md) | Basics | ~90 min | Draft (not yet dry-run on a cluster) |
 | 07 | [Lakehouse: Iceberg](07-lakehouse-iceberg/README.md) | Lakehouse | ~120 min | Draft (not yet dry-run on a cluster) |
-| 08 | [Basics: Oozie](08-basics-oozie/README.md) | Basics | ~110 min | Draft (not yet dry-run on a cluster) |
+| 08 | [Basics: Oozie in Hue](08-basics-oozie/README.md) | Basics | ~70 min | Draft (not yet dry-run on a cluster) |
 | I1 | [Instructor-led: Atlas](I1-basics-atlas/README.md) | Instructor-led | ~20 min | Draft (not yet dry-run on a cluster) |
 | I2 | [Instructor-led: Ranger](I2-basics-ranger/README.md) | Instructor-led | ~30 min | Draft (not yet dry-run on a cluster) |
 | 10 | [Advanced: Hive](10-advanced-hive/README.md) | Advanced | ~75 min | Draft (not yet dry-run on a cluster) |
-| 11 | Advanced: Spark | Advanced | ~90 min | Planned |
-| 12 | Advanced: Impala | Advanced | ~60 min | Planned |
-| 13 | Advanced: Oozie (bundles, SLA, alerts, quality gate) | Advanced | ~75 min | Planned |
+| 11 | [Advanced: Oozie](11-advanced-oozie/README.md) | Advanced | ~110 min | Draft (not yet dry-run on a cluster) |
+| 12 | Advanced: Spark | Advanced | ~90 min | Planned |
+| 13 | Advanced: Impala | Advanced | ~60 min | Planned |
 | 20 | MVP: Full pipeline | MVP | ~120 min | Planned |
 
 **Basics track:** Kerberos → HDFS → YARN → Hive → Spark → Impala  
 **Lakehouse:** Iceberg tables in Hue/Impala (after Hive and Impala basics)  
-**Orchestration:** Oozie workflows and coordinators (after Hive and Spark; `13` goes deeper)  
+**Orchestration:** Oozie: `08` is a Hue UI tour, `11` builds the same pipeline by hand (workflow XML, Hive and Spark actions, coordinators)  
 **Instructor-led (`I1`, `I2`):** Atlas and Ranger are driven live by the trainer in the UI (policies and tags change while you watch), so they are numbered separately and can be dropped into any day  
-**Advanced track:** Hive → Spark → Impala → Oozie (deeper patterns on the same use case)  
+**Advanced track:** Hive → Oozie → Spark → Impala (deeper patterns on the same use case)  
 **MVP:** end-to-end pipeline with quality checks and governance touchpoints
 
 See [docs/concept.md](docs/concept.md) for learning objectives, dependencies, and fallbacks.
@@ -59,7 +59,8 @@ data/samples/        # synthetic CSVs (uploaded to HDFS by bootstrap)
 05-basics-impala/    # Impala lab + trainer + setup scripts
 06-basics-spark/     # Spark lab + trainer + setup scripts
 07-lakehouse-iceberg/ # Lakehouse lab (Iceberg in Hue/Impala) + trainer + setup scripts
-08-basics-oozie/     # Oozie lab (workflows, actions, coordinators) + trainer + example applications
+08-basics-oozie/     # Oozie tour through Hue (workflow, coordinators, generated XML) + trainer
+11-advanced-oozie/   # Oozie by hand (workflows, actions, coordinators) + trainer + example applications
 I1-basics-atlas/     # Atlas UI lab (metadata, lineage, tags, glossary) + trainer
 I2-basics-ranger/    # Ranger lab (allow, deny, masking, row filter) + trainer + setup scripts
 docs/concept.md              # curriculum concept
