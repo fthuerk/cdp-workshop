@@ -53,11 +53,10 @@ pyspark    # on a Kerberized edge node: kinit first
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
-spark.sql("CREATE DATABASE IF NOT EXISTS tour_spark")
-spark.sql("USE tour_spark")
+spark.sql("CREATE DATABASE IF NOT EXISTS <username>")
+spark.sql("USE <username>")
 
 spark.version                  # which Spark are we on?
-spark.sparkContext.uiWebUrl    # Spark UI of this session; keep it open in a browser tab
 ```
 
 `spark` is the `SparkSession`, the single entry point for DataFrames, SQL and the catalog.
@@ -140,6 +139,63 @@ rows = [("M3", dt.datetime(2026, 1, 3, 8, 0), 3.2),
 more = spark.createDataFrame(rows, schema)
 more.printSchema()
 ```
+
+### Demo: when `inferSchema` guesses wrong
+
+Meter IDs with leading zeros and one dirty value (`n/a`) in a numeric column. The CSV lines are inline, no file needed:
+
+```python
+lines = spark.sparkContext.parallelize([
+    "meter_id,ts,kwh",
+    "007,2026-01-01 00:00:00,1.5",
+    "008,2026-01-01 01:00:00,2.0",
+    "009,2026-01-01 02:00:00,0.7",
+    "010,2026-01-01 03:00:00,n/a",
+])
+
+guessed = spark.read.option("header", True).option("inferSchema", True).csv(lines)
+guessed.printSchema()
+guessed.show()
+```
+
+What went wrong:
+
+- `meter_id` was inferred as `int`: `007` became `7`, the leading zeros are lost for good.
+- `kwh` was inferred as `string` because of one `n/a`: the whole column is text now.
+
+See the consequences:
+
+```python
+ids = spark.createDataFrame([("007", "Vienna"), ("008", "Graz")], "meter_id string, city string")
+
+guessed.join(ids, "meter_id").show()                       # matches only through an implicit cast; the output ID is 7, not "007"
+guessed.agg(F.sum("kwh")).show()                           # works on a string column only through a silent implicit cast; "n/a" becomes NULL without any warning
+guessed.orderBy(F.desc("kwh")).show()                      # sorts as text, not as numbers (wrong as soon as values like "10.0" appear)
+guessed.write.mode("overwrite").parquet("/tmp/tour_spark/guessed")   # the wrong types are now persisted for downstream users
+```
+
+Now with an explicit schema, same data:
+
+```python
+fixed_schema = "meter_id string, ts timestamp, kwh double"
+fixed = spark.read.option("header", True).schema(fixed_schema).csv(lines)
+
+fixed.printSchema()
+fixed.show()                                               # 007 stays "007"; n/a becomes NULL
+fixed.join(ids, "meter_id").show()                         # string = string join, IDs keep their zeros
+fixed.agg(F.sum("kwh")).show()                             # numeric sum over the 3 valid values
+```
+
+To find bad rows instead of silently turning them into NULL, add a corrupt-record column:
+
+```python
+spark.read.option("header", True) \
+     .schema(fixed_schema + ", _corrupt STRING") \
+     .option("columnNameOfCorruptRecord", "_corrupt") \
+     .csv(lines).filter(F.col("_corrupt").isNotNull()).show(truncate=False)
+```
+
+Take-away: `inferSchema` looks at the data it sees (and reads all of it once), so one dirty value or an ID that looks numeric changes the type. An explicit schema makes the contract visible and stable, and bad values become NULL (or are captured) instead of changing the column type.
 
 ---
 
@@ -363,7 +419,7 @@ Transformations (`filter`, `select`, `groupBy`, `join`) are lazy. Actions (`show
 ```python
 q = readings.groupBy("meter_id").sum("kwh")
 q.explain()        # physical plan; no job has run yet
-q.show()           # action: job appears in the Spark UI
+q.show()           # action: job appears in the Spark History Server
 
 readings.cache()   # keep in memory for repeated use
 readings.count()
@@ -417,7 +473,7 @@ big_df.select(F.sum(double_udf("kwh"))).explain()   # contains BatchEvalPython: 
 big_df.select(F.sum(F.col("kwh") * 2)).explain()    # no Python step, whole-stage codegen
 ```
 
-Open the Spark UI: compare task durations for the three jobs.
+Open the Spark History Server: compare task durations for the three jobs.
 
 Talking points:
 
@@ -437,7 +493,7 @@ big.rdd.getNumPartitions()                     # how the data is split across ta
 
 spark.conf.get("spark.sql.shuffle.partitions") # partitions after a shuffle (default 200)
 
-big.groupBy((F.col("id") % 10).alias("k")).count().show()   # open Spark UI: stages and tasks
+big.groupBy((F.col("id") % 10).alias("k")).count().show()   # check stages and tasks in the History Server
 
 big.repartition(8).rdd.getNumPartitions()      # full shuffle, increases or balances
 big.coalesce(2).rdd.getNumPartitions()         # no shuffle, only reduces
@@ -510,7 +566,7 @@ def main(out_path, rounds=6):
 
     # Demo load: several rounds of shuffle-heavy work with a pause in between.
     # Keeps the application RUNNING for ~3-4 minutes, so the trainer can open the
-    # Spark UI / History Server (incomplete applications) while jobs are being added.
+    # Spark History Server (incomplete applications) while jobs are being added.
     for i in range(rounds):
         n = (spark.range(0, 30_000_000, numPartitions=16)
                   .groupBy((F.col("id") % 1000).alias("k")).count()
@@ -540,7 +596,7 @@ if __name__ == "__main__":
 
 The script runs about 3-4 minutes on purpose (6 rounds x 1 job + 25 s pause). While it runs:
 
-1. In a second terminal: `yarn application -list -appStates RUNNING -appTypes SPARK` and open the Spark UI via the ResourceManager link. A new job appears every ~30 s.
+1. In a second terminal: `yarn application -list -appStates RUNNING -appTypes SPARK` to see the running application. A new job appears every ~30 s.
 2. Open the Spark History Server (link in Cloudera Manager) and click **Show incomplete applications**: the running app is listed, with jobs completed so far. Refresh to watch it grow.
 3. When it finishes, the app moves to the completed list; compare the final job count (6 + 1 write job) with what you saw live.
 4. Change the `rounds` default or the `time.sleep` value to make it shorter or longer.
@@ -580,7 +636,9 @@ Talking points:
 ## 19. Clean up
 
 ```python
-spark.sql("DROP DATABASE tour_spark CASCADE")
+# do not drop the database: it is the user's own database. Drop only the tables created here.
+spark.sql("DROP TABLE IF EXISTS readings")
+spark.sql("DROP TABLE IF EXISTS readings_part")
 ```
 
 ```bash
@@ -597,4 +655,4 @@ About 35-40 minutes in full.
 - Skip if short on time: 3, 6, 10-12, 15, 16.
 - Section 14 (RDD vs DataFrame vs UDF) is a short, high-impact demo (~5 min); keep it if the audience writes PySpark.
 - Section 18 (`spark3-submit`) is a good closer even in the short version (~5 min).
-- Open the Spark UI after section 13 (and again after 14 and 15) to show the job, stages and tasks behind one `show()`.
+- Open the Spark History Server after section 13 (and again after 14 and 15) to show the job, stages and tasks behind one `show()`.
