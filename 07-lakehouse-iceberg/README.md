@@ -35,7 +35,7 @@ After this module you can:
 ## Trainer materials
 
 - [trainer/notes.md](trainer/notes.md) — timing, check-question answers, CDP 7.3.2 pitfalls, Ranger prerequisites  
-- [trainer/demos.md](trainer/demos.md) — long-running reader, concurrent writers, files after compaction (trainer-only)
+- [trainer/tutorial-iceberg.md](trainer/tutorial-iceberg.md) — live demos (isolation, concurrent writers, compaction, Ranger audit, drop), more Iceberg functions, and Impala vs Hive vs Spark on CDP 7.3.2 (trainer-only)
 
 ## Admin (before session)
 

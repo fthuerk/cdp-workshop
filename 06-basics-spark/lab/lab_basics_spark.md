@@ -489,7 +489,7 @@ Notice what is **gone**: your `meter`, `curated`, … variables lived only in th
 
 ---
 
-# ✂️ Part B — Batch work with `spark-submit`
+# Part B — Batch work with `spark-submit`
 
 > **Clear cut: from here on you leave the shell.** Everything above was typed interactively into `pyspark3`. From now on you do **not** type Spark code at a prompt. You submit a finished program from the bash command line.
 
@@ -579,8 +579,8 @@ batch_path = f"{workshop_home}/spark-batch-curated"
 Create your personal database and save the batch output as a table. There is no `LOCATION` clause: Spark writes the table files into the default external warehouse folder of your database.
 
 ```python
-spark.sql(f"CREATE DATABASE IF NOT EXISTS ws_{workshop_user}")
-spark.sql(f"USE ws_{workshop_user}")
+spark.sql(f"CREATE DATABASE IF NOT EXISTS {workshop_user}")
+spark.sql(f"USE {workshop_user}")
 spark.read.parquet(batch_path).write.mode("overwrite").format("parquet").saveAsTable("spark_curated_join")
 spark.sql("SELECT COUNT(*) AS rows, COUNT(DISTINCT station_id) AS stations FROM spark_curated_join").show()
 spark.sql("DESCRIBE FORMATTED spark_curated_join").show(50, False)

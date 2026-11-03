@@ -148,8 +148,8 @@ Meter IDs with leading zeros and one dirty value (`n/a`) in a numeric column. Th
 lines = spark.sparkContext.parallelize([
     "meter_id,ts,kwh",
     "007,2026-01-01 00:00:00,1.5",
-    "008,2026-01-01 01:00:00,2.0",
-    "009,2026-01-01 02:00:00,0.7",
+    "008,2026-01-01 01:00:00,12.0",
+    "009,2026-01-01 02:00:00,9.5",
     "010,2026-01-01 03:00:00,n/a",
 ])
 
@@ -163,16 +163,14 @@ What went wrong:
 - `meter_id` was inferred as `int`: `007` became `7`, the leading zeros are lost for good.
 - `kwh` was inferred as `string` because of one `n/a`: the whole column is text now.
 
-See the consequences:
+See the consequences. Both look harmless, but the results are wrong:
 
 ```python
-ids = spark.createDataFrame([("007", "Vienna"), ("008", "Graz")], "meter_id string, city string")
-
-guessed.join(ids, "meter_id").show()                       # matches only through an implicit cast; the output ID is 7, not "007"
-guessed.agg(F.sum("kwh")).show()                           # works on a string column only through a silent implicit cast; "n/a" becomes NULL without any warning
-guessed.orderBy(F.desc("kwh")).show()                      # sorts as text, not as numbers (wrong as soon as values like "10.0" appear)
-guessed.write.mode("overwrite").parquet("/tmp/tour_spark/guessed")   # the wrong types are now persisted for downstream users
+guessed.orderBy(F.desc("kwh")).show()      # expected: 12.0, 9.5, 1.5 ... but it sorts as TEXT: n/a, 9.5, 12.0, 1.5
+guessed.agg(F.max("kwh")).show()           # expected 12.0, but the maximum of the text values is "n/a"
 ```
+
+Text order compares character by character: `"9.5"` is "greater" than `"12.0"` because `"9"` > `"1"`. Spark does not warn; a report built on this would show the wrong peak.
 
 Now with an explicit schema, same data:
 
@@ -182,48 +180,79 @@ fixed = spark.read.option("header", True).schema(fixed_schema).csv(lines)
 
 fixed.printSchema()
 fixed.show()                                               # 007 stays "007"; n/a becomes NULL
-fixed.join(ids, "meter_id").show()                         # string = string join, IDs keep their zeros
-fixed.agg(F.sum("kwh")).show()                             # numeric sum over the 3 valid values
+fixed.orderBy(F.desc("kwh")).show()                        # numeric order: 12.0, 9.5, 1.5, NULL
+fixed.agg(F.max("kwh")).show()                             # 12.0
 ```
 
-To find bad rows instead of silently turning them into NULL, add a corrupt-record column:
-
-```python
-spark.read.option("header", True) \
-     .schema(fixed_schema + ", _corrupt STRING") \
-     .option("columnNameOfCorruptRecord", "_corrupt") \
-     .csv(lines).filter(F.col("_corrupt").isNotNull()).show(truncate=False)
-```
-
-Take-away: `inferSchema` looks at the data it sees (and reads all of it once), so one dirty value or an ID that looks numeric changes the type. An explicit schema makes the contract visible and stable, and bad values become NULL (or are captured) instead of changing the column type.
+Take-away: `inferSchema` looks at the data it sees (and reads all of it once), so one dirty value or an ID that looks numeric changes the type. An explicit schema makes the contract visible and stable, and bad values become NULL instead of changing the column type.
 
 ---
 
 ## 4. Read and write files
 
 ```python
-readings.write.mode("overwrite").parquet("/tmp/tour_spark/readings_parquet")
-readings.write.mode("overwrite").option("header", True).csv("/tmp/tour_spark/readings_csv")
-readings.write.mode("overwrite").json("/tmp/tour_spark/readings_json")
+readings.write.mode("overwrite").parquet("/user/<username>/hol_spark/readings_parquet")
+readings.write.mode("overwrite").option("header", True).csv("/user/<username>/hol_spark/readings_csv")
+readings.write.mode("overwrite").json("/user/<username>/hol_spark/readings_json")
 
-spark.read.parquet("/tmp/tour_spark/readings_parquet").show()
+spark.read.parquet("/user/<username>/hol_spark/readings_parquet").show()
 spark.read.option("header", True).option("inferSchema", True) \
-     .csv("/tmp/tour_spark/readings_csv").printSchema()
+     .csv("/user/<username>/hol_spark/readings_csv").printSchema()
 
 # CSV with an explicit schema (no extra pass over the data)
-spark.read.schema(schema).option("header", True).csv("/tmp/tour_spark/readings_csv").show()
+spark.read.schema(schema).option("header", True).csv("/user/<username>/hol_spark/readings_csv").show()
 
 # JSON: one object per line, schema is inferred
-spark.read.json("/tmp/tour_spark/readings_json").show()
+spark.read.json("/user/<username>/hol_spark/readings_json").show()
 ```
 
-Write modes: `overwrite`, `append`, `ignore`, `error` (default).
+Write modes (`.mode(...)`):
+
+| Mode | If the target already exists |
+|---|---|
+| `error` / `errorifexists` (default) | fails with an `AnalysisException` |
+| `overwrite` | deletes the existing data, writes the new data |
+| `append` | adds the new files next to the existing ones |
+| `ignore` | does nothing, silently skips the write |
+
+Run the same write twice to see it: with the default, the second run fails; with `append`, the row count doubles.
 
 Formats: Parquet is columnar, compressed, and keeps the schema — the default choice for analytics. CSV/JSON are for exchange.
 
 ```bash
-hdfs dfs -ls /tmp/tour_spark/readings_parquet    # note: a directory of part-files, one per task
+hdfs dfs -ls /user/<username>/hol_spark/readings_parquet    # note: a directory of part-files, one per task
 ```
+
+### One task = one file: `coalesce(1)`
+
+Spark writes one file per partition (per task), in parallel. Make that visible by writing the same JSON data twice, with 4 partitions and then with 1:
+
+```python
+# 4 partitions -> 4 tasks -> 4 part-files (small data, but the principle is the same)
+readings.repartition(4).write.mode("overwrite").json("/user/<username>/hol_spark/readings_json")
+
+# 1 partition -> 1 task -> 1 part-file
+readings.coalesce(1).write.mode("overwrite").json("/user/<username>/hol_spark/readings_json")
+```
+
+```bash
+hdfs dfs -ls /user/<username>/hol_spark/readings_json    # run after each write: 4 part-files, then 1
+hdfs dfs -cat /user/<username>/hol_spark/readings_json/part-*    # all rows are in the single file
+```
+
+Why it matters: many small files burden the NameNode and slow later reads, so `coalesce(1)` (or a small number) is useful for small outputs, e.g. a report someone downloads. For large data, one file means one task writing everything: no parallelism and a potential memory/time bottleneck. Output is always a *directory* of part-files, even with one partition.
+
+`coalesce` vs `repartition`:
+
+| | `coalesce(n)` | `repartition(n)` |
+|---|---|---|
+| Direction | only reduces the number of partitions | increases or decreases |
+| Shuffle | no full shuffle: merges existing partitions on the same executor | full shuffle: data is redistributed across the network |
+| Cost | cheap | more expensive |
+| Balance | partitions may end up uneven | roughly even partitions |
+| Typical use | reduce files before a write | increase parallelism, rebalance skewed data, partition by column: `repartition(8, "meter_id")` |
+
+Caveat: `coalesce(1)` before a heavy computation can pull the whole preceding stage into one task. If that matters, use `repartition(1)` so the work before it stays parallel and only the final step has one partition.
 
 ---
 
@@ -552,6 +581,7 @@ Interactive shells are for exploring. Scheduled and production jobs are Python f
 Create the script `meter_report.py` on the edge node:
 
 ```python
+import getpass
 import sys
 import time
 from pyspark.sql import SparkSession, functions as F
@@ -591,13 +621,14 @@ def main(out_path, rounds=6):
     spark.stop()
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "/tmp/tour_spark/meter_report")
+    default_out = f"/user/{getpass.getuser()}/hol_spark/meter_report"   # per-user path, no clashes
+    main(sys.argv[1] if len(sys.argv) > 1 else default_out)
 ```
 
 The script runs about 3-4 minutes on purpose (6 rounds x 1 job + 25 s pause). While it runs:
 
-1. In a second terminal: `yarn application -list -appStates RUNNING -appTypes SPARK` to see the running application. A new job appears every ~30 s.
-2. Open the Spark History Server (link in Cloudera Manager) and click **Show incomplete applications**: the running app is listed, with jobs completed so far. Refresh to watch it grow.
+1. In a second terminal: `yarn application -list -appStates RUNNING -appTypes SPARK` to see the running application. YARN shows exactly **one** application for the whole script, however many Spark jobs it runs inside.
+2. Open the Spark History Server (link in Cloudera Manager) and click **Show incomplete applications**: the running app is listed, and the **Jobs** tab gets a new Spark job about every 30 s. Refresh to watch it grow.
 3. When it finishes, the app moves to the completed list; compare the final job count (6 + 1 write job) with what you saw live.
 4. Change the `rounds` default or the `time.sleep` value to make it shorter or longer.
 
@@ -612,13 +643,13 @@ spark3-submit \
   --executor-memory 1g \
   --executor-cores 1 \
   --name meter_report \
-  meter_report.py /tmp/tour_spark/meter_report
+  meter_report.py /user/<username>/hol_spark/meter_report
 ```
 
 Check the result and the run:
 
 ```bash
-hdfs dfs -ls /tmp/tour_spark/meter_report
+hdfs dfs -ls /user/<username>/hol_spark/meter_report
 yarn application -list -appStates FINISHED | grep meter_report
 ```
 
@@ -642,7 +673,7 @@ spark.sql("DROP TABLE IF EXISTS readings_part")
 ```
 
 ```bash
-hdfs dfs -rm -r -f /tmp/tour_spark
+hdfs dfs -rm -r -f /user/<username>/hol_spark
 ```
 
 ---

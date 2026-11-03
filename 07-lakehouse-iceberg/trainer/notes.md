@@ -15,7 +15,7 @@
 | 42–54 | Section 3: `UPDATE`/`DELETE`/`MERGE`, delete files on HDFS |
 | 54–57 | Short break |
 | 57–67 | Section 4: history and time travel |
-| 67–77 | Section 5: snapshot isolation; live demo [demos.md](demos.md) section 1 |
+| 67–77 | Section 5: snapshot isolation; live demo [tutorial-iceberg.md](tutorial-iceberg.md) A1 |
 | 77–97 | Section 6: joins (the snapshot diff is the highlight) |
 | 97–107 | Section 7: rollback and expire |
 | 107–112 | Section 8: where Iceberg fits |
@@ -71,4 +71,4 @@ Permissions: Hive/Impala policies on `{USER}` (create database and tables), HDFS
 
 ## After module
 
-Advanced Hive (module 10) builds on the joins of section 6: window functions and ranking, bucketing, and performance tuning. Spark module (06, planned): Spark reads and writes the same Iceberg tables. Not covered in the lab: Hive and Spark access to the table, copy-on-write, schema and partition evolution (stretch), branches and tags, and (from Runtime 7.3.2 SP1, Technical Preview) format version 3 with deletion vectors.
+Advanced Hive (module 10) builds on the joins of section 6: window functions and ranking, bucketing, and performance tuning. Spark module (06, planned): Spark reads and writes the same Iceberg tables. Not covered in the lab, but in [tutorial-iceberg.md](tutorial-iceberg.md): Hive and Spark access to the table and their differences from Impala (Part C), copy-on-write, schema and partition evolution, metadata tables, maintenance, branches and tags (Part B). Not covered anywhere: and (from Runtime 7.3.2 SP1, Technical Preview) format version 3 with deletion vectors.
