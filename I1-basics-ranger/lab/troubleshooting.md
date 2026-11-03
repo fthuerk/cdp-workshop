@@ -1,6 +1,6 @@
-# Troubleshooting — Module I2 Ranger
+# Troubleshooting — Module I1 Ranger
 
-## Permission denied on `ranger_lab.meter_readings` during sections 2–4
+## Permission denied on `cdp_workshop.meter_readings` during sections 2–4
 
 - Wait **30–60 seconds** after the trainer saves a policy, then re-run the query.
 - Confirm you are in Hue as **`${ws_user}`** matching your `kinit` principal.
@@ -8,7 +8,7 @@
 
 ## Section 1 never shows an error (table readable immediately)
 
-- A pre-existing allow policy on `ranger_lab` may be in place. Trainer should disable extra policies or use a fresh database from `setup/setup.sh`.
+- A pre-existing allow policy on `cdp_workshop` may be in place. Trainer should disable extra policies or use a fresh database from `setup/setup.sh`.
 
 ## Masking does not change column values
 
@@ -42,6 +42,6 @@
 
 ## Trainer escalation
 
-- Recreate data: `I2-basics-ranger/setup/setup.sh`
+- Recreate data: `I1-basics-ranger/setup/setup.sh`
 - Remove lab policies in Ranger UI or disable them for reuse
 - HiveServer2 logs / Ranger admin sync if policies never take effect (>2 minutes)

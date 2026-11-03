@@ -1,15 +1,66 @@
-# Spark SQL / PySpark quick tour
+# Spark SQL / PySpark guided tour
 
-Minimal run-through of data types and core operations. Run in `pyspark` (or a Jupyter/CML session), using the SQL and DataFrame APIs side by side. Everything uses inline data.
+Run-through of Spark basics: first a short look at the Scala shell (`spark3-shell`), then a step-by-step PySpark tour of data types and core operations, using the SQL and DataFrame APIs side by side. Everything uses inline data.
+
+Suggested flow: Spark and Scala context (section 0) -> DataFrame basics (1-4) -> transformations (5-10) -> structure and performance (11-15) -> wrap-up exercise (16).
+
+---
+
+## 0. Warm-up: `spark3-shell` (Scala) — instructor talk track
+
+Spark itself is written in Scala and runs on the JVM. PySpark is a Python API on top of the same engine: DataFrame and SQL code is planned by the same optimizer (Catalyst), so performance is the same. Only Python UDFs and `collect()` / `toPandas()` cross the Python/JVM boundary.
+
+```bash
+kinit                # on a Kerberized edge node
+spark3-shell         # Scala REPL; `spark` (SparkSession) and `sc` (SparkContext) are predefined
+```
+
+```scala
+// values are immutable (val), variables mutable (var); types are inferred
+val nums = Seq(1, 2, 3, 4, 5)
+val squares = nums.map(x => x * x)          // functional style: map / filter / reduce
+squares.sum
+
+// the same idea, distributed: a DataFrame from a local collection
+import spark.implicits._
+val readings = Seq(("M1", 1.5), ("M1", 2.0), ("M2", 0.7)).toDF("meter_id", "kwh")
+
+readings.printSchema()
+readings.filter($"kwh" > 1).show()
+readings.groupBy("meter_id").sum("kwh").show()
+
+// SQL works identically
+readings.createOrReplaceTempView("r")
+spark.sql("SELECT meter_id, avg(kwh) FROM r GROUP BY meter_id").show()
+```
+
+Talking points:
+
+- `scala>` prompt vs `>>>` prompt: same `spark` object, same results. Spark Scala/Java APIs get new features first; Python is the most common choice for data teams.
+- Typed `Dataset[T]` exists only in Scala/Java; in Python we always work with `DataFrame`.
+- Point out the startup banner: Spark version, Web UI URL, `master = yarn`.
+- Leave with `:quit` (or Ctrl-D), then start PySpark.
+
+---
+
+## Setup for the PySpark tour
 
 ```bash
 pyspark    # on a Kerberized edge node: kinit first
 ```
 
 ```python
+from pyspark.sql import functions as F
+from pyspark.sql import types as T
+
 spark.sql("CREATE DATABASE IF NOT EXISTS tour_spark")
 spark.sql("USE tour_spark")
+
+spark.version                  # which Spark are we on?
+spark.sparkContext.uiWebUrl    # Spark UI of this session; keep it open in a browser tab
 ```
+
+`spark` is the `SparkSession`, the single entry point for DataFrames, SQL and the catalog.
 
 ---
 
@@ -26,8 +77,6 @@ spark.sql("USE tour_spark")
 SQL names: `INT`, `BIGINT`, `DOUBLE`, `DECIMAL(8,2)`, `STRING`, `BOOLEAN`, `DATE`, `TIMESTAMP`, `ARRAY<>`, `MAP<,>`, `STRUCT<>`.
 
 ```python
-from pyspark.sql import functions as F
-
 df = spark.sql("""
   SELECT 1 AS id, 'meter-A' AS name, CAST(19.90 AS DECIMAL(8,2)) AS price, true AS active,
          DATE '2026-01-15' AS created, TIMESTAMP '2026-01-15 10:30:00' AS seen_at,
@@ -42,6 +91,8 @@ df.select("id", df.tags[0], df.attrs["vendor"], "location.city").show()
 ---
 
 ## 2. Create DataFrames and tables
+
+A DataFrame is a distributed table with a schema. It is immutable: every operation returns a new DataFrame.
 
 ```python
 readings = spark.createDataFrame(
@@ -59,24 +110,68 @@ spark.sql("SHOW TABLES").show()
 spark.sql("DESCRIBE readings").show()
 ```
 
+Quick inspection toolbox:
+
+```python
+readings.show(truncate=False)   # first rows
+readings.columns                # list of column names
+readings.dtypes                 # (name, type) pairs
+readings.count()                # number of rows (action)
+readings.describe("kwh").show() # count / mean / stddev / min / max
+spark.table("readings").show()  # read a table back as DataFrame
+```
+
 ---
 
-## 3. Read and write files
+## 3. Explicit schemas
+
+`inferSchema` is convenient but costs an extra pass over the data and can guess wrong. For production code, define the schema.
+
+```python
+schema = T.StructType([
+    T.StructField("meter_id", T.StringType(), False),    # False = not nullable
+    T.StructField("ts",       T.TimestampType(), True),
+    T.StructField("kwh",      T.DoubleType(), True),
+])
+
+import datetime as dt
+rows = [("M3", dt.datetime(2026, 1, 3, 8, 0), 3.2),
+        ("M3", dt.datetime(2026, 1, 3, 9, 0), 2.8)]
+more = spark.createDataFrame(rows, schema)
+more.printSchema()
+```
+
+---
+
+## 4. Read and write files
 
 ```python
 readings.write.mode("overwrite").parquet("/tmp/tour_spark/readings_parquet")
 readings.write.mode("overwrite").option("header", True).csv("/tmp/tour_spark/readings_csv")
+readings.write.mode("overwrite").json("/tmp/tour_spark/readings_json")
 
 spark.read.parquet("/tmp/tour_spark/readings_parquet").show()
 spark.read.option("header", True).option("inferSchema", True) \
      .csv("/tmp/tour_spark/readings_csv").printSchema()
+
+# CSV with an explicit schema (no extra pass over the data)
+spark.read.schema(schema).option("header", True).csv("/tmp/tour_spark/readings_csv").show()
+
+# JSON: one object per line, schema is inferred
+spark.read.json("/tmp/tour_spark/readings_json").show()
 ```
 
 Write modes: `overwrite`, `append`, `ignore`, `error` (default).
 
+Formats: Parquet is columnar, compressed, and keeps the schema — the default choice for analytics. CSV/JSON are for exchange.
+
+```bash
+hdfs dfs -ls /tmp/tour_spark/readings_parquet    # note: a directory of part-files, one per task
+```
+
 ---
 
-## 4. SELECT, filter, sort
+## 5. SELECT, filter, sort
 
 ```python
 spark.sql("""
@@ -90,35 +185,80 @@ readings.filter((F.col("kwh") > 1) & F.col("meter_id").isin("M1", "M3")) \
         .select("meter_id", "kwh").orderBy(F.desc("kwh")).show()
 ```
 
+Note: in the DataFrame API use `&`, `|`, `~` with parentheses (not `and`, `or`, `not`).
+
 ---
 
-## 5. Aggregation
+## 6. Add, rename, drop columns
+
+```python
+enriched = (readings
+    .withColumn("day", F.to_date("ts"))                    # add column
+    .withColumn("hour", F.hour("ts"))
+    .withColumn("wh", F.col("kwh") * 1000)                 # derived value
+    .withColumnRenamed("kwh", "energy_kwh")                # rename
+    .drop("wh"))                                           # remove
+
+enriched.show()
+
+# selectExpr: SQL snippets inside the DataFrame API
+readings.selectExpr("meter_id", "kwh * 1000 AS wh", "year(ts) AS yr").show()
+
+# distinct values and de-duplication
+readings.select("meter_id").distinct().show()
+readings.dropDuplicates(["meter_id"]).show()
+```
+
+---
+
+## 7. Aggregation
 
 ```python
 readings.groupBy("meter_id").agg(
     F.count("*").alias("n"),
+    F.count("kwh").alias("n_non_null"),     # count(col) skips NULLs, count(*) does not
     F.sum("kwh").alias("total"),
     F.avg("kwh").alias("avg_kwh"),
     F.max("kwh").alias("peak"),
 ).show()
+
+# group by a derived column
+readings.groupBy(F.to_date("ts").alias("day")).agg(F.sum("kwh").alias("daily_kwh")).orderBy("day").show()
 ```
 
 SQL equivalent: `SELECT meter_id, COUNT(*), SUM(kwh) ... GROUP BY meter_id`.
 
+Pivot: turn values into columns.
+
+```python
+readings.withColumn("day", F.to_date("ts")) \
+        .groupBy("meter_id").pivot("day").sum("kwh").show()
+```
+
 ---
 
-## 6. Joins
+## 8. Joins and set operations
 
 ```python
 meters = spark.createDataFrame([("M1", "Vienna"), ("M3", "Graz")], "meter_id string, city string")
 
 readings.join(meters, "meter_id", "inner").show()
 meters.join(readings, "meter_id", "left").show()    # M3 appears with NULL
+
+# other join types
+readings.join(meters, "meter_id", "left_anti").show()   # readings without a known meter
+readings.join(meters, "meter_id", "left_semi").show()   # readings with a known meter (no extra columns)
+
+# broadcast hint: ship the small table to every executor, avoids a shuffle
+readings.join(F.broadcast(meters), "meter_id").explain()   # look for BroadcastHashJoin
+
+# union: stack DataFrames with the same columns
+readings.unionByName(more).show()
 ```
 
 ---
 
-## 7. Common functions and NULL handling
+## 9. Common functions and NULL handling
 
 ```python
 readings.select(
@@ -132,11 +272,34 @@ readings.select(
 
 readings.na.fill({"kwh": 0}).show()     # replace NULLs
 readings.dropna().show()                # drop rows with NULLs
+readings.filter(F.col("kwh").isNull()).show()   # find NULLs (never use == None)
+```
+
+String and regex helpers:
+
+```python
+raw = spark.createDataFrame([(" Meter-M1 ",), ("meter-m2",)], "label string")
+raw.select(
+    F.trim("label").alias("trimmed"),
+    F.lower(F.trim("label")).alias("lower"),
+    F.regexp_extract("label", r"[Mm](\d+)", 1).alias("number"),
+    F.split(F.trim("label"), "-").alias("parts"),
+).show(truncate=False)
+```
+
+Prefer built-in functions over Python UDFs: built-ins run inside the JVM and the optimizer understands them.
+
+```python
+@F.udf("string")                       # works, but slower: rows travel JVM <-> Python
+def bucket(kwh):
+    return None if kwh is None else ("high" if kwh > 1.8 else "normal")
+
+readings.select("kwh", bucket("kwh").alias("level_udf")).show()
 ```
 
 ---
 
-## 8. Window function and CTE
+## 10. Window function and CTE
 
 ```python
 spark.sql("""
@@ -148,17 +311,38 @@ spark.sql("""
 """).show()
 ```
 
+Same with the DataFrame API, plus `lag` to compare with the previous reading:
+
+```python
+from pyspark.sql.window import Window
+
+w = Window.partitionBy("meter_id").orderBy("ts")
+
+readings.dropna().select(
+    "meter_id", "ts", "kwh",
+    F.lag("kwh").over(w).alias("prev_kwh"),
+    (F.col("kwh") - F.lag("kwh").over(w)).alias("delta"),
+    F.sum("kwh").over(w).alias("running_total"),
+).show()
+```
+
+Typical use: "latest reading per meter" = `row_number()` over `ts DESC`, then filter `rn = 1`.
+
 ---
 
-## 9. Complex types: explode
+## 11. Complex types: explode
 
 ```python
 df.select("id", F.explode("tags").alias("tag")).show()
+
+# build complex values
+readings.groupBy("meter_id").agg(F.collect_list("kwh").alias("all_kwh")).show(truncate=False)
+readings.select("meter_id", F.struct("ts", "kwh").alias("reading")).printSchema()
 ```
 
 ---
 
-## 10. Partitioned write
+## 12. Partitioned write
 
 ```python
 readings.withColumn("day", F.to_date("ts")) \
@@ -168,9 +352,11 @@ spark.sql("SHOW PARTITIONS readings_part").show()
 spark.sql("SELECT * FROM readings_part WHERE day = '2026-01-01'").show()   # pruning
 ```
 
+Check the layout: `hdfs dfs -ls` on the table location shows one `day=...` directory per value. Partition on low-cardinality columns (date, region), not on IDs.
+
 ---
 
-## 11. Lazy evaluation, explain, caching
+## 13. Lazy evaluation, explain, caching
 
 Transformations (`filter`, `select`, `groupBy`, `join`) are lazy. Actions (`show`, `count`, `write`, `collect`) run the job.
 
@@ -184,9 +370,142 @@ readings.count()
 readings.unpersist()
 ```
 
+Show the plan in more detail:
+
+```python
+q.explain("formatted")     # readable plan: Scan -> HashAggregate -> Exchange -> HashAggregate
+```
+
+`Exchange` = shuffle = data moves across the network. Fewer shuffles, faster jobs.
+
 ---
 
-## 12. Clean up
+## 14. Partitions, shuffles and `repartition`
+
+```python
+big = spark.range(0, 10_000_000)               # synthetic data, column "id"
+big.rdd.getNumPartitions()                     # how the data is split across tasks
+
+spark.conf.get("spark.sql.shuffle.partitions") # partitions after a shuffle (default 200)
+
+big.groupBy((F.col("id") % 10).alias("k")).count().show()   # open Spark UI: stages and tasks
+
+big.repartition(8).rdd.getNumPartitions()      # full shuffle, increases or balances
+big.coalesce(2).rdd.getNumPartitions()         # no shuffle, only reduces
+```
+
+Rule of thumb: one task per partition, ideally 100-200 MB per partition. Too many tiny tasks and too few huge ones are both slow. Adaptive Query Execution (`spark.sql.adaptive.enabled`) tunes much of this automatically in Spark 3.
+
+---
+
+## 15. Moving data between Spark and Python
+
+```python
+small = readings.groupBy("meter_id").sum("kwh")
+
+small.collect()                 # list of Row objects to the driver: only for small results
+small.toPandas()                # pandas DataFrame on the driver: only for small results
+spark.createDataFrame(small.toPandas())    # and back
+```
+
+Never `collect()` or `toPandas()` a large table: the driver runs out of memory. Aggregate or `limit()` first.
+
+---
+
+## 16. Mini exercise (participants, ~5 min)
+
+Task: *for each meter, show the city, the total kWh and the share of the total consumption in percent. Meters without readings should still appear.*
+
+Solution:
+
+```python
+total = readings.agg(F.sum("kwh")).first()[0]
+
+(meters.join(readings.groupBy("meter_id").agg(F.sum("kwh").alias("kwh")), "meter_id", "left")
+       .withColumn("share_pct", F.round(F.coalesce("kwh", F.lit(0)) / total * 100, 1))
+       .show())
+```
+
+Same in SQL:
+
+```python
+spark.sql("""
+  SELECT m.meter_id, m.city, SUM(r.kwh) AS kwh,
+         ROUND(COALESCE(SUM(r.kwh), 0) / SUM(SUM(r.kwh)) OVER () * 100, 1) AS share_pct
+  FROM (SELECT 'M1' AS meter_id, 'Vienna' AS city UNION ALL SELECT 'M3', 'Graz') m
+  LEFT JOIN readings r ON r.meter_id = m.meter_id
+  GROUP BY m.meter_id, m.city
+""").show()
+```
+
+---
+
+## 17. Run it as a batch job: `spark3-submit` with a PySpark script
+
+Interactive shells are for exploring. Scheduled and production jobs are Python files run with `spark3-submit` (there is no separate "pyspark-submit"; PySpark scripts use the normal submit command).
+
+Create the script `meter_report.py` on the edge node:
+
+```python
+import sys
+from pyspark.sql import SparkSession, functions as F
+
+def main(out_path):
+    spark = SparkSession.builder.appName("meter_report").getOrCreate()   # no predefined `spark` in a script
+
+    readings = spark.createDataFrame(
+        [("M1", "2026-01-01 00:00:00", 1.5),
+         ("M1", "2026-01-01 01:00:00", 2.0),
+         ("M2", "2026-01-01 00:00:00", 0.7),
+         ("M2", "2026-01-02 00:00:00", None)],
+        "meter_id string, ts string, kwh double"
+    ).withColumn("ts", F.to_timestamp("ts"))
+
+    report = (readings.dropna()
+              .groupBy("meter_id")
+              .agg(F.sum("kwh").alias("total_kwh"), F.max("kwh").alias("peak_kwh")))
+
+    report.show()
+    report.write.mode("overwrite").parquet(out_path)
+    spark.stop()
+
+if __name__ == "__main__":
+    main(sys.argv[1] if len(sys.argv) > 1 else "/tmp/tour_spark/meter_report")
+```
+
+Submit it:
+
+```bash
+kinit
+spark3-submit \
+  --master yarn \
+  --deploy-mode client \
+  --num-executors 2 \
+  --executor-memory 1g \
+  --executor-cores 1 \
+  --name meter_report \
+  meter_report.py /tmp/tour_spark/meter_report
+```
+
+Check the result and the run:
+
+```bash
+hdfs dfs -ls /tmp/tour_spark/meter_report
+yarn application -list -appStates FINISHED | grep meter_report
+```
+
+Talking points:
+
+- `--deploy-mode client`: driver runs on the edge node and prints output to the terminal (good for learning). `cluster`: driver runs inside YARN, the terminal returns only the application ID; use it for scheduled jobs, and read output with `yarn logs -applicationId <id>`.
+- Everything after the script name is passed to the script as `sys.argv`.
+- Resources are set per job on the command line; compare with the shell, where they were fixed at startup (`pyspark --num-executors ...`).
+- Extra Python files or libraries: `--py-files utils.zip`. Config: `--conf spark.sql.shuffle.partitions=50`.
+- The finished job appears in the Spark History Server (see `demos.md`).
+- Try `--deploy-mode cluster` as a second run to show the difference.
+
+---
+
+## 18. Clean up
 
 ```python
 spark.sql("DROP DATABASE tour_spark CASCADE")
@@ -200,4 +519,9 @@ hdfs dfs -rm -r -f /tmp/tour_spark
 
 ## Timing hint
 
-About 15 minutes. Skip sections 8–10 if short on time. Open the Spark UI after section 11 to show the job, stages and tasks behind one `show()`.
+About 35-40 minutes in full.
+
+- Short version (~15 min): section 0 (2-3 min talk), then 1, 2, 5, 7, 8, 13.
+- Skip if short on time: 3, 6, 10-12, 14, 15.
+- Section 17 (`spark3-submit`) is a good closer even in the short version (~5 min).
+- Open the Spark UI after section 13 (and again after 14) to show the job, stages and tasks behind one `show()`.

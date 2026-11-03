@@ -1,10 +1,10 @@
-# Optional demos — Module I2 Ranger
+# Optional demos — Module I1 Ranger
 
 Not part of the 30-minute lab. Use when time allows or for a second session.
 
 ## Tag-based policy (Atlas + Ranger)
 
-If the cohort completed [I1-basics-atlas](../../I1-basics-atlas/README.md):
+If the cohort completed [I2-basics-atlas](../../I2-basics-atlas/README.md):
 
 1. In Atlas, ensure classification **`<username>_PII`** exists on column **`device_id`** (or table-level on a demo table).
 2. In Ranger → Hive → **Tag Policies** (or **Tag** tab), create a tag policy on that classification:
@@ -33,7 +33,7 @@ Discuss Git-managed policies vs UI edits — not required for the basics lab.
 
 ## Ranger + Atlas audit correlation
 
-Open Atlas entity for `ranger_lab.meter_readings` and Ranger audit for the same query time — metadata vs authorization vs audit trail for compliance conversations.
+Open Atlas entity for `cdp_workshop.meter_readings` and Ranger audit for the same query time — metadata vs authorization vs audit trail for compliance conversations.
 
 ## Data masking types catalog
 

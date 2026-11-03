@@ -1,38 +1,12 @@
-#!/usr/bin/env bash
-set -euo pipefail
+-- I1-basics-ranger setup (run in Hue Hive editor as admin/trainer user)
+-- Creates database cdp_workshop and its tables (shared with I2-basics-atlas, whose setup.hql
+-- contains the same meter_readings definition). Do NOT create Ranger policies here;
+-- the trainer adds them live during the lab.
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# shellcheck source=../../lib/common.sh
-source "${REPO_ROOT}/lib/common.sh"
-parse_workshop_admin_args "$@"
-load_config
+CREATE DATABASE IF NOT EXISTS cdp_workshop;
 
-require_admin_hdfs_kinit
-require_cmd beeline awk mktemp
 
-: "${HS2_URL:?Set HS2_URL in config.env}"
-
-PARTICIPANTS_FILE="${CDP_WORKSHOP_PARTICIPANTS:-${REPO_ROOT}/00-setup/admin/participants.txt}"
-if [[ ! -f "${PARTICIPANTS_FILE}" ]]; then
-  PARTICIPANTS_FILE="${REPO_ROOT}/00-setup/admin/participants.txt.example"
-  log_warn "Using example participants file: ${PARTICIPANTS_FILE}"
-fi
-
-beeline_q() {
-  beeline -u "${HS2_URL}" --silent=true --showHeader=false --outputformat=tsv2 \
-    -e "$1" 2>/dev/null || true
-}
-
-log_info "Creating ranger_lab database and tables (admin ticket: $(klist 2>/dev/null | awk '/Default principal/ {print $3; exit}'))"
-
-beeline_q "CREATE DATABASE IF NOT EXISTS ranger_lab;"
-
-beeline_q "DROP TABLE IF EXISTS ranger_lab.meter_readings;"
-beeline_q "DROP TABLE IF EXISTS ranger_lab.customer_master;"
-beeline_q "DROP TABLE IF EXISTS ranger_lab.station_assignment;"
-
-beeline_q "
-CREATE TABLE ranger_lab.meter_readings (
+CREATE TABLE IF NOT EXISTS cdp_workshop.meter_readings (
   ts_utc STRING,
   station_id STRING,
   device_id STRING,
@@ -40,24 +14,26 @@ CREATE TABLE ranger_lab.meter_readings (
   customer_email STRING,
   region STRING,
   active_power_kw DOUBLE
-);"
+);
 
-beeline_q "
-CREATE TABLE ranger_lab.customer_master (
+CREATE TABLE IF NOT EXISTS cdp_workshop.customer_master (
   device_id STRING,
   customer_name STRING,
   iban_last4 STRING
-);"
+);
 
-beeline_q "
-CREATE TABLE ranger_lab.station_assignment (
+CREATE TABLE IF NOT EXISTS cdp_workshop.station_assignment (
   user_name STRING,
   station_id STRING
-);"
+);
 
-# Synthetic meter readings (~30 rows, 4 stations)
-beeline_q "
-INSERT INTO ranger_lab.meter_readings VALUES
+-- Re-runnable: TRUNCATE keeps the table entities (Atlas tags, Ranger policies) and reloads the rows.
+TRUNCATE TABLE cdp_workshop.meter_readings;
+TRUNCATE TABLE cdp_workshop.customer_master;
+TRUNCATE TABLE cdp_workshop.station_assignment;
+
+-- Synthetic meter readings (30 rows, 4 stations)
+INSERT INTO cdp_workshop.meter_readings VALUES
   ('2024-01-01 00:00:00', 'TS-101', 'DEV-0001', 'Alex Meter', 'alex.meter@example.com', 'North', 12.4),
   ('2024-01-01 00:15:00', 'TS-101', 'DEV-0001', 'Alex Meter', 'alex.meter@example.com', 'North', 13.1),
   ('2024-01-01 00:00:00', 'TS-101', 'DEV-0002', 'Blake Grid', 'blake.grid@example.com', 'North', 8.7),
@@ -87,38 +63,39 @@ INSERT INTO ranger_lab.meter_readings VALUES
   ('2024-01-04 00:00:00', 'TS-401', 'DEV-0302', 'Noel Arc', 'noel.arc@example.com', 'West', 10.2),
   ('2024-01-04 00:15:00', 'TS-401', 'DEV-0302', 'Noel Arc', 'noel.arc@example.com', 'West', 10.5),
   ('2024-01-04 00:00:00', 'TS-401', 'DEV-0303', 'Owen Pole', 'owen.pole@example.com', 'West', 11.7),
-  ('2024-01-04 00:15:00', 'TS-401', 'DEV-0303', 'Owen Pole', 'owen.pole@example.com', 'West', 11.9);"
+  ('2024-01-04 00:15:00', 'TS-401', 'DEV-0303', 'Owen Pole', 'owen.pole@example.com', 'West', 11.9);
 
-beeline_q "
-INSERT INTO ranger_lab.customer_master VALUES
+INSERT INTO cdp_workshop.customer_master VALUES
   ('DEV-0001', 'Alex Meter', '4821'),
   ('DEV-0002', 'Blake Grid', '9033'),
   ('DEV-0101', 'Evan Load', '1144'),
   ('DEV-0201', 'Ivy Sub', '5560'),
-  ('DEV-0301', 'Morgan Tie', '7782');"
+  ('DEV-0301', 'Morgan Tie', '7782');
 
-# station_assignment: rotate users across four stations (1–2 stations per user)
-stations=(TS-101 TS-102 TS-305 TS-401)
-tmp_sql="$(mktemp)"
-trap 'rm -f "${tmp_sql}"' EXIT
-idx=0
-while IFS= read -r user || [[ -n "${user}" ]]; do
-  user="$(echo "${user}" | sed 's/#.*//' | tr -d '[:space:]')"
-  [[ -z "${user}" ]] && continue
-  s1="${stations[$(( idx % 4 ))]}"
-  s2="${stations[$(( (idx + 1) % 4 ))]}"
-  printf "INSERT INTO ranger_lab.station_assignment VALUES ('%s', '%s');\n" "${user}" "${s1}" >> "${tmp_sql}"
-  printf "INSERT INTO ranger_lab.station_assignment VALUES ('%s', '%s');\n" "${user}" "${s2}" >> "${tmp_sql}"
-  idx=$(( idx + 1 ))
-done < "${PARTICIPANTS_FILE}"
+-- station_assignment: each participant gets 2 neighbouring stations (rotating over
+-- TS-101, TS-102, TS-305, TS-401), for participant01..participant20.
+-- EDIT user names if your real participants differ.
+INSERT INTO cdp_workshop.station_assignment VALUES
+  ('participant01', 'TS-101'), ('participant01', 'TS-102'),
+  ('participant02', 'TS-102'), ('participant02', 'TS-305'),
+  ('participant03', 'TS-305'), ('participant03', 'TS-401'),
+  ('participant04', 'TS-401'), ('participant04', 'TS-101'),
+  ('participant05', 'TS-101'), ('participant05', 'TS-102'),
+  ('participant06', 'TS-102'), ('participant06', 'TS-305'),
+  ('participant07', 'TS-305'), ('participant07', 'TS-401'),
+  ('participant08', 'TS-401'), ('participant08', 'TS-101'),
+  ('participant09', 'TS-101'), ('participant09', 'TS-102'),
+  ('participant10', 'TS-102'), ('participant10', 'TS-305'),
+  ('participant11', 'TS-305'), ('participant11', 'TS-401'),
+  ('participant12', 'TS-401'), ('participant12', 'TS-101'),
+  ('participant13', 'TS-101'), ('participant13', 'TS-102'),
+  ('participant14', 'TS-102'), ('participant14', 'TS-305'),
+  ('participant15', 'TS-305'), ('participant15', 'TS-401'),
+  ('participant16', 'TS-401'), ('participant16', 'TS-101'),
+  ('participant17', 'TS-101'), ('participant17', 'TS-102'),
+  ('participant18', 'TS-102'), ('participant18', 'TS-305'),
+  ('participant19', 'TS-305'), ('participant19', 'TS-401'),
+  ('participant20', 'TS-401'), ('participant20', 'TS-101');
 
-while IFS= read -r stmt; do
-  [[ -z "${stmt}" ]] && continue
-  beeline_q "${stmt}"
-done < "${tmp_sql}"
-
-count="$(beeline_q 'SELECT COUNT(*) FROM ranger_lab.meter_readings;' | tail -1)"
-log_info "ranger_lab.meter_readings row count: ${count:-unknown}"
-log_info "Ranger module setup complete."
-log_warn "Do not create Ranger policies yet — the trainer adds them live during the lab (see I2-basics-ranger/trainer/notes.md)."
-log_warn "Ranger: after the lab, remove or disable workshop policies on ranger_lab if you reuse the cluster."
+-- Sanity check
+SELECT COUNT(*) AS meter_readings_rows FROM cdp_workshop.meter_readings;

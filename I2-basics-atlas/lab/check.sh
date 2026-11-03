@@ -31,8 +31,10 @@ expect "atlas_meter_src exists" "$(beeline_q 'SHOW TABLES LIKE '\''atlas_meter_s
 expect "atlas_meter_daily exists" "$(beeline_q 'SHOW TABLES LIKE '\''atlas_meter_daily'\''')" "atlas_meter_daily" "lab section 3"
 expect "atlas_meter_anonymized exists" "$(beeline_q 'SHOW TABLES LIKE '\''atlas_meter_anonymized'\''')" "atlas_meter_anonymized" "lab section 3"
 
+expect "atlas_customer_copy exists" "$(beeline_q 'SHOW TABLES LIKE '\''atlas_customer_copy'\''')" "atlas_customer_copy" "lab section 6"
+
 row_count="$(beeline_q 'SELECT COUNT(*) FROM atlas_meter_src')"
-expect "atlas_meter_src row count" "${row_count}" "8" "lab section 1"
+expect "atlas_meter_src row count" "${row_count}" "30" "lab section 1"
 
 if [[ ${fail} -ne 0 ]]; then
   echo "Self-check failed. See lab/troubleshooting.md"

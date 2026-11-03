@@ -52,7 +52,7 @@ Set `OOZIE_URL` in `config.env` first so `verify.sh` can check the server and th
 
 ## Next module
 
-[12-advanced-spark](../12-advanced-spark/README.md) (planned), [10-advanced-hive](../10-advanced-hive/README.md), or the instructor-led modules [I1-basics-atlas](../I1-basics-atlas/README.md) and [I2-basics-ranger](../I2-basics-ranger/README.md).
+[12-advanced-spark](../12-advanced-spark/README.md) (planned), [10-advanced-hive](../10-advanced-hive/README.md), or the instructor-led modules [I1-basics-ranger](../I1-basics-ranger/README.md) and [I2-basics-atlas](../I2-basics-atlas/README.md).
 
 ---
 *The generation of these labs was supported by AI.*

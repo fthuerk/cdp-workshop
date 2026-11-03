@@ -6,6 +6,10 @@ These topics are **not** in the 20-minute participant lab. Use them in Q&A or a 
 
 Show **Advanced Search** with filters such as `typeName:hive_table` and `dbName:<demo_user>`. Mention DSL queries if your Atlas version exposes them in the UI.
 
+## Shared tables in `cdp_workshop`
+
+The trainer-owned database `cdp_workshop` (created by I1-basics-ranger `setup.hql`) is a clean, stable Atlas demo: search `hive_table` with `dbName:cdp_workshop`, show `meter_readings`, `customer_master`, `station_assignment`, and attach `PII` to `meter_readings.customer_email` / `customer_name`. Unlike participant tables, these are not dropped during the lab cleanup. Run the I1 setup first if the database does not exist yet.
+
 ## Audits tab
 
 On a table entity, open **Audits** and point at create/update events. Tie to operational questions (“who registered this table?”).
@@ -27,4 +31,4 @@ After `DROP TABLE` in Hive, show the entity status **DELETED** in Atlas and that
 
 ## Ranger tag policies
 
-Show (read-only) a Ranger policy that references an Atlas classification — connects section 5 to enforcement without changing policies in the workshop.
+Lab section 6 already shows a tag-based masking policy in action. For a longer governance block, open the policy `PII_mask` in Ranger (Tag Based Policies) and walk through its structure; optionally show a tag-based deny policy as the "no access at all" alternative.

@@ -8,10 +8,11 @@ The lab already links every image and has a **Screenshot fallback** text under e
 | `atlas-02-table-detail.png` | 2 | Table page: Properties and Schema |
 | `atlas-03-lineage-downstream.png` | 4 | Lineage of `atlas_meter_src` with both CTAS children |
 | `atlas-04-lineage-process.png` | 4 | Process node selected, CTAS query text visible |
-| `atlas-05-tag-attach.png` | 5 | Add classification dialog |
-| `atlas-06-tag-child.png` | 5 | Propagated tag on `atlas_meter_daily` |
-| `atlas-07-glossary-term.png` | 6 | Glossary `Metering`, term `Active Power` |
-| `atlas-08-glossary-assignment.png` | 6 | Term assigned to `active_power_kw` or the table |
+| `5_pii_columns.png` | 5 | `cdp_workshop.meter_readings` Schema with `PII` on `customer_name` and `customer_email` |
+| `6_pii_propagation.png` | 6 | `atlas_customer_copy` Schema with propagated `PII` |
+| `6_tag_based_policy_redacted.png` | 6 | Hue result with redacted columns |
+| `7_active_power_kw_term_assignment.png` | 7 | Column with term `Active Power` assigned |
+| `7_active_power_glossary_term_category.png` | 7 | Term `Active Power` with category and assigned column |
 
 Tips: crop to the relevant area, around 1200 px wide, and use a demo user (not a real person's name) so no identifiers appear. Check which are still missing with `./check-screenshots.sh`.
 

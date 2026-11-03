@@ -35,3 +35,57 @@ A coordinator with a daily frequency creates **one action per day** at the nomin
 - **Timeout:** set by `<timeout>` in the coordinator controls (in minutes; `-1` = wait forever). Without it Oozie uses its server default (I believe 7 days; check on the cluster). After the timeout the action ends as TIMEDOUT, and that is the place to alert.
 - **Throttle and concurrency:** many waiting days can pile up (`throttle`, default 12 waiting actions). `concurrency` only limits actions that run at the same time.
 - **Polling every 5 minutes** is the alternative pattern: a time-based coordinator starts a workflow every 5 minutes, and the workflow checks for the file itself (decision node). It needs extra care for idempotence (what if the file is processed twice?) and gives no per-day view in the Job Browser. The dataset pattern is the Oozie way and the better fit for "one load per day".
+
+## How parameters and variables travel (lab section 4)
+
+Everything of the form `${...}` is replaced by someone at some point. The question is who, and when. The diagram follows the Hive load of section 4 from the submit dialog down to the Hive script.
+
+```mermaid
+flowchart LR
+  subgraph hue["Hue (when you submit)"]
+    D["Submit dialog<br/>start_date, end_date"]
+    H["Hue adds<br/>nameNode, jobTracker,<br/>wf_application_path,<br/>oozie.use.system.libpath"]
+  end
+
+  subgraph coord["coordinator.xml (Oozie evaluates)"]
+    C1["frequency, start, end<br/>use start_date, end_date"]
+    C2["dataset landing_dir<br/>path uses nameNode"]
+    C3["nominal time of the action<br/>(one action per day)"]
+    P["action properties<br/>wf_date = nominal time as yyyyMMdd<br/>landing_dir = coord:dataIn('landing_dir')"]
+  end
+
+  subgraph wf["workflow.xml (one run per action)"]
+    W1["job properties<br/>wf_date, landing_dir,<br/>nameNode, jobTracker"]
+    W2["Hive action parameters<br/>day = wf_date<br/>landing_dir = landing_dir<br/>ws_user = wf:user()"]
+  end
+
+  subgraph hql["load_partition.hql (Hive)"]
+    Q["Hive variables<br/>day, landing_dir, ws_user"]
+  end
+
+  D --> C1
+  H --> C2
+  C3 --> P
+  C2 --> P
+  H --> W1
+  P --> W1
+  W1 --> W2
+  W2 --> Q
+```
+
+| Name | Defined | Replaced by | When |
+|------|---------|-------------|------|
+| `start_date`, `end_date` | Submit dialog of the schedule | Oozie, in `coordinator.xml` | When the coordinator is submitted |
+| `nameNode`, `jobTracker` | Added by Hue at submit | Oozie, in the dataset path and in `workflow.xml` | At submit, and again for every workflow run |
+| `wf_date` | `<property>` of the coordinator action, built from the nominal time | Oozie, coordinator side | When the action is created, once per day |
+| `landing_dir` | `<property>` of the coordinator action, value `coord:dataIn(...)` | Oozie, coordinator side | When the action starts (input found) |
+| `wf:user()` | Written in the workflow | Oozie, workflow side | When the Hive action starts |
+| `day`, `landing_dir`, `ws_user` | `<param>` of the Hive action | **Hive**, as variables in the script text | When the script runs |
+| `ws_user` in the Hive editor | Input field of the Hue editor | **Hue** itself (not Oozie) | When you press run in the editor |
+
+Rules of thumb:
+
+- A workflow cannot see a name that nobody passes. The names in the workflow (`${wf_date}`, `${landing_dir}`) must be defined as properties by whoever starts it: Hue for a manual run, the coordinator for a scheduled run. That is why the schedule editor lists the variables of the workflow.
+- The coordinator has its own functions (`coord:nominalTime()`, `coord:dataIn()`) and the workflow has its own (`wf:user()`, `wf:errorMessage()`). They are not interchangeable.
+- Each step is a hand-over: coordinator property, workflow job property, Hive action parameter, Hive variable. If a value is empty in the script, check each hand-over in this order (Properties and XML tabs of the job).
+- `${user.name}` did not work in the dataset path (error `E1004: Expression language evaluation error`). The expression was evaluated while the dataset was resolved at submit time. Use the literal user name there.

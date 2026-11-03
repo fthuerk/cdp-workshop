@@ -4,7 +4,7 @@ Run sections in order. You need **Hue** (Hive editor) and **Ranger** (both open 
 
 The lab SQL uses the placeholder `${ws_user}` — Hue shows an input field for it; type your short username (same as for `kinit`).
 
-Your trainer prepares shared tables in database **`ranger_lab`** before the session. You do **not** create Ranger policies in this document — the trainer changes policies live while you re-run queries and observe the effect.
+Your trainer prepares shared tables in database **`cdp_workshop`** before the session. You do **not** create Ranger policies in this document — the trainer changes policies live while you re-run queries and observe the effect.
 
 **Pacing tip:** After each trainer announcement (“policy updated”), wait about **30 seconds**, then re-run the query from that section.
 
@@ -39,7 +39,7 @@ Open **Ranger** from Knox and locate **Audit → Access** — you use it in sect
 In Hue, run:
 
 ```sql
-SELECT * FROM ranger_lab.meter_readings LIMIT 5;
+SELECT * FROM cdp_workshop.meter_readings LIMIT 5;
 ```
 
 You should get a **permission denied** (or similar) error — not an empty table.
@@ -49,7 +49,7 @@ You should get a **permission denied** (or similar) error — not an empty table
 Optional — confirm the database exists but you cannot read the table:
 
 ```sql
-SHOW TABLES IN ranger_lab;
+SHOW TABLES IN cdp_workshop;
 ```
 
 Some clusters hide table names until you have metadata access; your trainer may adjust timing. The important outcome is: **`SELECT` on `meter_readings` fails** until section 2.
@@ -64,7 +64,7 @@ When your trainer says the **allow** policy is active, wait ~30 seconds and run:
 
 ```sql
 SELECT ts_utc, station_id, device_id, customer_name, customer_email, active_power_kw
-FROM ranger_lab.meter_readings
+FROM cdp_workshop.meter_readings
 ORDER BY ts_utc, station_id
 LIMIT 10;
 ```
@@ -74,7 +74,7 @@ You should see multiple **station_id** values (for example `TS-101`, `TS-102`, `
 Count all rows (trainer data has **30** rows):
 
 ```sql
-SELECT COUNT(*) AS total_rows FROM ranger_lab.meter_readings;
+SELECT COUNT(*) AS total_rows FROM cdp_workshop.meter_readings;
 ```
 
 ---
@@ -87,7 +87,7 @@ When your trainer enables **masking** policies, re-run:
 
 ```sql
 SELECT device_id, customer_name, customer_email
-FROM ranger_lab.meter_readings
+FROM cdp_workshop.meter_readings
 LIMIT 5;
 ```
 
@@ -101,7 +101,7 @@ Test that filtering on clear text no longer works as before:
 
 ```sql
 SELECT COUNT(*)
-FROM ranger_lab.meter_readings
+FROM cdp_workshop.meter_readings
 WHERE customer_email = 'alex.meter@example.com';
 ```
 
@@ -119,7 +119,7 @@ When your trainer enables the **row-level filter**, run:
 
 ```sql
 SELECT station_id, COUNT(*) AS rows_seen
-FROM ranger_lab.meter_readings
+FROM cdp_workshop.meter_readings
 GROUP BY station_id
 ORDER BY station_id;
 ```
@@ -130,7 +130,7 @@ See your assignment (this table is also protected by allow policies):
 
 ```sql
 SELECT station_id
-FROM ranger_lab.station_assignment
+FROM cdp_workshop.station_assignment
 WHERE user_name = '${ws_user}'
 ORDER BY station_id;
 ```
@@ -140,7 +140,7 @@ The stations in this result should match the groups in the query above.
 Total row count **after** the filter:
 
 ```sql
-SELECT COUNT(*) FROM ranger_lab.meter_readings;
+SELECT COUNT(*) FROM cdp_workshop.meter_readings;
 ```
 
 **Check question:** Does this `COUNT(*)` reflect **all** rows in the table, or only the rows **you** are allowed to see?
@@ -154,7 +154,7 @@ SELECT COUNT(*) FROM ranger_lab.meter_readings;
 When your trainer first **allows** `SELECT` on `customer_master`, run:
 
 ```sql
-SELECT * FROM ranger_lab.customer_master;
+SELECT * FROM cdp_workshop.customer_master;
 ```
 
 You should see five rows (device ids and **iban_last4**).
@@ -174,7 +174,7 @@ You should get **permission denied** (deny wins over allow for your user).
 In **Ranger → Audit → Access**, filter (fields vary slightly by version):
 
 - **User** — your `${ws_user}` (or full principal if your cluster stores it that way)
-- **Resource** — `ranger_lab` / `meter_readings` or `customer_master`
+- **Resource** — `cdp_workshop` / `meter_readings` or `customer_master`
 - **Result** — try **Denied** and **Allowed**
 
 Open a few events from sections 1–5. Note **policy id**, **access type**, and **result**. Masked selects usually still appear as **allowed** access with masking applied server-side.
@@ -190,7 +190,7 @@ Open a few events from sections 1–5. Note **policy id**, **access type**, and 
 Try to insert into the shared lab table (should fail):
 
 ```sql
-INSERT INTO ranger_lab.meter_readings
+INSERT INTO cdp_workshop.meter_readings
 VALUES ('2024-01-05 00:00:00', 'TS-101', 'DEV-9999', 'Test', 'test@example.com', 'North', 1.0);
 ```
 
@@ -203,7 +203,7 @@ USE ${ws_user};
 DROP TABLE IF EXISTS ranger_export_masked;
 CREATE TABLE ranger_export_masked AS
 SELECT device_id, customer_email, active_power_kw
-FROM ranger_lab.meter_readings;
+FROM cdp_workshop.meter_readings;
 ```
 
 Inspect what you stored:
@@ -214,6 +214,6 @@ SELECT * FROM ranger_export_masked LIMIT 5;
 
 **Final check question:** Name the four Ranger mechanisms you saw today (allow, deny, masking, row filter) and one place each showed up in Hue or Ranger Audit.
 
-Run `./I2-basics-ranger/lab/check.sh` from the repo on the edge node **after** the trainer has applied the **final** policies (allow + masking + row filter). It does not verify Ranger UI steps.
+Run `./I1-basics-ranger/lab/check.sh` from the repo on the edge node **after** the trainer has applied the **final** policies (allow + masking + row filter). It does not verify Ranger UI steps.
 
 ---
