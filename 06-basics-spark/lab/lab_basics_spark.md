@@ -638,6 +638,72 @@ yarn logs -applicationId "<application-id>" | tail -40
 
 ---
 
+## 14. Spark UI, YARN logs, pi and the event log
+
+**Goal:** Run a small compute job in cluster mode, read its Spark UI / History Server data while and after it runs, and find its logs and event log on the cluster.
+
+Create a pi estimator. It runs in several rounds with a short pause, so the application stays alive for about 2–3 minutes and you can watch it:
+
+```bash
+cat > /tmp/pi_lab.py <<'EOF'
+import random, time
+from operator import add
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName("pi_lab").enableHiveSupport().getOrCreate()
+n = 4_000_000
+total = 0
+rounds = 5
+for i in range(rounds):
+    total += (spark.sparkContext.parallelize(range(n), 8)
+        .map(lambda _: 1 if random.random() ** 2 + random.random() ** 2 <= 1 else 0)
+        .reduce(add))
+    time.sleep(20)
+print(f"Pi is roughly {4.0 * total / (n * rounds)}")
+spark.stop()
+EOF
+
+spark-submit --deploy-mode cluster --name "spark-pi-${WORKSHOP_USER}" /tmp/pi_lab.py
+```
+
+While the application is `RUNNING` (second terminal), find it and open its Spark UI from the ResourceManager UI. Also open the Spark History Server and enable **Show incomplete applications**.
+
+```bash
+yarn application -list -appStates RUNNING -appTypes SPARK
+```
+
+After the first rounds, answer from the Spark UI (job numbers start at 0 per application):
+
+1. What is the **maximum execution time of a task** in job 0 → stage 0? (Stage page → Summary Metrics → Duration → Max)
+2. How many **stages** are there in job 0?
+3. How many **tasks** ran in job 0?
+4. How many **tasks ran per executor**? (Stage page → Aggregated Metrics by Executor)
+
+When the application is `FINISHED`, note its application id and continue:
+
+5. What is the **total uptime** of the application? (History Server, or `yarn application -status <application-id>`)
+6. Can you retrieve the logs with `yarn logs -applicationId <application-id>`? Why does this only work after the application has finished (log aggregation)?
+7. Find the **value of pi** in the driver stdout:
+
+   ```bash
+   yarn logs -applicationId <application-id> -log_files stdout | grep "Pi is roughly"
+   ```
+
+8. Find and download the **Spark event log** from HDFS and view its JSON content. The directory is set in `spark.eventLog.dir`:
+
+   ```bash
+   grep eventLog /etc/spark3/conf/spark-defaults.conf
+   hdfs dfs -ls <eventLog-dir> | grep <application-id>
+   hdfs dfs -get <eventLog-dir>/<application-id>* /tmp/
+   head -3 /tmp/<application-id>* | python3 -m json.tool
+   ```
+
+   Which event types do you see (`SparkListenerApplicationStart`, `SparkListenerJobStart`, `SparkListenerTaskEnd`, …)? The History Server rebuilds the UI from this file.
+
+**Check question:** The driver ran in a YARN container in cluster mode. Why did `spark-submit` not print the value of pi in your terminal?
+
+---
+
 ## Stretch (optional)
 
 - In `pyspark3`, repartition `curated` to 1 file per station with `repartition(1, "station_id")` before write; compare part-file counts with section 10.  

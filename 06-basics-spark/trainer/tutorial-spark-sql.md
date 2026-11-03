@@ -448,10 +448,26 @@ Create the script `meter_report.py` on the edge node:
 
 ```python
 import sys
+import time
 from pyspark.sql import SparkSession, functions as F
 
-def main(out_path):
-    spark = SparkSession.builder.appName("meter_report").getOrCreate()   # no predefined `spark` in a script
+def main(out_path, rounds=6):
+    # no predefined `spark` in a script; enableHiveSupport() connects to the Hive Metastore
+    # (hive-site.xml is preconfigured on the cluster)
+    spark = (SparkSession.builder
+             .appName("meter_report")
+             .enableHiveSupport()
+             .getOrCreate())
+
+    # Demo load: several rounds of shuffle-heavy work with a pause in between.
+    # Keeps the application RUNNING for ~3-4 minutes, so the trainer can open the
+    # Spark UI / History Server (incomplete applications) while jobs are being added.
+    for i in range(rounds):
+        n = (spark.range(0, 30_000_000, numPartitions=16)
+                  .groupBy((F.col("id") % 1000).alias("k")).count()
+                  .count())
+        print(f"round {i + 1}/{rounds}: {n} groups")
+        time.sleep(25)
 
     readings = spark.createDataFrame(
         [("M1", "2026-01-01 00:00:00", 1.5),
@@ -472,6 +488,13 @@ def main(out_path):
 if __name__ == "__main__":
     main(sys.argv[1] if len(sys.argv) > 1 else "/tmp/tour_spark/meter_report")
 ```
+
+The script runs about 3-4 minutes on purpose (6 rounds x 1 job + 25 s pause). While it runs:
+
+1. In a second terminal: `yarn application -list -appStates RUNNING -appTypes SPARK` and open the Spark UI via the ResourceManager link. A new job appears every ~30 s.
+2. Open the Spark History Server (link in Cloudera Manager) and click **Show incomplete applications**: the running app is listed, with jobs completed so far. Refresh to watch it grow.
+3. When it finishes, the app moves to the completed list; compare the final job count (6 + 1 write job) with what you saw live.
+4. Change the `rounds` default or the `time.sleep` value to make it shorter or longer.
 
 Submit it:
 
