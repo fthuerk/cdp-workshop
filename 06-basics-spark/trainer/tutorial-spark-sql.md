@@ -2,7 +2,7 @@
 
 Run-through of Spark basics: first a short look at the Scala shell (`spark3-shell`), then a step-by-step PySpark tour of data types and core operations, using the SQL and DataFrame APIs side by side. Everything uses inline data.
 
-Suggested flow: Spark and Scala context (section 0) -> DataFrame basics (1-4) -> transformations (5-10) -> structure and performance (11-15) -> wrap-up exercise (16).
+Suggested flow: Spark and Scala context (section 0) -> DataFrame basics (1-4) -> transformations (5-10) -> structure and performance (11-16) -> wrap-up exercise (17) -> batch job (18).
 
 ---
 
@@ -380,7 +380,56 @@ q.explain("formatted")     # readable plan: Scan -> HashAggregate -> Exchange ->
 
 ---
 
-## 14. Partitions, shuffles and `repartition`
+## 14. RDD vs DataFrame vs Python UDF: the speed trade-off
+
+Same computation, three ways: double every `kwh` value and sum it. Only the execution path differs.
+
+```python
+import time
+
+def timed(label, fn):
+    t = time.time(); r = fn()
+    print(f"{label:<26} {time.time() - t:6.1f}s  -> {r}")
+
+N = 20_000_000
+big_df = spark.range(N).withColumn("kwh", (F.col("id") % 100) / 10.0)
+big_df.cache().count()                          # materialize once so all variants read the same data
+
+# 1. RDD with a Python lambda: every row is pickled JVM <-> Python, no optimizer
+timed("RDD (Python lambda)", lambda: big_df.rdd.map(lambda r: r.kwh * 2).sum())
+
+# 2. DataFrame + Python UDF: still one Python call per row
+double_udf = F.udf(lambda x: x * 2.0, "double")
+timed("DataFrame + Python UDF", lambda: big_df.select(F.sum(double_udf("kwh"))).first()[0])
+
+# 3. DataFrame + built-in functions: stays in the JVM, optimized and code-generated
+timed("DataFrame built-in", lambda: big_df.select(F.sum(F.col("kwh") * 2)).first()[0])
+
+big_df.unpersist()
+```
+
+Expected: built-in is several times faster than the UDF, and the UDF is usually a bit faster than the RDD. Exact ratios depend on the cluster, so run it once beforehand.
+
+Look at the plans:
+
+```python
+big_df.select(F.sum(double_udf("kwh"))).explain()   # contains BatchEvalPython: rows leave the JVM
+big_df.select(F.sum(F.col("kwh") * 2)).explain()    # no Python step, whole-stage codegen
+```
+
+Open the Spark UI: compare task durations for the three jobs.
+
+Talking points:
+
+- **RDD:** low-level, no schema, no optimizer. Use for unstructured data or custom partitioning logic.
+- **DataFrame:** schema plus Catalyst (optimizer) and Tungsten (memory/codegen). With built-in functions, PySpark is as fast as Scala.
+- The PySpark slowdown comes from serializing rows to Python workers, not from the API itself.
+- Middle ground when you need Python logic: Pandas UDFs (`@F.pandas_udf`), which move data in Arrow batches instead of row by row.
+- Scala link (section 0): typed `Dataset` lambdas have a similar, smaller cost; the same rule applies: built-ins first.
+
+---
+
+## 15. Partitions, shuffles and `repartition`
 
 ```python
 big = spark.range(0, 10_000_000)               # synthetic data, column "id"
@@ -398,7 +447,7 @@ Rule of thumb: one task per partition, ideally 100-200 MB per partition. Too man
 
 ---
 
-## 15. Moving data between Spark and Python
+## 16. Moving data between Spark and Python
 
 ```python
 small = readings.groupBy("meter_id").sum("kwh")
@@ -412,7 +461,7 @@ Never `collect()` or `toPandas()` a large table: the driver runs out of memory. 
 
 ---
 
-## 16. Mini exercise (participants, ~5 min)
+## 17. Mini exercise (participants, ~5 min)
 
 Task: *for each meter, show the city, the total kWh and the share of the total consumption in percent. Meters without readings should still appear.*
 
@@ -440,7 +489,7 @@ spark.sql("""
 
 ---
 
-## 17. Run it as a batch job: `spark3-submit` with a PySpark script
+## 18. Run it as a batch job: `spark3-submit` with a PySpark script
 
 Interactive shells are for exploring. Scheduled and production jobs are Python files run with `spark3-submit` (there is no separate "pyspark-submit"; PySpark scripts use the normal submit command).
 
@@ -528,7 +577,7 @@ Talking points:
 
 ---
 
-## 18. Clean up
+## 19. Clean up
 
 ```python
 spark.sql("DROP DATABASE tour_spark CASCADE")
@@ -545,6 +594,7 @@ hdfs dfs -rm -r -f /tmp/tour_spark
 About 35-40 minutes in full.
 
 - Short version (~15 min): section 0 (2-3 min talk), then 1, 2, 5, 7, 8, 13.
-- Skip if short on time: 3, 6, 10-12, 14, 15.
-- Section 17 (`spark3-submit`) is a good closer even in the short version (~5 min).
-- Open the Spark UI after section 13 (and again after 14) to show the job, stages and tasks behind one `show()`.
+- Skip if short on time: 3, 6, 10-12, 15, 16.
+- Section 14 (RDD vs DataFrame vs UDF) is a short, high-impact demo (~5 min); keep it if the audience writes PySpark.
+- Section 18 (`spark3-submit`) is a good closer even in the short version (~5 min).
+- Open the Spark UI after section 13 (and again after 14 and 15) to show the job, stages and tasks behind one `show()`.
