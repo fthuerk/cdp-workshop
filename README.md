@@ -25,15 +25,18 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 | 06 | [Basics: Spark](06-basics-spark/README.md) | Basics | ~90 min | Draft (not yet dry-run on a cluster) |
 | 07 | [Lakehouse: Iceberg](07-lakehouse-iceberg/README.md) | Lakehouse | ~120 min | Draft (not yet dry-run on a cluster) |
 | 08 | [Basics: Oozie in Hue](08-basics-oozie/README.md) | Basics | ~70 min | Draft (not yet dry-run on a cluster) |
+| 09 | [Basics: Spark via Livy](09-basics-livy/README.md) | Basics | ~90 min | Draft (not yet dry-run on a cluster) |
 | I1 | [Instructor-led: Ranger](I1-basics-ranger/README.md) | Instructor-led | ~30 min | Draft (not yet dry-run on a cluster) |
 | I2 | [Instructor-led: Atlas](I2-basics-atlas/README.md) | Instructor-led | ~20 min | Draft (not yet dry-run on a cluster) |
 | 10 | [Advanced: Hive](10-advanced-hive/README.md) | Advanced | ~75 min | Draft (not yet dry-run on a cluster) |
 | 11 | [Advanced: Oozie](11-advanced-oozie/README.md) | Advanced | ~110 min | Draft (not yet dry-run on a cluster) |
+| 14 | [Basics: Data types across engines](14-basics-datatypes/README.md) | Basics | ~40 min | Draft (not yet dry-run on a cluster) |
 | 12 | Advanced: Spark | Advanced | ~90 min | Planned |
 | 13 | Advanced: Impala | Advanced | ~60 min | Planned |
 | 20 | MVP: Full pipeline | MVP | ~120 min | Planned |
 
 **Basics track:** Kerberos → HDFS → YARN → Hive → Spark → Impala  
+**Spark access via REST:** `09` runs the Spark pipeline through Livy behind Knox (LDAP login), with `curl` and with a Jupyter notebook on your laptop  
 **Lakehouse:** Iceberg tables in Hue/Impala (after Hive and Impala basics)  
 **Orchestration:** Oozie: `08` is a Hue UI tour, `11` builds the same pipeline by hand (workflow XML, Hive and Spark actions, coordinators)  
 **Instructor-led (`I1`, `I2`):** Ranger and Atlas are driven live by the trainer in the UI (policies and tags change while you watch), so they are numbered separately and can be dropped into any day  
@@ -60,7 +63,9 @@ data/samples/        # synthetic CSVs (uploaded to HDFS by bootstrap)
 06-basics-spark/     # Spark lab + trainer + setup scripts
 07-lakehouse-iceberg/ # Lakehouse lab (Iceberg in Hue/Impala) + trainer + setup scripts
 08-basics-oozie/     # Oozie tour through Hue (workflow, coordinators, generated XML) + trainer
+09-basics-livy/      # Spark via Livy (REST sessions and batches, local Jupyter notebook) + trainer + setup scripts
 11-advanced-oozie/   # Oozie by hand (workflows, actions, coordinators) + trainer + example applications
+14-basics-datatypes/ # Data types and functions compared across Hive, Impala, Spark + trainer + setup scripts
 I1-basics-ranger/    # Ranger lab (allow, deny, masking, row filter) + trainer + setup scripts
 I2-basics-atlas/     # Atlas UI lab (metadata, lineage, tags, glossary) + trainer
 docs/concept.md              # curriculum concept

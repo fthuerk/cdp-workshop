@@ -25,9 +25,17 @@ The JSON templates only cover HDFS. The Hive lab needs these policies in the **H
 
 Same **`{USER}` database/table** pattern as module 04. Participants write Parquet files under **`/user/<participant>/`** (their HDFS home; default home ownership is enough) and save the final table with `saveAsTable` at the **default location** — no `LOCATION` clause, so no URL policy. Spark and Hive need the same access to `/warehouse/tablespace/external/hive/{USER}.db` as in module 04.
 
+## Hive and HDFS policies for module 09 Livy (manual, Ranger UI)
+
+Livy runs Spark as the participant (impersonation), so the policies of module 06 apply unchanged: Hive `{USER}` database/table privileges, HDFS write on `/user/<participant>` (default home ownership) and on `/warehouse/tablespace/external/hive/{USER}.db`, read on `${WORKSHOP_ROOT}/data` and `${WORKSHOP_ROOT}/09-livy/assets`. The table is created without `LOCATION`, so no URL policy is needed. Outside Ranger, the workshop users must be allowed to use the Livy service in the Knox topology, and the Livy service user needs proxy-user rights for them (see the [module 09 trainer notes](../../../09-basics-livy/trainer/notes.md)).
+
 ## Hive / Impala policies for module 05 (manual, Ranger UI)
 
 Same pattern as module 04: `{USER}` database/table privileges and read/write on the default external location `/warehouse/tablespace/external/hive/{USER}.db`. The lab sets no `LOCATION`, so no URL policy is needed. If Impala has a separate Ranger service, grant `SELECT` (and `CREATE` on `{USER}`) for workshop users. Read on `${WORKSHOP_ROOT}/05-impala/scaled` is prepared by `05-basics-impala/setup/setup.sh`.
+
+## Hive, Impala and Spark policies for module 14 Data types (manual, Ranger UI)
+
+Same `{USER}` database/table privileges and read/write on `/warehouse/tablespace/external/hive/{USER}.db` as in modules 05 and 06 (the lab sets no `LOCATION`, so no URL policy). Read on `${WORKSHOP_ROOT}/14-datatypes/edge` is prepared by `14-basics-datatypes/setup/setup.sh`. Views are created in the personal database, so participants need `create` there.
 
 ## Hive policies for module I2 Atlas (manual, Ranger UI)
 

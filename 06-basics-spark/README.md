@@ -49,7 +49,8 @@ After this module you can:
 
 ## Next module
 
-[07-lakehouse-iceberg](../07-lakehouse-iceberg/README.md)
+[07-lakehouse-iceberg](../07-lakehouse-iceberg/README.md)  
+Spark without a client on your machine: [09-basics-livy](../09-basics-livy/README.md)
 
 ---
 *The generation of these labs was supported by AI.*

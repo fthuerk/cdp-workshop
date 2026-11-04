@@ -1,0 +1,9 @@
+# Local Jupyter client for Livy (use Python 3.9 - 3.11 in a virtual environment).
+# sparkmagic 0.21 needs pandas < 2, which in turn needs numpy < 2.
+jupyterlab
+ipywidgets>=7.6,<9
+sparkmagic==0.21.0
+pandas<2.0
+numpy<2.0
+matplotlib
+requests

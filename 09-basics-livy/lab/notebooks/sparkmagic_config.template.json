@@ -1,0 +1,37 @@
+{
+  "kernel_python_credentials": {
+    "username": "",
+    "password": "",
+    "url": "",
+    "auth": "Basic_Access"
+  },
+  "kernel_scala_credentials": {
+    "username": "",
+    "password": "",
+    "url": "",
+    "auth": "Basic_Access"
+  },
+  "kernel_r_credentials": {
+    "username": "",
+    "password": "",
+    "url": ""
+  },
+  "custom_headers": {
+    "X-Requested-By": "workshop"
+  },
+  "session_configs": {
+    "driverMemory": "1g",
+    "executorMemory": "1g",
+    "executorCores": 1,
+    "numExecutors": 1,
+    "conf": {
+      "spark.sql.catalogImplementation": "hive"
+    }
+  },
+  "ignore_ssl_errors": false,
+  "livy_session_startup_timeout_seconds": 240,
+  "wait_for_idle_timeout_seconds": 60,
+  "heartbeat_refresh_seconds": 30,
+  "use_auto_viz": false,
+  "max_results_sql": 2500
+}
