@@ -67,7 +67,7 @@ The `POST` returned an error instead of a statement: wrong `SESSION_ID`, session
 ## `AnalysisException: Path does not exist`
 
 - The statement file must contain the real path: open `"${LAB_TMP}/s3a.json"` in `vim` and check that `/2026_cdp_workshop` matches your `WORKSHOP_ROOT`. Shell variables such as `${WORKSHOP_ROOT}` are **not** expanded inside a file — the driver would see them as text.  
-- Check the path on HDFS: `hdfs dfs -ls "${WORKSHOP_ROOT}/data/landisgyr/"`.  
+- Check the path on HDFS: `hdfs dfs -ls "${WORKSHOP_ROOT}/data/grid_measurements/"`.  
 - If bootstrap never ran, ask your instructor to run `00-setup/admin/bootstrap.sh`.
 
 ## Batch ends as `dead`

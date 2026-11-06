@@ -2,7 +2,7 @@
 
 ## Why this matters
 
-Every read of smart-meter CSVs in HDFS, every Hive or Impala query over `landisgyr` data, and every Spark job that joins weather and price feeds runs **as a named principal**. Kerberos is CDP’s default answer to “who is calling?” Without a valid ticket (or keytab-backed identity for services and batch jobs), clients fail before authorization (Ranger, POSIX ACLs) is even evaluated. Data engineers need predictable identity for pipelines; analysts and scientists need tickets or gateway auth that JDBC and notebook tools understand.
+Every read of smart-meter CSVs in HDFS, every Hive or Impala query over `grid_measurements` data, and every Spark job that joins weather and price feeds runs **as a named principal**. Kerberos is CDP’s default answer to “who is calling?” Without a valid ticket (or keytab-backed identity for services and batch jobs), clients fail before authorization (Ranger, POSIX ACLs) is even evaluated. Data engineers need predictable identity for pipelines; analysts and scientists need tickets or gateway auth that JDBC and notebook tools understand.
 
 ---
 

@@ -392,7 +392,7 @@ Open the **XML** tab of the new coordinator in the Job Browser. Compared with th
 
    ![Coordinator actions waiting for the flag](images/4_5_coordinator_waiting.png)
 
-2. In the **Storage Browser** open `/user/<your_user>/oozie_lab` and create the folder `landing`. Then go to the workshop folder (`/2026_cdp_workshop/data/landisgyr`, or the root your trainer named), select `sample-landisgyr-data.csv` and use **Actions → Copy** to copy it into the `landing` folder. The actions keep waiting: the flag is still missing.
+2. In the **Storage Browser** open `/user/<your_user>/oozie_lab` and create the folder `landing`. Then go to the workshop folder (`/2026_cdp_workshop/data/grid_measurements`, or the root your trainer named), select `sample-grid-measurements.csv` and use **Actions → Copy** to copy it into the `landing` folder. The actions keep waiting: the flag is still missing.
 
    ![Copy the sample file to the landing folder](images/4_5_copy_file_to_landing.png)
 

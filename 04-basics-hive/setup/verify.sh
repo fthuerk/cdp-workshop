@@ -11,7 +11,7 @@ require_admin_hdfs_kinit
 require_cmd hdfs awk
 
 MODULE_ROOT="${WORKSHOP_ROOT}/04-hive"
-LANDING="${MODULE_ROOT}/landing/landisgyr_by_station"
+LANDING="${MODULE_ROOT}/landing/grid_measurements_by_station"
 
 fail=0
 check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }

@@ -2,7 +2,7 @@
 
 ## Why this matters
 
-Grid-monitoring pilot data — Landis+Gyr-style meter CSVs, operator weather, and market price files — lands on HDFS under `${WORKSHOP_ROOT}/data/`. Hive external tables, Spark reads, and Impala all treat those paths as the **source of truth** for bytes on disk. Data engineers own layout, compression, and lifecycle; analysts and scientists rarely touch the NameNode API directly but feel HDFS through **file format, partition folders, and scan size**. Understanding blocks, replication, and the small-file problem explains most “slow query” and “metadata pressure” stories before SQL tuning.
+Grid-monitoring pilot data — grid measurement CSVs, operator weather, and market price files — lands on HDFS under `${WORKSHOP_ROOT}/data/`. Hive external tables, Spark reads, and Impala all treat those paths as the **source of truth** for bytes on disk. Data engineers own layout, compression, and lifecycle; analysts and scientists rarely touch the NameNode API directly but feel HDFS through **file format, partition folders, and scan size**. Understanding blocks, replication, and the small-file problem explains most “slow query” and “metadata pressure” stories before SQL tuning.
 
 ---
 
@@ -111,14 +111,14 @@ kinit "${WORKSHOP_USER}"
 
 ```bash
 # List use-case landing data
-hdfs dfs -ls "${WORKSHOP_ROOT}/data/landisgyr"
-hdfs dfs -du -h "${WORKSHOP_ROOT}/data/landisgyr"
+hdfs dfs -ls "${WORKSHOP_ROOT}/data/grid_measurements"
+hdfs dfs -du -h "${WORKSHOP_ROOT}/data/grid_measurements"
 ```
 
 ```bash
 # Replication and block report for one file
-hdfs dfs -stat "%r %b %n" "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
-hdfs fsck "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" -files -blocks -locations
+hdfs dfs -stat "%r %b %n" "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
+hdfs fsck "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" -files -blocks -locations
 ```
 
 ```bash

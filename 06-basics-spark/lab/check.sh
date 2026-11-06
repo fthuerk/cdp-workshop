@@ -60,7 +60,7 @@ else
   fail_msg "Batch row count is '${batch_count:-unknown}', expected ${EXPECTED_JOINED} — redo lab sections 4 and 6"
 fi
 
-meter_csv="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+meter_csv="${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 meter_ok_py="$(mktemp)"
 cat > "${meter_ok_py}" <<'PY'
 import sys

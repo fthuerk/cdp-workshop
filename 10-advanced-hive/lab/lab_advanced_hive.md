@@ -33,7 +33,7 @@ Create your database (if it does not exist yet) and the four external tables: me
 CREATE DATABASE IF NOT EXISTS ${ws_user};
 USE ${ws_user};
 
-CREATE EXTERNAL TABLE IF NOT EXISTS landisgyr_csv (
+CREATE EXTERNAL TABLE IF NOT EXISTS grid_measurements_csv (
   ts_utc STRING, station_id STRING, device_id STRING, phase STRING,
   active_power_kw DOUBLE, reactive_power_kvar DOUBLE, voltage_v DOUBLE,
   current_a DOUBLE, power_factor DOUBLE, frequency_hz DOUBLE,
@@ -73,7 +73,7 @@ Copy one shared CSV into each table folder. `-f` overwrites a file that is alrea
 
 ```bash
 # meter readings and station reference data
-hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_csv/"
+hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "${HIVE_EXT}/grid_measurements_csv/"
 hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/basemap/sample-basemap-at-locations.csv" "${HIVE_EXT}/stations/"
 
 # market prices and operator weather
@@ -84,15 +84,15 @@ hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.
 The timestamps are text like `2026-01-15T08:00:00Z`, and an empty event code is an empty string. A view converts both once, so the following sections stay short:
 
 ```sql
-CREATE OR REPLACE VIEW landisgyr_v AS
+CREATE OR REPLACE VIEW grid_measurements_v AS
 SELECT CAST(REPLACE(SUBSTR(ts_utc, 1, 19), 'T', ' ') AS TIMESTAMP) AS ts,
        station_id, device_id, phase, active_power_kw, reactive_power_kvar,
        voltage_v, current_a, power_factor, frequency_hz, transformer_load_pct,
        quality_flag, NULLIF(event_code, '') AS event_code, comm_status
-FROM landisgyr_csv;
+FROM grid_measurements_csv;
 
-SELECT * FROM landisgyr_v LIMIT 5;
-SELECT COUNT(*) FROM landisgyr_v;
+SELECT * FROM grid_measurements_v LIMIT 5;
+SELECT COUNT(*) FROM grid_measurements_v;
 ```
 
 You should see fifteen readings: five for each of the stations `TS-101`, `TS-204`, and `TS-305`.
@@ -108,7 +108,7 @@ You should see fifteen readings: five for each of the stations `TS-101`, `TS-204
 ```sql
 SELECT s.station_id, s.district
 FROM stations s
-LEFT JOIN (SELECT DISTINCT station_id FROM landisgyr_v WHERE quality_flag = 'WARN') w
+LEFT JOIN (SELECT DISTINCT station_id FROM grid_measurements_v WHERE quality_flag = 'WARN') w
   ON s.station_id = w.station_id
 WHERE w.station_id IS NULL;
 ```
@@ -118,12 +118,12 @@ WHERE w.station_id IS NULL;
 ```sql
 SELECT s.station_id, s.district
 FROM stations s
-LEFT SEMI JOIN landisgyr_v m
+LEFT SEMI JOIN grid_measurements_v m
   ON s.station_id = m.station_id AND m.quality_flag = 'WARN';
 
 SELECT s.station_id, s.district
 FROM stations s
-WHERE EXISTS (SELECT 1 FROM landisgyr_v m WHERE m.station_id = s.station_id AND m.quality_flag = 'WARN');
+WHERE EXISTS (SELECT 1 FROM grid_measurements_v m WHERE m.station_id = s.station_id AND m.quality_flag = 'WARN');
 ```
 
 **Join on a derived key.** Meter readings arrive every 15 minutes, prices per hour. Join on the hour — the first 13 characters of both timestamps (`2026-01-15T08`) — to estimate the energy cost per station (15 minutes = 0.25 h; prices are in ct/kWh):
@@ -132,7 +132,7 @@ WHERE EXISTS (SELECT 1 FROM landisgyr_v m WHERE m.station_id = s.station_id AND 
 SELECT m.station_id,
        ROUND(SUM(m.active_power_kw * 0.25), 1) AS energy_kwh,
        ROUND(SUM(m.active_power_kw * 0.25 * p.price_ct_kwh) / 100, 2) AS cost_eur
-FROM landisgyr_csv m
+FROM grid_measurements_csv m
 JOIN market_prices p ON SUBSTR(m.ts_utc, 1, 13) = SUBSTR(p.timestamp_start, 1, 13)
 GROUP BY m.station_id
 ORDER BY cost_eur DESC;
@@ -152,8 +152,8 @@ You should get three pairs for three stations.
 **A join that multiplies rows.** Join the readings to the operator weather on the timestamp only and compare the row counts:
 
 ```sql
-SELECT COUNT(*) FROM landisgyr_csv;
-SELECT COUNT(*) FROM landisgyr_csv m JOIN weather_operator w ON m.ts_utc = w.ts_utc;
+SELECT COUNT(*) FROM grid_measurements_csv;
+SELECT COUNT(*) FROM grid_measurements_csv m JOIN weather_operator w ON m.ts_utc = w.ts_utc;
 ```
 
 You should see twice as many rows after the join. Find out why, then fix it by averaging the weather per timestamp first, in a common table expression (`WITH`):
@@ -167,7 +167,7 @@ WITH weather AS (
   GROUP BY ts_utc
 )
 SELECT m.station_id, m.ts_utc, m.transformer_load_pct, w.avg_temp_c
-FROM landisgyr_csv m
+FROM grid_measurements_csv m
 JOIN weather w ON m.ts_utc = w.ts_utc
 ORDER BY m.station_id, m.ts_utc;
 ```
@@ -187,7 +187,7 @@ SELECT station_id, ts, transformer_load_pct,
        ROW_NUMBER() OVER (PARTITION BY station_id ORDER BY ROUND(transformer_load_pct, -1) DESC) AS row_nr,
        RANK()       OVER (PARTITION BY station_id ORDER BY ROUND(transformer_load_pct, -1) DESC) AS rnk,
        DENSE_RANK() OVER (PARTITION BY station_id ORDER BY ROUND(transformer_load_pct, -1) DESC) AS dense_rnk
-FROM landisgyr_v
+FROM grid_measurements_v
 ORDER BY station_id, row_nr;
 ```
 
@@ -200,7 +200,7 @@ SELECT station_id, ts, transformer_load_pct, active_power_kw
 FROM (
   SELECT station_id, ts, transformer_load_pct, active_power_kw,
          ROW_NUMBER() OVER (PARTITION BY station_id ORDER BY transformer_load_pct DESC) AS rn
-  FROM landisgyr_v
+  FROM grid_measurements_v
 ) ranked
 WHERE rn = 1;
 ```
@@ -211,7 +211,7 @@ WHERE rn = 1;
 SELECT station_id,
        MAX(transformer_load_pct) AS max_load_pct,
        RANK() OVER (ORDER BY MAX(transformer_load_pct) DESC) AS load_rank
-FROM landisgyr_v
+FROM grid_measurements_v
 GROUP BY station_id;
 ```
 
@@ -221,7 +221,7 @@ GROUP BY station_id;
 SELECT station_id, ts, transformer_load_pct,
        LAG(transformer_load_pct) OVER (PARTITION BY station_id ORDER BY ts) AS prev_load_pct,
        ROUND(transformer_load_pct - LAG(transformer_load_pct) OVER (PARTITION BY station_id ORDER BY ts), 1) AS delta_pct
-FROM landisgyr_v
+FROM grid_measurements_v
 ORDER BY station_id, ts;
 ```
 
@@ -235,7 +235,7 @@ SELECT station_id, ts,
        ROUND(AVG(transformer_load_pct) OVER (
          PARTITION BY station_id ORDER BY ts
          ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 1) AS load_avg_3
-FROM landisgyr_v
+FROM grid_measurements_v
 ORDER BY station_id, ts;
 ```
 
@@ -248,7 +248,7 @@ SELECT station_id, ts, active_power_kw,
        NTILE(3) OVER (ORDER BY active_power_kw) AS power_bucket,
        ROUND(PERCENT_RANK() OVER (ORDER BY active_power_kw), 2) AS power_pct_rank,
        ROUND(100 * active_power_kw / SUM(active_power_kw) OVER (), 1) AS share_of_total_pct
-FROM landisgyr_v
+FROM grid_measurements_v
 ORDER BY active_power_kw;
 ```
 
@@ -267,7 +267,7 @@ SELECT station_id,
        collect_set(event_code) AS event_codes,
        collect_list(CASE WHEN quality_flag = 'WARN' THEN date_format(ts, 'HH:mm') END) AS warn_times,
        COUNT(event_code) AS events
-FROM landisgyr_v
+FROM grid_measurements_v
 GROUP BY station_id;
 ```
 
@@ -278,7 +278,7 @@ SELECT station_id,
        size(collect_set(event_code)) AS distinct_events,
        array_contains(collect_set(event_code), 'HIGH_LOAD') AS had_high_load,
        sort_array(collect_set(event_code)) AS sorted_events
-FROM landisgyr_v
+FROM grid_measurements_v
 GROUP BY station_id;
 ```
 
@@ -288,7 +288,7 @@ GROUP BY station_id;
 SELECT station_id, ts,
        named_struct('kw', active_power_kw, 'load_pct', transformer_load_pct) AS measure,
        map('voltage_v', voltage_v, 'current_a', current_a) AS electrical
-FROM landisgyr_v
+FROM grid_measurements_v
 LIMIT 5;
 ```
 
@@ -302,7 +302,7 @@ FROM (
   SELECT station_id,
          named_struct('kw', active_power_kw, 'load_pct', transformer_load_pct) AS measure,
          map('voltage_v', voltage_v, 'current_a', current_a) AS electrical
-  FROM landisgyr_v
+  FROM grid_measurements_v
 ) m
 LIMIT 5;
 ```
@@ -314,7 +314,7 @@ SELECT t.station_id, w.warn_time
 FROM (
   SELECT station_id,
          collect_list(CASE WHEN quality_flag = 'WARN' THEN date_format(ts, 'HH:mm') END) AS warn_times
-  FROM landisgyr_v
+  FROM grid_measurements_v
   GROUP BY station_id
 ) t
 LATERAL VIEW explode(t.warn_times) w AS warn_time;
@@ -327,7 +327,7 @@ A station without warnings has an empty array and therefore **disappears** from 
 ```sql
 SELECT station_id, phase, COUNT(*) AS readings, ROUND(AVG(active_power_kw), 1) AS avg_kw,
        GROUPING__ID AS level_id
-FROM landisgyr_v
+FROM grid_measurements_v
 GROUP BY station_id, phase WITH ROLLUP
 ORDER BY level_id, station_id, phase;
 ```
@@ -341,17 +341,17 @@ SELECT station_id,
        percentile_approx(active_power_kw, array(0.5, 0.9)) AS kw_median_p90,
        stddev_pop(active_power_kw) AS kw_stddev,
        corr(active_power_kw, transformer_load_pct) AS corr_kw_load
-FROM landisgyr_v
+FROM grid_measurements_v
 GROUP BY station_id;
 
 SELECT device_id,
-       regexp_extract(device_id, '^LG-(TS-[0-9]+)-([A-Z])$', 1) AS station_from_device,
+       regexp_extract(device_id, '^GM-(TS-[0-9]+)-([A-Z])$', 1) AS station_from_device,
        split(device_id, '-')[3] AS meter_letter
-FROM landisgyr_v
+FROM grid_measurements_v
 GROUP BY device_id;
 
 SELECT m.station_id, s.measure, s.measure_value
-FROM landisgyr_v m
+FROM grid_measurements_v m
 LATERAL VIEW stack(2, 'voltage_v', m.voltage_v, 'current_a', m.current_a) s AS measure, measure_value
 LIMIT 6;
 ```
@@ -465,7 +465,7 @@ If the command returns nothing, skip this step: the haversine query above gives 
 
 - Rank the **hours** of the day by market price with `RANK()` and join the result to the energy per hour of each station — which station used the most energy in the most expensive hour?
 - Use `LAG` to flag every reading whose load jumped by more than 5 percentage points since the previous reading, and `collect_list` to list the flagged times per station.
-- Clean up: `DROP VIEW landisgyr_v;` and `DROP TABLE` for the four tables; the files stay in `${HIVE_EXT}` because the tables are external — remove the table folders with `hdfs dfs -rm -r -skipTrash`.
+- Clean up: `DROP VIEW grid_measurements_v;` and `DROP TABLE` for the four tables; the files stay in `${HIVE_EXT}` because the tables are external — remove the table folders with `hdfs dfs -rm -r -skipTrash`.
 
 ---
 

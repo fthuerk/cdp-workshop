@@ -121,7 +121,7 @@ from pyspark.sql import SparkSession
 spark = SparkSession.builder.appName("workshop").enableHiveSupport().getOrCreate()
 root = "/2026_cdp_workshop"
 
-meters = spark.read.option("header", True).csv(f"{root}/data/landisgyr/*.csv")
+meters = spark.read.option("header", True).csv(f"{root}/data/grid_measurements/*.csv")
 weather = spark.read.option("header", True).csv(f"{root}/data/operator_weather/*.csv")
 ```
 

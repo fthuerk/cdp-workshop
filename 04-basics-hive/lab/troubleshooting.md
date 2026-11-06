@@ -61,11 +61,11 @@ Do the same for `meter_parquet` with `STORED AS PARQUET`. Everything after that 
 
 ## `FAILED: SemanticException … Attempt to do update or delete on table … that is not transactional`
 
-Expected in [lab section 5](lab_basics_hive.md#5-update-and-delete-on-external-tables). External tables cannot be updated or deleted row by row. In section 7 the same statements work on the managed table `landisgyr_managed`. If you get this error in section 7, check with `DESCRIBE FORMATTED landisgyr_managed;` that `Table Type` is `MANAGED_TABLE` and `transactional` is `true`.
+Expected in [lab section 5](lab_basics_hive.md#5-update-and-delete-on-external-tables). External tables cannot be updated or deleted row by row. In section 7 the same statements work on the managed table `grid_measurements_managed`. If you get this error in section 7, check with `DESCRIBE FORMATTED grid_measurements_managed;` that `Table Type` is `MANAGED_TABLE` and `transactional` is `true`.
 
 ## All columns are `NULL`
 
-The columns of the table do not match the file. Check the order and types with `DESCRIBE landisgyr_csv;` and compare with the first lines of the CSV. In the partitioned tables the file must **not** contain the partition column — compare with [section 3](lab_basics_hive.md#3-partitions--add-partition-and-msck-repair).
+The columns of the table do not match the file. Check the order and types with `DESCRIBE grid_measurements_csv;` and compare with the first lines of the CSV. In the partitioned tables the file must **not** contain the partition column — compare with [section 3](lab_basics_hive.md#3-partitions--add-partition-and-msck-repair).
 
 ## First row of the table is the CSV header (or missing)
 
@@ -74,8 +74,8 @@ The table property `skip.header.line.count` is set to skip one line **per file**
 ## `SHOW PARTITIONS` is empty or `MSCK REPAIR` adds nothing
 
 - Folder names must look exactly like `station_id=TS-101` (no spaces, correct spelling).  
-- The folders must be **inside** the table folder (`${HIVE_EXT}/landisgyr_by_station`).  
-- Check with `hdfs dfs -ls -R "${HIVE_EXT}/landisgyr_by_station"`.
+- The folders must be **inside** the table folder (`${HIVE_EXT}/grid_measurements_by_station`).  
+- Check with `hdfs dfs -ls -R "${HIVE_EXT}/grid_measurements_by_station"`.
 
 ## `hive: command not found` (`orcfiledump`)
 
@@ -95,7 +95,7 @@ The first query in a session can take up to a minute while a Tez session starts.
 
 ## `MERGE` fails with a cardinality violation
 
-More than one source row matched the same target row. Check `landisgyr_changes` — you should have exactly two data rows (and one header). Look for a second file in `${HIVE_EXT}/landisgyr_changes`.
+More than one source row matched the same target row. Check `grid_measurements_changes` — you should have exactly two data rows (and one header). Look for a second file in `${HIVE_EXT}/grid_measurements_changes`.
 
 ## Your username contains `-` or `.`
 

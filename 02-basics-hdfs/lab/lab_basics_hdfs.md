@@ -38,11 +38,11 @@ hdfs dfs -du -h "${WORKSHOP_ROOT}/data"
 Peek at two representative files: smart-meter CSV (start of file) and operator weather (end of file — useful when files are append-only or you want the latest rows):
 
 ```bash
-hdfs dfs -cat "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" | head -5
+hdfs dfs -cat "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" | head -5
 hdfs dfs -tail "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
 ```
 
-**Check question:** Which columns appear in the Landis&Gyr sample? How is that different from a relational row stored only in Oracle?
+**Check question:** Which columns appear in the grid measurements sample? How is that different from a relational row stored only in Oracle?
 
 Optional: open **Hue → File Browser** and browse to the same paths.
 
@@ -62,14 +62,14 @@ hdfs dfs -mkdir -p "${WORKSHOP_HOME}"
 hdfs dfs -put /etc/hosts "${WORKSHOP_HOME}/hosts"
 
 # Copy files within HDFS
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${WORKSHOP_HOME}/"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "${WORKSHOP_HOME}/"
 hdfs dfs -cp "${HDFS_LAB}/dummy.txt" "${WORKSHOP_HOME}/"
 
 # List the result
 hdfs dfs -ls -h "${WORKSHOP_HOME}"
 ```
 
-You should see `hosts`, the Landis&Gyr sample, and `dummy.txt`. The big block demo file stays under `${HDFS_LAB}`.
+You should see `hosts`, the grid measurements sample, and `dummy.txt`. The big block demo file stays under `${HDFS_LAB}`.
 
 ---
 
@@ -83,7 +83,7 @@ Count entries under your home, then print a few metadata fields for one CSV:
 
 ```bash
 hdfs dfs -count -h "${WORKSHOP_HOME}"
-hdfs dfs -stat "%n size=%y repl=%r owner=%o" "${WORKSHOP_HOME}/sample-landisgyr-data.csv"
+hdfs dfs -stat "%n size=%y repl=%r owner=%o" "${WORKSHOP_HOME}/sample-grid-measurements.csv"
 ```
 
 `-count` prints no header. Columns: **directories, files, size, path** (e.g. `1  3  2.1 K  /user/your_name`). `-stat` prints the fields from your format string: name, size in bytes, replication, owner.
@@ -171,19 +171,19 @@ First download the CSV (suffix with your username so shared edge nodes do not cl
 
 ```bash
 # Download the file and count its lines
-hdfs dfs -get "${WORKSHOP_HOME}/sample-landisgyr-data.csv" "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}"
-wc -l "/tmp/sample-landisgyr-data.csv.${WORKSHOP_USER}"
+hdfs dfs -get "${WORKSHOP_HOME}/sample-grid-measurements.csv" "/tmp/sample-grid-measurements.csv.${WORKSHOP_USER}"
+wc -l "/tmp/sample-grid-measurements.csv.${WORKSHOP_USER}"
 ```
 
 Create a small local file with one new reading that matches the CSV columns (the next 15-minute value for station `TS-305`), then append only that file to the HDFS copy:
 
 ```bash
 # One new row in the same column layout as the CSV
-echo "2026-01-15T09:15:00Z,TS-305,LG-TS-305-C,L3,266.5,52.1,228.3,413.9,0.975,50.00,84.8,OK,,ONLINE" > "/tmp/new-reading.${WORKSHOP_USER}.csv"
+echo "2026-01-15T09:15:00Z,TS-305,GM-TS-305-C,L3,266.5,52.1,228.3,413.9,0.975,50.00,84.8,OK,,ONLINE" > "/tmp/new-reading.${WORKSHOP_USER}.csv"
 
 # Append it to the file in HDFS and look at the end
-hdfs dfs -appendToFile "/tmp/new-reading.${WORKSHOP_USER}.csv" "${WORKSHOP_HOME}/sample-landisgyr-data.csv"
-hdfs dfs -tail "${WORKSHOP_HOME}/sample-landisgyr-data.csv"
+hdfs dfs -appendToFile "/tmp/new-reading.${WORKSHOP_USER}.csv" "${WORKSHOP_HOME}/sample-grid-measurements.csv"
+hdfs dfs -tail "${WORKSHOP_HOME}/sample-grid-measurements.csv"
 ```
 
 The last line of the HDFS file should be your `09:15` reading, and the file has one more row than your local download.
@@ -234,14 +234,14 @@ Make a fresh copy of the CSV and compare it with the original and with your appe
 
 ```bash
 # Fresh copy of the original
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${WORKSHOP_HOME}/landisgyr-copy.csv"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "${WORKSHOP_HOME}/grid-measurements-copy.csv"
 
 # Original vs. fresh copy
-hdfs dfs -checksum "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
-hdfs dfs -checksum "${WORKSHOP_HOME}/landisgyr-copy.csv"
+hdfs dfs -checksum "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
+hdfs dfs -checksum "${WORKSHOP_HOME}/grid-measurements-copy.csv"
 
 # Your appended file from section 6
-hdfs dfs -checksum "${WORKSHOP_HOME}/sample-landisgyr-data.csv"
+hdfs dfs -checksum "${WORKSHOP_HOME}/sample-grid-measurements.csv"
 ```
 
 The first two checksums should match. The third should differ because you appended a row.

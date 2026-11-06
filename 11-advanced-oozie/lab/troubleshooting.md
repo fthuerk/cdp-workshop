@@ -16,7 +16,7 @@ The Oozie URL uses TLS and your client does not trust the certificate. Ask your 
 ## `oozie validate` or `-run` reports an XML or schema error
 
 - Read the line and column in the message; a missing `>` or a quote that the shell removed is the usual cause.
-- When you create files with `cat > ... <<'EOF'` the quotes around `EOF` matter: they stop the shell from replacing `${...}` in `workflow.xml`. For `job.properties` it is the opposite — you **want** the shell to fill in your variables, so there are no quotes.
+- When you type `workflow.xml` in `vim`, paste it unchanged: the `${...}` expressions are filled in by Oozie, not by you. In the `.properties` files only the angle-bracket placeholders (`<your_user>`, `<name-node>`, …) are yours to replace; leftover `<...>` in a file is a common cause of errors.
 - A `Schema ... not supported` error means the server does not know the version in `xmlns`. Ask your instructor which versions the cluster accepts.
 
 ## `-run` says the application path does not exist, or `workflow.xml not found`

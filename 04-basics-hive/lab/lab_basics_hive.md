@@ -43,7 +43,7 @@ Notes:
 - Click a file name to see its content (like `-cat`; ORC and Parquet look unreadable, which is the point). The listing shows size and owner (like `-ls` and `-du`).  
 - Tick a file and **Delete forever** (not *Move to trash*) replaces `-rm -skipTrash`.
 
-**What still needs a terminal:** the `heredoc` that creates the correction file in section 7 (in Hue: **New → File**, paste the three lines, save as `landisgyr-changes.csv` in the `landisgyr_changes` table folder), `hive --orcfiledump` and `strings` in section 4, and `beeline -f` in the stretch. The `bash` blocks in the other sections all have the File Browser equivalents above.
+**What still needs a terminal:** the `heredoc` that creates the correction file in section 7 (in Hue: **New → File**, paste the three lines, save as `grid-measurements-changes.csv` in the `grid_measurements_changes` table folder), `hive --orcfiledump` and `strings` in section 4, and `beeline -f` in the stretch. The `bash` blocks in the other sections all have the File Browser equivalents above.
 
 ---
 
@@ -78,7 +78,7 @@ hdfs dfs -ls "${HIVE_LAB}"
 
 You should see no tables yet in `HIVE_EXT`, and `landing` in `HIVE_LAB`.
 
-**Check question:** Which component knows that a table named `landisgyr_csv` exists — HDFS or the Metastore? Where is the data?
+**Check question:** Which component knows that a table named `grid_measurements_csv` exists — HDFS or the Metastore? Where is the data?
 
 Optional: run the same statements in **Hue → Editor → Hive** (see [the Hue section above](#optional--use-hue-instead-of-beeline-and-hdfs)).
 
@@ -93,7 +93,7 @@ An external table is a table definition on top of files that you manage yourself
 Define the table. Hive maps CSV fields **by position**, not by header name — so you can choose your own column names. Timestamps stay `STRING` for now (section 2 shows why), and the header line is skipped with a table property:
 
 ```sql
-CREATE EXTERNAL TABLE landisgyr_csv (
+CREATE EXTERNAL TABLE grid_measurements_csv (
   ts_utc STRING,
   station_id STRING,
   device_id STRING,
@@ -118,44 +118,44 @@ Switch to the second terminal. Hive has created the table folder — it is empty
 
 ```bash
 hdfs dfs -ls "${HIVE_EXT}"
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_csv/"
-hdfs dfs -ls "${HIVE_EXT}/landisgyr_csv"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "${HIVE_EXT}/grid_measurements_csv/"
+hdfs dfs -ls "${HIVE_EXT}/grid_measurements_csv"
 ```
 
 Query the table. The first statement only reads the file; the second needs a real job (watch the Tez progress in Beeline):
 
 ```sql
-SELECT * FROM landisgyr_csv LIMIT 5;
-SELECT COUNT(*) FROM landisgyr_csv;
+SELECT * FROM grid_measurements_csv LIMIT 5;
+SELECT COUNT(*) FROM grid_measurements_csv;
 ```
 
 Inspect what the Metastore stored. Look for `Table Type`, `Location`, and the serde/format lines:
 
 ```sql
-DESCRIBE FORMATTED landisgyr_csv;
-SHOW CREATE TABLE landisgyr_csv;
+DESCRIBE FORMATTED grid_measurements_csv;
+SHOW CREATE TABLE grid_measurements_csv;
 ```
 
-You should see `EXTERNAL_TABLE` and a location that is the `landisgyr_csv` folder you just copied the file into.
+You should see `EXTERNAL_TABLE` and a location that is the `grid_measurements_csv` folder you just copied the file into.
 
 The table **is** the folder. Drop a second file into it, and query again without telling Hive anything:
 
 ```bash
-hdfs dfs -cp "${HIVE_EXT}/landisgyr_csv/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_csv/second-copy.csv"
+hdfs dfs -cp "${HIVE_EXT}/grid_measurements_csv/sample-grid-measurements.csv" "${HIVE_EXT}/grid_measurements_csv/second-copy.csv"
 ```
 
 ```sql
-SELECT COUNT(*) FROM landisgyr_csv;
+SELECT COUNT(*) FROM grid_measurements_csv;
 ```
 
 The count doubles. Remove the extra file and count again:
 
 ```bash
-hdfs dfs -rm -skipTrash "${HIVE_EXT}/landisgyr_csv/second-copy.csv"
+hdfs dfs -rm -skipTrash "${HIVE_EXT}/grid_measurements_csv/second-copy.csv"
 ```
 
 ```sql
-SELECT COUNT(*) FROM landisgyr_csv;
+SELECT COUNT(*) FROM grid_measurements_csv;
 ```
 
 **Check question:** Nobody ran a load command, yet new rows appeared. What does that mean for a pipeline that lands files into a folder that a table already points at?
@@ -166,38 +166,38 @@ In Hue, copy the file with the File Browser into `/user/<your_username>/hive-sta
 
 ```bash
 hdfs dfs -mkdir -p "/user/${WORKSHOP_USER}/hive-staging"
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "/user/${WORKSHOP_USER}/hive-staging/loaded-copy.csv"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "/user/${WORKSHOP_USER}/hive-staging/loaded-copy.csv"
 hdfs dfs -ls "/user/${WORKSHOP_USER}/hive-staging"
 ```
 
 You should see `loaded-copy.csv` under your HDFS home. Move it into the table. The header is skipped in each file, so this copy adds the same number of readings as the first:
 
 ```sql
-LOAD DATA INPATH '/user/${ws_user}/hive-staging/loaded-copy.csv' INTO TABLE landisgyr_csv;
-SELECT COUNT(*) FROM landisgyr_csv;
+LOAD DATA INPATH '/user/${ws_user}/hive-staging/loaded-copy.csv' INTO TABLE grid_measurements_csv;
+SELECT COUNT(*) FROM grid_measurements_csv;
 ```
 
 ```bash
 hdfs dfs -ls "/user/${WORKSHOP_USER}/hive-staging"
-hdfs dfs -ls "${HIVE_EXT}/landisgyr_csv"
+hdfs dfs -ls "${HIVE_EXT}/grid_measurements_csv"
 ```
 
-The staging folder is empty, and `loaded-copy.csv` sits next to the original CSV. The count doubled again. `OVERWRITE` (written before `INTO TABLE`) would delete every file already in the table folder and then move the new one in — leave it out, because the self-check looks for `sample-landisgyr-data.csv`. Statistics stay as they were until section 10.
+The staging folder is empty, and `loaded-copy.csv` sits next to the original CSV. The count doubled again. `OVERWRITE` (written before `INTO TABLE`) would delete every file already in the table folder and then move the new one in — leave it out, because the self-check looks for `sample-grid-measurements.csv`. Statistics stay as they were until section 10.
 
 Put the table back to the original file before you continue:
 
 ```bash
-hdfs dfs -rm -skipTrash "${HIVE_EXT}/landisgyr_csv/loaded-copy.csv"
+hdfs dfs -rm -skipTrash "${HIVE_EXT}/grid_measurements_csv/loaded-copy.csv"
 hdfs dfs -rm -r -skipTrash "/user/${WORKSHOP_USER}/hive-staging"
 ```
 
 ```sql
-SELECT COUNT(*) FROM landisgyr_csv;
+SELECT COUNT(*) FROM grid_measurements_csv;
 ```
 
 The count matches the single original CSV again.
 
-**Check question:** After `LOAD DATA INPATH`, what is left at the staging path? What would `OVERWRITE` have done to `sample-landisgyr-data.csv`?
+**Check question:** After `LOAD DATA INPATH`, what is left at the staging path? What would `OVERWRITE` have done to `sample-grid-measurements.csv`?
 
 ---
 
@@ -208,7 +208,7 @@ The count matches the single original CSV again.
 Define a second table with wrong types: a timestamp that is not in Hive's format, and a number column that contains `L1`/`L2`/`L3`. It also declares only five of the fourteen columns. Copy the CSV into its folder, like in section 1, and query it:
 
 ```sql
-CREATE EXTERNAL TABLE landisgyr_wrong (
+CREATE EXTERNAL TABLE grid_measurements_wrong (
   ts_utc TIMESTAMP,
   station_id INT,
   device_id STRING,
@@ -221,11 +221,11 @@ TBLPROPERTIES ('skip.header.line.count'='1');
 ```
 
 ```bash
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_wrong/"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "${HIVE_EXT}/grid_measurements_wrong/"
 ```
 
 ```sql
-SELECT * FROM landisgyr_wrong LIMIT 5;
+SELECT * FROM grid_measurements_wrong LIMIT 5;
 ```
 
 You should get no error, but `NULL` in every column whose type does not fit. Hive checks types when it **reads**, not when you create the table, and a failed conversion becomes `NULL`.
@@ -233,44 +233,44 @@ You should get no error, but `NULL` in every column whose type does not fit. Hiv
 Now drop that table and check the files:
 
 ```sql
-DROP TABLE landisgyr_wrong;
+DROP TABLE grid_measurements_wrong;
 SHOW TABLES;
 ```
 
 ```bash
 hdfs dfs -ls "${HIVE_EXT}"
-hdfs dfs -ls "${HIVE_EXT}/landisgyr_wrong"
+hdfs dfs -ls "${HIVE_EXT}/grid_measurements_wrong"
 ```
 
 The table is gone, but the folder and the CSV are still on HDFS: dropping an **external** table removes only the metadata. Remove the leftover folder yourself:
 
 ```bash
-hdfs dfs -rm -r -skipTrash "${HIVE_EXT}/landisgyr_wrong"
+hdfs dfs -rm -r -skipTrash "${HIVE_EXT}/grid_measurements_wrong"
 ```
 
-**Dropping the data with the table.** Sometimes an external table should clean up after itself, for example a scratch table. The table property `external.table.purge` makes `DROP TABLE` delete the files as well. Create a table like `landisgyr_csv`, set the property, and put a CSV into its folder:
+**Dropping the data with the table.** Sometimes an external table should clean up after itself, for example a scratch table. The table property `external.table.purge` makes `DROP TABLE` delete the files as well. Create a table like `grid_measurements_csv`, set the property, and put a CSV into its folder:
 
 ```sql
-CREATE EXTERNAL TABLE landisgyr_purge LIKE landisgyr_csv;
-ALTER TABLE landisgyr_purge SET TBLPROPERTIES ('external.table.purge'='true');
-SHOW TBLPROPERTIES landisgyr_purge;
+CREATE EXTERNAL TABLE grid_measurements_purge LIKE grid_measurements_csv;
+ALTER TABLE grid_measurements_purge SET TBLPROPERTIES ('external.table.purge'='true');
+SHOW TBLPROPERTIES grid_measurements_purge;
 ```
 
 ```bash
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_purge/"
-hdfs dfs -ls "${HIVE_EXT}/landisgyr_purge"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "${HIVE_EXT}/grid_measurements_purge/"
+hdfs dfs -ls "${HIVE_EXT}/grid_measurements_purge"
 ```
 
 ```sql
-SELECT COUNT(*) FROM landisgyr_purge;
-DROP TABLE landisgyr_purge;
+SELECT COUNT(*) FROM grid_measurements_purge;
+DROP TABLE grid_measurements_purge;
 ```
 
 ```bash
 hdfs dfs -ls "${HIVE_EXT}"
 ```
 
-This time the `landisgyr_purge` folder is gone together with the table (it may end up in your HDFS trash, as in the HDFS lab). Your other tables are untouched.
+This time the `grid_measurements_purge` folder is gone together with the table (it may end up in your HDFS trash, as in the HDFS lab). Your other tables are untouched.
 
 **Check question:** A nightly job reads a column as `INT`, but the source system starts sending `1.5`. What does Hive do — and how would you notice? When would you set `external.table.purge`, and when would it be dangerous?
 
@@ -283,8 +283,8 @@ This time the `landisgyr_purge` folder is gone together with the table (it may e
 A **partition** is a sub-folder named `column=value`. Hive reads only the folders a query needs. Look at the prepared landing area — one folder per station — and at one file in it:
 
 ```bash
-hdfs dfs -ls -R "${HIVE_LAB}/landing/landisgyr_by_station"
-hdfs dfs -cat "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-101/*" | head -3
+hdfs dfs -ls -R "${HIVE_LAB}/landing/grid_measurements_by_station"
+hdfs dfs -cat "${HIVE_LAB}/landing/grid_measurements_by_station/station_id=TS-101/*" | head -3
 ```
 
 Compare the rows with the original CSV: the `station_id` column is gone. In a partitioned table the value lives in the **folder name**, not in the file.
@@ -292,7 +292,7 @@ Compare the rows with the original CSV: the `station_id` column is gone. In a pa
 Define the table first. `station_id` is declared in `PARTITIONED BY`, not in the column list. Recent CDP versions can discover new folders in the background; the property below switches that off so you can see the manual steps:
 
 ```sql
-CREATE EXTERNAL TABLE landisgyr_by_station (
+CREATE EXTERNAL TABLE grid_measurements_by_station (
   ts_utc STRING,
   device_id STRING,
   phase STRING,
@@ -316,65 +316,65 @@ TBLPROPERTIES ('discover.partitions'='false');
 Now copy **only one** station into the table folder, and query:
 
 ```bash
-hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-101" "${HIVE_EXT}/landisgyr_by_station/"
-hdfs dfs -ls -R "${HIVE_EXT}/landisgyr_by_station"
+hdfs dfs -cp "${HIVE_LAB}/landing/grid_measurements_by_station/station_id=TS-101" "${HIVE_EXT}/grid_measurements_by_station/"
+hdfs dfs -ls -R "${HIVE_EXT}/grid_measurements_by_station"
 ```
 
 ```sql
-SHOW PARTITIONS landisgyr_by_station;
-SELECT COUNT(*) FROM landisgyr_by_station;
+SHOW PARTITIONS grid_measurements_by_station;
+SELECT COUNT(*) FROM grid_measurements_by_station;
 ```
 
 The folder holds data, but you should see no partitions and a count of `0`. The files exist on HDFS; the Metastore does not know about them yet. Register the partition. Without a `LOCATION` clause Hive uses the folder `station_id=TS-101` inside the table folder — exactly where you copied the files:
 
 ```sql
-ALTER TABLE landisgyr_by_station ADD PARTITION (station_id='TS-101');
+ALTER TABLE grid_measurements_by_station ADD PARTITION (station_id='TS-101');
 
-SHOW PARTITIONS landisgyr_by_station;
-SELECT station_id, COUNT(*) FROM landisgyr_by_station GROUP BY station_id;
+SHOW PARTITIONS grid_measurements_by_station;
+SELECT station_id, COUNT(*) FROM grid_measurements_by_station GROUP BY station_id;
 ```
 
 Two more stations arrive. Copy them into the table folder and query again:
 
 ```bash
-hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-204" "${HIVE_EXT}/landisgyr_by_station/"
-hdfs dfs -cp "${HIVE_LAB}/landing/landisgyr_by_station/station_id=TS-305" "${HIVE_EXT}/landisgyr_by_station/"
+hdfs dfs -cp "${HIVE_LAB}/landing/grid_measurements_by_station/station_id=TS-204" "${HIVE_EXT}/grid_measurements_by_station/"
+hdfs dfs -cp "${HIVE_LAB}/landing/grid_measurements_by_station/station_id=TS-305" "${HIVE_EXT}/grid_measurements_by_station/"
 ```
 
 ```sql
-SELECT station_id, COUNT(*) FROM landisgyr_by_station GROUP BY station_id;
+SELECT station_id, COUNT(*) FROM grid_measurements_by_station GROUP BY station_id;
 ```
 
 You should still see only `TS-101`. Instead of one `ADD PARTITION` per folder, let Hive scan the table folder and register everything it finds:
 
 ```sql
-MSCK REPAIR TABLE landisgyr_by_station;
-SHOW PARTITIONS landisgyr_by_station;
-SELECT station_id, COUNT(*) FROM landisgyr_by_station GROUP BY station_id;
+MSCK REPAIR TABLE grid_measurements_by_station;
+SHOW PARTITIONS grid_measurements_by_station;
+SELECT station_id, COUNT(*) FROM grid_measurements_by_station GROUP BY station_id;
 ```
 
 **Partition pruning.** The benefit of partitions is that Hive reads only the folders a query needs. `EXPLAIN DEPENDENCY` shows which partitions a query will read, without running it. Look at the `input_partitions` list. Start with a filter on the partition column:
 
 ```sql
 EXPLAIN DEPENDENCY
-SELECT ts_utc, active_power_kw FROM landisgyr_by_station WHERE station_id = 'TS-305';
+SELECT ts_utc, active_power_kw FROM grid_measurements_by_station WHERE station_id = 'TS-305';
 ```
 
 You should see a single partition, `station_id=TS-305`. Now widen the filter to two stations, and then remove it:
 
 ```sql
 EXPLAIN DEPENDENCY
-SELECT ts_utc, active_power_kw FROM landisgyr_by_station WHERE station_id IN ('TS-101', 'TS-204');
+SELECT ts_utc, active_power_kw FROM grid_measurements_by_station WHERE station_id IN ('TS-101', 'TS-204');
 
 EXPLAIN DEPENDENCY
-SELECT ts_utc, active_power_kw FROM landisgyr_by_station;
+SELECT ts_utc, active_power_kw FROM grid_measurements_by_station;
 ```
 
 The list grows to two and then three partitions. Finally filter on a **normal column** instead of the partition column:
 
 ```sql
 EXPLAIN DEPENDENCY
-SELECT ts_utc, active_power_kw FROM landisgyr_by_station WHERE quality_flag = 'WARN';
+SELECT ts_utc, active_power_kw FROM grid_measurements_by_station WHERE quality_flag = 'WARN';
 ```
 
 All three partitions are read: Hive cannot know which folders contain `WARN` rows without opening the files.
@@ -383,7 +383,7 @@ For the full plan of the pruned query, use `EXPLAIN EXTENDED` and scroll to the 
 
 ```sql
 EXPLAIN EXTENDED
-SELECT ts_utc, active_power_kw FROM landisgyr_by_station WHERE station_id = 'TS-305';
+SELECT ts_utc, active_power_kw FROM grid_measurements_by_station WHERE station_id = 'TS-305';
 ```
 
 Run `EXPLAIN EXTENDED` again for the unfiltered query and compare how many folders appear.
@@ -424,7 +424,7 @@ SELECT ts_utc, station_id,
        ROUND(current_a + rand() * 30, 1),
        ROUND(transformer_load_pct + rand() * 5, 1),
        quality_flag, event_code, comm_status
-FROM landisgyr_csv
+FROM grid_measurements_csv
 LATERAL VIEW explode(split(space(999), ' ')) r AS i;
 ```
 
@@ -539,11 +539,11 @@ You should be back at 15,000 rows with a single file.
 A **managed** table belongs to Hive: Hive decides where the files go, and `DROP TABLE` deletes them. In CDP, managed tables are **transactional** (ACID) ORC tables by default. Create one from your CSV table (CTAS, as in section 4 — this time without `EXTERNAL`):
 
 ```sql
-CREATE TABLE landisgyr_managed AS
-SELECT * FROM landisgyr_csv;
+CREATE TABLE grid_measurements_managed AS
+SELECT * FROM grid_measurements_csv;
 
-SELECT COUNT(*) FROM landisgyr_managed;
-DESCRIBE FORMATTED landisgyr_managed;
+SELECT COUNT(*) FROM grid_measurements_managed;
+DESCRIBE FORMATTED grid_measurements_managed;
 ```
 
 In the `DESCRIBE` output compare with section 1: `Table Type`, `Location` (the managed warehouse, not your folder), the `InputFormat`, and in `Table Parameters` the entries `transactional` and `transactional_properties`.
@@ -551,7 +551,7 @@ In the `DESCRIBE` output compare with section 1: `Table Type`, `Location` (the m
 Try to look at the files in the second terminal. `HIVE_MANAGED` should match the `Location` from the `DESCRIBE` output — compare the two and adjust the variable if your cluster differs:
 
 ```bash
-hdfs dfs -ls -R "${HIVE_MANAGED}/landisgyr_managed"
+hdfs dfs -ls -R "${HIVE_MANAGED}/grid_measurements_managed"
 ```
 
 Depending on your cluster policies you either see `base_…` / `delta_…` folders with ORC files, or `Permission denied`. Both are expected: the files belong to the `hive` service user, and you work with them through SQL — not through HDFS commands.
@@ -559,7 +559,7 @@ Depending on your cluster policies you either see `base_…` / `delta_…` folde
 Now drop a throw-away managed table and compare with section 2:
 
 ```sql
-CREATE TABLE tmp_managed AS SELECT * FROM landisgyr_csv;
+CREATE TABLE tmp_managed AS SELECT * FROM grid_measurements_csv;
 DESCRIBE FORMATTED tmp_managed;
 DROP TABLE tmp_managed;
 ```
@@ -577,57 +577,66 @@ Dropping a managed table deletes its data. Your instructor shows the folder befo
 First the `UPDATE` that failed in section 5 — now on a transactional table:
 
 ```sql
-UPDATE landisgyr_managed SET quality_flag = 'REVIEWED' WHERE quality_flag = 'WARN';
-SELECT station_id, quality_flag, COUNT(*) FROM landisgyr_managed GROUP BY station_id, quality_flag;
+UPDATE grid_measurements_managed SET quality_flag = 'REVIEWED' WHERE quality_flag = 'WARN';
+SELECT station_id, quality_flag, COUNT(*) FROM grid_measurements_managed GROUP BY station_id, quality_flag;
 ```
 
 Then a `DELETE`:
 
 ```sql
-DELETE FROM landisgyr_managed WHERE station_id = 'TS-305' AND event_code = 'HIGH_LOAD';
-SELECT station_id, COUNT(*) FROM landisgyr_managed GROUP BY station_id;
+DELETE FROM grid_measurements_managed WHERE station_id = 'TS-305' AND event_code = 'HIGH_LOAD';
+SELECT station_id, COUNT(*) FROM grid_measurements_managed GROUP BY station_id;
 ```
 
 Both statements work. HDFS files are still immutable, so Hive does not edit them: each change writes a small **delta** folder, and readers merge the deltas on the fly. If you can read the table location (section 6), list it again and look for `delta_…` and `delete_delta_…` folders:
 
 ```bash
-hdfs dfs -ls -R "${HIVE_MANAGED}/landisgyr_managed"
+hdfs dfs -ls -R "${HIVE_MANAGED}/grid_measurements_managed"
 ```
 
 Many small changes mean many deltas, so Hive **compacts** them in the background. Ask for a compaction and watch its state:
 
 ```sql
 SHOW COMPACTIONS;
-ALTER TABLE landisgyr_managed COMPACT 'major';
+ALTER TABLE grid_measurements_managed COMPACT 'major';
 SHOW COMPACTIONS;
 ```
 
-Now a correction file arrives for `TS-101`: one corrected reading (`08:45`) and one new reading (`09:15`). First create an external table for it. `LIKE` copies the column definitions and settings of `landisgyr_csv` — including the skipped header line, so the file you create next needs a header too:
+Now a correction file arrives for `TS-101`: one corrected reading (`08:45`) and one new reading (`09:15`). First create an external table for it. `LIKE` copies the column definitions and settings of `grid_measurements_csv` — including the skipped header line, so the file you create next needs a header too:
 
 ```sql
-CREATE EXTERNAL TABLE landisgyr_changes LIKE landisgyr_csv;
+CREATE EXTERNAL TABLE grid_measurements_changes LIKE grid_measurements_csv;
 ```
 
-Create the file locally, with a header like the original CSV, and put it into the folder of the new table:
+Create the file locally with `vim`, with a header like the original CSV:
 
 ```bash
-cat > "/tmp/landisgyr-changes.csv.${WORKSHOP_USER}" <<'EOF'
+vim "/tmp/grid-measurements-changes.csv.${WORKSHOP_USER}"
+```
+
+Content of the file:
+
+```csv
 timestamp,station_id,device_id,phase,active_power_kw,reactive_power_kvar,voltage_v,current_a,power_factor,frequency_hz,transformer_load_pct,quality_flag,event_code,comm_status
-2026-01-15T08:45:00Z,TS-101,LG-TS-101-A,L1,203.9,38.8,229.0,318.0,0.980,49.99,68.9,OK,,ONLINE
-2026-01-15T09:15:00Z,TS-101,LG-TS-101-A,L1,199.5,38.1,229.6,313.0,0.981,50.00,67.4,OK,,ONLINE
-EOF
-hdfs dfs -put -f "/tmp/landisgyr-changes.csv.${WORKSHOP_USER}" "${HIVE_EXT}/landisgyr_changes/"
+2026-01-15T08:45:00Z,TS-101,GM-TS-101-A,L1,203.9,38.8,229.0,318.0,0.980,49.99,68.9,OK,,ONLINE
+2026-01-15T09:15:00Z,TS-101,GM-TS-101-A,L1,199.5,38.1,229.6,313.0,0.981,50.00,67.4,OK,,ONLINE
+```
+
+Put it into the folder of the new table:
+
+```bash
+hdfs dfs -put -f "/tmp/grid-measurements-changes.csv.${WORKSHOP_USER}" "${HIVE_EXT}/grid_measurements_changes/"
 ```
 
 ```sql
-SELECT * FROM landisgyr_changes;
+SELECT * FROM grid_measurements_changes;
 ```
 
 Apply the file with a real `MERGE`: update the row that exists, insert the row that does not. The match condition is the key of a reading (station + timestamp):
 
 ```sql
-MERGE INTO landisgyr_managed AS t
-USING landisgyr_changes AS s
+MERGE INTO grid_measurements_managed AS t
+USING grid_measurements_changes AS s
 ON t.station_id = s.station_id AND t.ts_utc = s.ts_utc
 WHEN MATCHED THEN UPDATE SET
   active_power_kw = s.active_power_kw,
@@ -644,13 +653,13 @@ WHEN NOT MATCHED THEN INSERT VALUES (
   s.quality_flag, s.event_code, s.comm_status
 );
 
-SELECT ts_utc, quality_flag FROM landisgyr_managed WHERE station_id = 'TS-101' ORDER BY ts_utc;
+SELECT ts_utc, quality_flag FROM grid_measurements_managed WHERE station_id = 'TS-101' ORDER BY ts_utc;
 ```
 
 Now run the same `MERGE` statement a second time (paste it again) and count the rows of `TS-101` afterwards:
 
 ```sql
-SELECT COUNT(*) FROM landisgyr_managed WHERE station_id = 'TS-101';
+SELECT COUNT(*) FROM grid_measurements_managed WHERE station_id = 'TS-101';
 ```
 
 The count is the same as after the first run: a `MERGE` on a unique key is idempotent.
@@ -667,27 +676,27 @@ Look around your database first. These commands answer most “what do I have?�
 
 ```sql
 SHOW TABLES;
-DESCRIBE landisgyr_csv;
+DESCRIBE grid_measurements_csv;
 ```
 
 The timestamp column is text like `2026-01-15T08:00:00Z`. Create a **view** that converts it into a real timestamp and turns empty event codes into `NULL`. A view stores only the query, no data:
 
 ```sql
-CREATE VIEW landisgyr_v AS
+CREATE VIEW grid_measurements_v AS
 SELECT CAST(REPLACE(SUBSTR(ts_utc, 1, 19), 'T', ' ') AS TIMESTAMP) AS ts,
        station_id, device_id, phase, active_power_kw, reactive_power_kvar,
        voltage_v, current_a, power_factor, frequency_hz, transformer_load_pct,
        quality_flag, NULLIF(event_code, '') AS event_code, comm_status
-FROM landisgyr_csv;
+FROM grid_measurements_csv;
 
-SELECT * FROM landisgyr_v LIMIT 5;
+SELECT * FROM grid_measurements_v LIMIT 5;
 ```
 
 Filter, sort, and limit — which readings put a transformer above 80 % load?
 
 ```sql
 SELECT ts, station_id, active_power_kw, transformer_load_pct
-FROM landisgyr_v
+FROM grid_measurements_v
 WHERE transformer_load_pct > 80
 ORDER BY transformer_load_pct DESC;
 ```
@@ -700,7 +709,7 @@ SELECT station_id,
        ROUND(AVG(active_power_kw), 1) AS avg_kw,
        MAX(transformer_load_pct) AS max_load_pct,
        SUM(CASE WHEN quality_flag = 'WARN' THEN 1 ELSE 0 END) AS warnings
-FROM landisgyr_v
+FROM grid_measurements_v
 GROUP BY station_id
 HAVING MAX(transformer_load_pct) > 60
 ORDER BY max_load_pct DESC;
@@ -713,12 +722,12 @@ SELECT station_id, ts, transformer_load_pct,
        CASE WHEN transformer_load_pct >= 80 THEN 'HIGH'
             WHEN transformer_load_pct >= 50 THEN 'MEDIUM'
             ELSE 'LOW' END AS load_class
-FROM landisgyr_v
+FROM grid_measurements_v
 ORDER BY station_id, ts;
 
 SELECT date_format(ts, 'yyyy-MM-dd HH:00') AS hour_utc, station_id,
        ROUND(AVG(active_power_kw), 1) AS avg_kw
-FROM landisgyr_v
+FROM grid_measurements_v
 GROUP BY date_format(ts, 'yyyy-MM-dd HH:00'), station_id
 ORDER BY hour_utc, station_id;
 ```
@@ -726,9 +735,9 @@ ORDER BY hour_utc, station_id;
 Empty values are a classic trap. In the raw text table an empty `event_code` is an empty **string**, not `NULL`. Compare the two filters, then the view:
 
 ```sql
-SELECT COUNT(*) FROM landisgyr_csv WHERE event_code IS NULL;
-SELECT COUNT(*) FROM landisgyr_csv WHERE event_code = '';
-SELECT COALESCE(event_code, 'NONE') AS event, COUNT(*) FROM landisgyr_v GROUP BY COALESCE(event_code, 'NONE');
+SELECT COUNT(*) FROM grid_measurements_csv WHERE event_code IS NULL;
+SELECT COUNT(*) FROM grid_measurements_csv WHERE event_code = '';
+SELECT COALESCE(event_code, 'NONE') AS event, COUNT(*) FROM grid_measurements_v GROUP BY COALESCE(event_code, 'NONE');
 ```
 
 **Check question:** One of the first two counts is zero. Which one, and why does that silently break a data-quality rule such as “count readings without an event”?
@@ -769,13 +778,13 @@ SELECT * FROM stations;
 
 ```sql
 SELECT s.municipality, s.district, m.station_id, MAX(m.transformer_load_pct) AS max_load_pct
-FROM landisgyr_v m
+FROM grid_measurements_v m
 JOIN stations s ON m.station_id = s.station_id
 GROUP BY s.municipality, s.district, m.station_id
 ORDER BY max_load_pct DESC;
 ```
 
-You should get one row per station. `landisgyr_v` is the view from section 8; Hive runs the join as a Tez job, like every other query in this lab.
+You should get one row per station. `grid_measurements_v` is the view from section 8; Hive runs the join as a Tez job, like every other query in this lab.
 
 **Check question:** Imagine `stations` listed only two of the three stations. What would the result above show for the third one, and how could you notice that readings are missing from a report built on this join? (Left joins, anti-joins, and joins that multiply rows are in the [advanced Hive lab](../../10-advanced-hive/lab/lab_advanced_hive.md).)
 
@@ -788,21 +797,21 @@ You should get one row per station. `landisgyr_v` is the view from section 8; Hi
 Hive plans a query before it runs it. For a good plan (how many reducers, which join strategy) the optimizer needs to know how big the data is. That knowledge is **statistics** in the Metastore: row counts and sizes per table, and per column the number of distinct values, `NULL`s, minimum, and maximum. Files that you copied or loaded into an external table folder yourself (section 1) have no statistics yet. Check the table parameters and look for `numRows` and `totalSize`:
 
 ```sql
-DESCRIBE FORMATTED landisgyr_csv;
+DESCRIBE FORMATTED grid_measurements_csv;
 ```
 
 Now ask for the plan of an aggregation. Look for `Tez`, the vertices `Map 1` and `Reducer 2`, and the `Statistics:` line of the table scan, which shows what Hive assumes about the table:
 
 ```sql
 EXPLAIN
-SELECT station_id, MAX(transformer_load_pct) FROM landisgyr_csv GROUP BY station_id;
+SELECT station_id, MAX(transformer_load_pct) FROM grid_measurements_csv GROUP BY station_id;
 ```
 
 Collect table statistics. This runs a job that reads the data once. Then look at the table parameters again:
 
 ```sql
-ANALYZE TABLE landisgyr_csv COMPUTE STATISTICS;
-DESCRIBE FORMATTED landisgyr_csv;
+ANALYZE TABLE grid_measurements_csv COMPUTE STATISTICS;
+DESCRIBE FORMATTED grid_measurements_csv;
 ```
 
 You should see `numRows` with the number of readings and `totalSize` with the size of the file. Run the `EXPLAIN` from above again and compare the `Statistics:` line: Hive now knows the row count instead of guessing from the file size.
@@ -810,9 +819,9 @@ You should see `numRows` with the number of readings and `totalSize` with the si
 Column statistics are collected separately. They tell the optimizer how selective a filter or a join key is:
 
 ```sql
-ANALYZE TABLE landisgyr_csv COMPUTE STATISTICS FOR COLUMNS;
-DESCRIBE FORMATTED landisgyr_csv station_id;
-DESCRIBE FORMATTED landisgyr_csv transformer_load_pct;
+ANALYZE TABLE grid_measurements_csv COMPUTE STATISTICS FOR COLUMNS;
+DESCRIBE FORMATTED grid_measurements_csv station_id;
+DESCRIBE FORMATTED grid_measurements_csv transformer_load_pct;
 ```
 
 The output has one row of numbers per column: `min`, `max`, `num_nulls`, `distinct_count`, and for text columns the average and maximum length. You should see three distinct values for `station_id` and a minimum and maximum for the load.
@@ -820,17 +829,17 @@ The output has one row of numbers per column: `min`, `max`, `num_nulls`, `distin
 With accurate table statistics Hive can answer some queries from the Metastore alone. Run the count that needed a Tez job in section 1 again and watch Beeline:
 
 ```sql
-SELECT COUNT(*) FROM landisgyr_csv;
+SELECT COUNT(*) FROM grid_measurements_csv;
 ```
 
 For a partitioned table, statistics are kept per partition. Collect them for all partitions of the table from section 3 and look at one of them:
 
 ```sql
-ANALYZE TABLE landisgyr_by_station PARTITION (station_id) COMPUTE STATISTICS;
-DESCRIBE FORMATTED landisgyr_by_station PARTITION (station_id='TS-101');
+ANALYZE TABLE grid_measurements_by_station PARTITION (station_id) COMPUTE STATISTICS;
+DESCRIBE FORMATTED grid_measurements_by_station PARTITION (station_id='TS-101');
 ```
 
-**Check question:** A new file lands in the folder of `landisgyr_csv` and nobody runs `ANALYZE TABLE` again. What does `numRows` say, and what could go wrong when the optimizer trusts it? Which tables would you analyze regularly in a pipeline?
+**Check question:** A new file lands in the folder of `grid_measurements_csv` and nobody runs `ANALYZE TABLE` again. What does `numRows` say, and what could go wrong when the optimizer trusts it? Which tables would you analyze regularly in a pipeline?
 
 ---
 
@@ -839,16 +848,23 @@ DESCRIBE FORMATTED landisgyr_by_station PARTITION (station_id='TS-101');
 Run SQL non-interactively. Save a statement with a variable to a file and run it with `beeline -f` from the second terminal — the same way a scheduled job would:
 
 ```bash
-cat > "/tmp/station-summary.sql.${WORKSHOP_USER}" <<'EOF'
+vim "/tmp/station-summary.sql.${WORKSHOP_USER}"
+```
+
+Content of the file (`${ws_user}` and `${station}` stay as they are; Beeline fills them in):
+
+```sql
 USE ws_${ws_user};
 SELECT station_id, COUNT(*) AS readings FROM meter_orc WHERE station_id = '${station}' GROUP BY station_id;
-EOF
+```
+
+```bash
 beeline --hivevar ws_user="${WORKSHOP_USER}" --hivevar station=TS-305 \
   -f "/tmp/station-summary.sql.${WORKSHOP_USER}"
 ```
 
-- Join three ways: `landisgyr_v` + `stations` + the OpenStreetMap context (a new external table for `${WORKSHOP_ROOT}/data/openstreetmap`, copied the same way as in section 9; filter `buffer_m = 250`) to relate peak load to the share of industrial area.  
-- Schema change on an external table: `ALTER TABLE landisgyr_csv ADD COLUMNS (note STRING);` — what do old rows show? Does the CSV change?  
+- Join three ways: `grid_measurements_v` + `stations` + the OpenStreetMap context (a new external table for `${WORKSHOP_ROOT}/data/openstreetmap`, copied the same way as in section 9; filter `buffer_m = 250`) to relate peak load to the share of industrial area.  
+- Schema change on an external table: `ALTER TABLE grid_measurements_csv ADD COLUMNS (note STRING);` — what do old rows show? Does the CSV change?  
 - Parquet footer with a proper tool: `parquet-tools meta "<parquet-file>"` (if it is on your `PATH`).  
 - Clean up: `DROP DATABASE ws_${ws_user} CASCADE;` and then list `${HIVE_EXT}` and the warehouse folder of your managed tables (`DESCRIBE DATABASE` shows both) — which data is gone, which is still there?  
 - Hue: run one of the join queries in the Hive editor and open the query in **Job Browser**.

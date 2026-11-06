@@ -13,7 +13,7 @@ require_cmd hdfs
 fail=0
 check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
 
-check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/basemap/sample-basemap-at-locations.csv"
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"

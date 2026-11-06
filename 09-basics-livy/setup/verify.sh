@@ -21,7 +21,7 @@ check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
 check hdfs dfs -test -e "${SCRIPT}"
 check hdfs dfs -test -d "${MODULE_ROOT}/work"
 
-for dataset in landisgyr/sample-landisgyr-data.csv \
+for dataset in grid_measurements/sample-grid-measurements.csv \
   operator_weather/sample-operator-weather.csv \
   awattar/sample-awattar-prices.csv; do
   check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/${dataset}"

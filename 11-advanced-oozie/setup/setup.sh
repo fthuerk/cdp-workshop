@@ -13,7 +13,7 @@ require_cmd hdfs
 MODULE_ROOT="${WORKSHOP_ROOT}/11-oozie"
 LOCAL_ASSETS="${WORKSHOP_LOCAL}/11-advanced-oozie/assets"
 
-for dataset in landisgyr/sample-landisgyr-data.csv operator_weather/sample-operator-weather.csv; do
+for dataset in grid_measurements/sample-grid-measurements.csv operator_weather/sample-operator-weather.csv; do
   if ! hdfs dfs -test -e "${WORKSHOP_ROOT}/data/${dataset}"; then
     log_err "Missing ${WORKSHOP_ROOT}/data/${dataset} — run 00-setup/admin/bootstrap.sh first"
     exit 1

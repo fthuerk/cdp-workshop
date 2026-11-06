@@ -255,7 +255,7 @@ vim "${LAB_TMP}/s3a.json"
 ```
 
 ```json
-{"code": "from pyspark.sql import functions as F\nmeter = spark.read.option('header', True).schema('ts_utc STRING, station_id STRING, device_id STRING, phase STRING, active_power_kw DOUBLE, reactive_power_kvar DOUBLE, voltage_v DOUBLE, current_a DOUBLE, power_factor DOUBLE, frequency_hz DOUBLE, transformer_load_pct DOUBLE, quality_flag STRING, event_code STRING, comm_status STRING').csv('/2026_cdp_workshop/data/landisgyr/sample-landisgyr-data.csv').withColumn('ts_utc', F.to_timestamp(F.col('ts_utc')))\nweather = spark.read.option('header', True).schema('ts_utc STRING, weather_station_id STRING, station_name STRING, temperature_c DOUBLE, relative_humidity_pct INT, wind_speed_mps DOUBLE, precipitation_mm DOUBLE, pressure_hpa DOUBLE, weather_quality STRING').csv('/2026_cdp_workshop/data/operator_weather/sample-operator-weather.csv').withColumn('ts_utc', F.to_timestamp(F.col('ts_utc')))\nprint('meter rows:', meter.count(), '| weather rows:', weather.count())"}
+{"code": "from pyspark.sql import functions as F\nmeter = spark.read.option('header', True).schema('ts_utc STRING, station_id STRING, device_id STRING, phase STRING, active_power_kw DOUBLE, reactive_power_kvar DOUBLE, voltage_v DOUBLE, current_a DOUBLE, power_factor DOUBLE, frequency_hz DOUBLE, transformer_load_pct DOUBLE, quality_flag STRING, event_code STRING, comm_status STRING').csv('/2026_cdp_workshop/data/grid_measurements/sample-grid-measurements.csv').withColumn('ts_utc', F.to_timestamp(F.col('ts_utc')))\nweather = spark.read.option('header', True).schema('ts_utc STRING, weather_station_id STRING, station_name STRING, temperature_c DOUBLE, relative_humidity_pct INT, wind_speed_mps DOUBLE, precipitation_mm DOUBLE, pressure_hpa DOUBLE, weather_quality STRING').csv('/2026_cdp_workshop/data/operator_weather/sample-operator-weather.csv').withColumn('ts_utc', F.to_timestamp(F.col('ts_utc')))\nprint('meter rows:', meter.count(), '| weather rows:', weather.count())"}
 ```
 
 Send it as in section 2 and read the result. You should see **15** meter rows and **10** weather rows. Next cleanse the readings and aggregate per station and hour. This statement uses `meter` from the previous one — you do not read the file again:
@@ -356,7 +356,7 @@ vim "${LAB_TMP}/batch.json"
   "file": "hdfs:///2026_cdp_workshop/09-livy/assets/spark_cleanse_join.py",
   "name": "livy-batch-<your_user>",
   "args": [
-    "/2026_cdp_workshop/data/landisgyr/sample-landisgyr-data.csv",
+    "/2026_cdp_workshop/data/grid_measurements/sample-grid-measurements.csv",
     "/2026_cdp_workshop/data/operator_weather/sample-operator-weather.csv",
     "/2026_cdp_workshop/data/awattar/sample-awattar-prices.csv",
     "/user/<your_user>/livy-batch-curated"

@@ -19,10 +19,10 @@ else
   fail_msg "WORKSHOP_ROOT not found: ${WORKSHOP_ROOT} (ask trainer to run bootstrap)"
 fi
 
-if hdfs dfs -test -d "${WORKSHOP_ROOT}/data/landisgyr" 2>/dev/null; then
-  pass "Sample dataset path exists: ${WORKSHOP_ROOT}/data/landisgyr"
+if hdfs dfs -test -d "${WORKSHOP_ROOT}/data/grid_measurements" 2>/dev/null; then
+  pass "Sample dataset path exists: ${WORKSHOP_ROOT}/data/grid_measurements"
 else
-  fail_msg "Missing ${WORKSHOP_ROOT}/data/landisgyr (bootstrap incomplete?)"
+  fail_msg "Missing ${WORKSHOP_ROOT}/data/grid_measurements (bootstrap incomplete?)"
 fi
 
 if hdfs dfs -test -d "${WORKSHOP_HOME}" 2>/dev/null; then

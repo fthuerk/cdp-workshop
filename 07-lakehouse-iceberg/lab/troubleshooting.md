@@ -2,13 +2,13 @@
 
 For Kerberos, Hue, and Ranger basics see the [Hive troubleshooting](../../04-basics-hive/lab/troubleshooting.md); for `impala-shell` and Impala see the [Impala module](../../05-basics-impala/README.md) (same errors, same fixes).
 
-## `Table does not exist: landisgyr_changes` (or `stations`, `market_prices`, `landisgyr_csv`)
+## `Table does not exist: grid_measurements_changes` (or `stations`, `market_prices`, `grid_measurements_csv`)
 
 The source tables of lab section 0 are missing or you are in another database. Run `USE <your_user>;` (or pick the database in Hue) and the section 0 block again — it is safe to repeat.
 
 ## Source tables are empty
 
-The CSV files were not copied into the table folders, or Impala has not seen them yet. Check `hdfs dfs -ls "${HIVE_EXT}/landisgyr_csv"`, copy the files again, and run `REFRESH landisgyr_csv;`.
+The CSV files were not copied into the table folders, or Impala has not seen them yet. Check `hdfs dfs -ls "${HIVE_EXT}/grid_measurements_csv"`, copy the files again, and run `REFRESH grid_measurements_csv;`.
 
 ## Hue asks for a value or shows `${ws_user}` in an error
 
@@ -56,4 +56,4 @@ The join has no equality condition and runs as a Cartesian product. Keep the equ
 
 ## `MERGE` fails with a cardinality violation
 
-More than one source row matched the same target row. Check `SELECT * FROM landisgyr_changes;` — exactly four data rows with different keys.
+More than one source row matched the same target row. Check `SELECT * FROM grid_measurements_changes;` — exactly four data rows with different keys.

@@ -31,24 +31,24 @@ expect() { # description, actual, expected, hint
   if [[ "$2" == "$3" ]]; then pass "$1"; else fail_msg "$1 (got '${2:-nothing}', expected '$3') - $4"; fi
 }
 
-source_rows="$(hdfs dfs -cat "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" 2>/dev/null | wc -l | tr -d ' ')"
+source_rows="$(hdfs dfs -cat "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" 2>/dev/null | wc -l | tr -d ' ')"
 source_rows=$(( source_rows - 1 ))
 
-if hdfs dfs -test -e "${HIVE_EXT}/landisgyr_csv/sample-landisgyr-data.csv" 2>/dev/null; then
-  pass "CSV copy in ${HIVE_EXT}/landisgyr_csv"
+if hdfs dfs -test -e "${HIVE_EXT}/grid_measurements_csv/sample-grid-measurements.csv" 2>/dev/null; then
+  pass "CSV copy in ${HIVE_EXT}/grid_measurements_csv"
 else
-  fail_msg "Missing ${HIVE_EXT}/landisgyr_csv/sample-landisgyr-data.csv - redo lab section 1"
+  fail_msg "Missing ${HIVE_EXT}/grid_measurements_csv/sample-grid-measurements.csv - redo lab section 1"
 fi
 
-expect "landisgyr_csv rows" "$(sql 'SELECT COUNT(*) FROM landisgyr_csv')" "${source_rows}" "lab sections 1-2"
-expect "landisgyr_by_station rows (all partitions)" "$(sql 'SELECT COUNT(*) FROM landisgyr_by_station')" "${source_rows}" "lab section 3 (ADD PARTITION / MSCK REPAIR)"
+expect "grid_measurements_csv rows" "$(sql 'SELECT COUNT(*) FROM grid_measurements_csv')" "${source_rows}" "lab sections 1-2"
+expect "grid_measurements_by_station rows (all partitions)" "$(sql 'SELECT COUNT(*) FROM grid_measurements_by_station')" "${source_rows}" "lab section 3 (ADD PARTITION / MSCK REPAIR)"
 expect "meter_orc rows" "$(sql 'SELECT COUNT(*) FROM meter_orc')" "15000" "lab sections 4-5 (INSERT OVERWRITE)"
 expect "meter_parquet rows" "$(sql 'SELECT COUNT(*) FROM meter_parquet')" "15000" "lab section 4"
-expect "landisgyr_managed is transactional" "$(sql 'SHOW TBLPROPERTIES landisgyr_managed("transactional")')" "true" "lab section 6"
-expect "landisgyr_managed MERGE inserted the new reading" "$(sql "SELECT COUNT(*) FROM landisgyr_managed WHERE ts_utc = '2026-01-15T09:15:00Z'")" "1" "lab section 7 (MERGE with landisgyr_changes)"
-expect "landisgyr_v view works" "$(sql 'SELECT COUNT(*) FROM landisgyr_v')" "${source_rows}" "lab section 8"
-expect "readings joined with stations" "$(sql 'SELECT COUNT(*) FROM landisgyr_v m JOIN stations s ON m.station_id = s.station_id')" "${source_rows}" "lab section 9"
-expect "landisgyr_csv has table statistics" "$(sql 'SHOW TBLPROPERTIES landisgyr_csv("numRows")')" "${source_rows}" "lab section 10 (ANALYZE TABLE)"
+expect "grid_measurements_managed is transactional" "$(sql 'SHOW TBLPROPERTIES grid_measurements_managed("transactional")')" "true" "lab section 6"
+expect "grid_measurements_managed MERGE inserted the new reading" "$(sql "SELECT COUNT(*) FROM grid_measurements_managed WHERE ts_utc = '2026-01-15T09:15:00Z'")" "1" "lab section 7 (MERGE with grid_measurements_changes)"
+expect "grid_measurements_v view works" "$(sql 'SELECT COUNT(*) FROM grid_measurements_v')" "${source_rows}" "lab section 8"
+expect "readings joined with stations" "$(sql 'SELECT COUNT(*) FROM grid_measurements_v m JOIN stations s ON m.station_id = s.station_id')" "${source_rows}" "lab section 9"
+expect "grid_measurements_csv has table statistics" "$(sql 'SHOW TBLPROPERTIES grid_measurements_csv("numRows")')" "${source_rows}" "lab section 10 (ANALYZE TABLE)"
 
 if [[ ${fail} -ne 0 ]]; then
   echo "Self-check failed. See lab/troubleshooting.md"

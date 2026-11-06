@@ -2,7 +2,7 @@
 
 CSV files here support the grid monitoring pilot use case:
 
-- **Smart-meter / field trial** — `sample-landisgyr-data.csv`
+- **Smart-meter / field trial** — `sample-grid-measurements.csv`
 - **Operator weather stations** — `sample-operator-weather.csv`
 - **Market / energy** — `sample-awattar-prices.csv`, `sample-energy-charts.csv`
 - **Public weather** — `sample-open-meteo.csv`, `sample-geosphere-austria.csv`
@@ -12,7 +12,7 @@ Values are synthetic and safe to store in git. Production datasets with restrict
 
 Bootstrap uploads each file into its own HDFS folder, for example:
 
-`/2026_cdp_workshop/data/landisgyr/sample-landisgyr-data.csv`
+`/2026_cdp_workshop/data/grid_measurements/sample-grid-measurements.csv`
 
 Hive modules can point `LOCATION` at the folder level.
 

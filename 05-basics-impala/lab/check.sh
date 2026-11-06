@@ -20,7 +20,7 @@ IMPALA_EXT="${IMPALA_EXT:-/warehouse/tablespace/external/hive/${DB}.db}"
 SCALED="${WORKSHOP_ROOT}/05-impala/scaled/meter-15k.csv"
 REPEAT=1000
 
-source_body="$(hdfs dfs -cat "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" 2>/dev/null \
+source_body="$(hdfs dfs -cat "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" 2>/dev/null \
   | awk 'NR > 1 && NF > 0' | wc -l | tr -d ' ')"
 expected_rows=$(( source_body * REPEAT ))
 

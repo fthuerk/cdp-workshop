@@ -46,7 +46,7 @@ In Hue (Impala editor). All statements use `IF NOT EXISTS`, so you can run the b
 CREATE DATABASE IF NOT EXISTS ${ws_user};
 USE ${ws_user};
 
-CREATE EXTERNAL TABLE IF NOT EXISTS landisgyr_csv (
+CREATE EXTERNAL TABLE IF NOT EXISTS grid_measurements_csv (
   ts_utc STRING,
   station_id STRING,
   device_id STRING,
@@ -66,7 +66,7 @@ ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
 TBLPROPERTIES ('skip.header.line.count'='1');
 
-CREATE EXTERNAL TABLE IF NOT EXISTS landisgyr_changes (
+CREATE EXTERNAL TABLE IF NOT EXISTS grid_measurements_changes (
   ts_utc STRING,
   station_id STRING,
   device_id STRING,
@@ -111,39 +111,52 @@ STORED AS TEXTFILE
 TBLPROPERTIES ('skip.header.line.count'='1');
 ```
 
-Each table is a folder below `HIVE_EXT`. Fill the folders in the terminal: three files from the shared workshop data, and a small correction file that you create yourself. It holds four corrected or new readings — `08:45` and `09:15` for `TS-101`, `09:00` and `09:15` for `TS-204` — and is used in sections 1 and 3. The commands overwrite existing files, so they are safe to repeat:
+Each table is a folder below `HIVE_EXT`. Fill the folders in the terminal: three files from the shared workshop data, and a small correction file that you create yourself with `vim`. It holds four corrected or new readings — `08:45` and `09:15` for `TS-101`, `09:00` and `09:15` for `TS-204` — and is used in sections 1 and 3. The commands overwrite existing files, so they are safe to repeat. First the shared files:
 
 ```bash
-hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${HIVE_EXT}/landisgyr_csv/"
+hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "${HIVE_EXT}/grid_measurements_csv/"
 hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/basemap/sample-basemap-at-locations.csv" "${HIVE_EXT}/stations/"
 hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv" "${HIVE_EXT}/market_prices/"
+```
 
-cat > "/tmp/landisgyr-changes.csv.${WORKSHOP_USER}" <<'EOF'
+Create the correction file with `vim`:
+
+```bash
+vim "/tmp/grid-measurements-changes.csv.${WORKSHOP_USER}"
+```
+
+Content of the file:
+
+```csv
 timestamp,station_id,device_id,phase,active_power_kw,reactive_power_kvar,voltage_v,current_a,power_factor,frequency_hz,transformer_load_pct,quality_flag,event_code,comm_status
-2026-01-15T08:45:00Z,TS-101,LG-TS-101-A,L1,203.9,38.8,229.0,318.0,0.980,49.99,68.9,OK,,ONLINE
-2026-01-15T09:15:00Z,TS-101,LG-TS-101-A,L1,199.5,38.1,229.6,313.0,0.981,50.00,67.4,OK,,ONLINE
-2026-01-15T09:00:00Z,TS-204,LG-TS-204-B,L2,111.0,21.2,231.9,171.5,0.981,50.00,40.1,OK,,MAINTENANCE
-2026-01-15T09:15:00Z,TS-204,LG-TS-204-B,L2,108.9,20.9,232.0,169.0,0.981,50.00,39.5,OK,,MAINTENANCE
-EOF
-hdfs dfs -put -f "/tmp/landisgyr-changes.csv.${WORKSHOP_USER}" "${HIVE_EXT}/landisgyr_changes/"
+2026-01-15T08:45:00Z,TS-101,GM-TS-101-A,L1,203.9,38.8,229.0,318.0,0.980,49.99,68.9,OK,,ONLINE
+2026-01-15T09:15:00Z,TS-101,GM-TS-101-A,L1,199.5,38.1,229.6,313.0,0.981,50.00,67.4,OK,,ONLINE
+2026-01-15T09:00:00Z,TS-204,GM-TS-204-B,L2,111.0,21.2,231.9,171.5,0.981,50.00,40.1,OK,,MAINTENANCE
+2026-01-15T09:15:00Z,TS-204,GM-TS-204-B,L2,108.9,20.9,232.0,169.0,0.981,50.00,39.5,OK,,MAINTENANCE
+```
+
+Put it into the folder of its table and check the result:
+
+```bash
+hdfs dfs -put -f "/tmp/grid-measurements-changes.csv.${WORKSHOP_USER}" "${HIVE_EXT}/grid_measurements_changes/"
 hdfs dfs -ls -R "${HIVE_EXT}"
 ```
 
 Impala caches the file list of a table, so tell it about the new files, then check the tables:
 
 ```sql
-REFRESH landisgyr_csv;
-REFRESH landisgyr_changes;
+REFRESH grid_measurements_csv;
+REFRESH grid_measurements_changes;
 REFRESH stations;
 REFRESH market_prices;
 
-SELECT COUNT(*) FROM landisgyr_csv;
-SELECT COUNT(*) FROM landisgyr_changes;
+SELECT COUNT(*) FROM grid_measurements_csv;
+SELECT COUNT(*) FROM grid_measurements_changes;
 SELECT COUNT(*) FROM stations;
 SELECT COUNT(*) FROM market_prices;
 ```
 
-You should see 15, 4, 3, and 5 rows. `landisgyr_csv` holds three transformer stations with five 15-minute readings each.
+You should see 15, 4, 3, and 5 rows. `grid_measurements_csv` holds three transformer stations with five 15-minute readings each.
 
 ---
 
@@ -171,7 +184,7 @@ STORED AS PARQUET;
 INSERT OVERWRITE meter_part PARTITION (station_id)
 SELECT ts_utc, active_power_kw, reactive_power_kvar, voltage_v, current_a,
        transformer_load_pct, quality_flag, event_code, comm_status, station_id
-FROM landisgyr_csv;
+FROM grid_measurements_csv;
 
 SELECT station_id, COUNT(*) FROM meter_part GROUP BY station_id;
 ```
@@ -182,17 +195,17 @@ Now simulate a retry in both flavours. The `INSERT INTO` duplicates, the `INSERT
 INSERT INTO meter_part PARTITION (station_id)
 SELECT ts_utc, active_power_kw, reactive_power_kvar, voltage_v, current_a,
        transformer_load_pct, quality_flag, event_code, comm_status, station_id
-FROM landisgyr_csv;
+FROM grid_measurements_csv;
 SELECT COUNT(*) FROM meter_part;
 
 INSERT OVERWRITE meter_part PARTITION (station_id)
 SELECT ts_utc, active_power_kw, reactive_power_kvar, voltage_v, current_a,
        transformer_load_pct, quality_flag, event_code, comm_status, station_id
-FROM landisgyr_csv;
+FROM grid_measurements_csv;
 INSERT OVERWRITE meter_part PARTITION (station_id)
 SELECT ts_utc, active_power_kw, reactive_power_kvar, voltage_v, current_a,
        transformer_load_pct, quality_flag, event_code, comm_status, station_id
-FROM landisgyr_csv;
+FROM grid_measurements_csv;
 SELECT COUNT(*) FROM meter_part;
 ```
 
@@ -267,11 +280,11 @@ This time `TS-204` stays gone. Bring everything back by running the full overwri
 INSERT OVERWRITE meter_part PARTITION (station_id)
 SELECT ts_utc, active_power_kw, reactive_power_kvar, voltage_v, current_a,
        transformer_load_pct, quality_flag, event_code, comm_status, station_id
-FROM landisgyr_csv;
+FROM grid_measurements_csv;
 SELECT station_id, COUNT(*) FROM meter_part GROUP BY station_id;
 ```
 
-**Merge by rewriting.** The correction file from section 0 (`landisgyr_changes`) has to be merged into the table. Take the two `TS-101` rows: one corrected reading at `08:45` and one new reading at `09:15`. A merge has two halves: keep the existing rows that were **not** corrected, and add all rows from the correction file. Write both back into the partition (safe to run twice):
+**Merge by rewriting.** The correction file from section 0 (`grid_measurements_changes`) has to be merged into the table. Take the two `TS-101` rows: one corrected reading at `08:45` and one new reading at `09:15`. A merge has two halves: keep the existing rows that were **not** corrected, and add all rows from the correction file. Write both back into the partition (safe to run twice):
 
 ```sql
 INSERT OVERWRITE meter_part PARTITION (station_id = 'TS-101')
@@ -281,13 +294,13 @@ FROM (
   SELECT cur.ts_utc, cur.active_power_kw, cur.reactive_power_kvar, cur.voltage_v, cur.current_a,
          cur.transformer_load_pct, cur.quality_flag, cur.event_code, cur.comm_status
   FROM meter_part cur
-  LEFT JOIN landisgyr_changes chg
+  LEFT JOIN grid_measurements_changes chg
     ON chg.station_id = cur.station_id AND chg.ts_utc = cur.ts_utc
   WHERE cur.station_id = 'TS-101' AND chg.ts_utc IS NULL
   UNION ALL
   SELECT ts_utc, active_power_kw, reactive_power_kvar, voltage_v, current_a,
          transformer_load_pct, quality_flag, event_code, comm_status
-  FROM landisgyr_changes
+  FROM grid_measurements_changes
   WHERE station_id = 'TS-101'
 ) merged;
 
@@ -306,7 +319,7 @@ Now count what this approach costs. Every change rewrote a **whole partition**, 
 
 **Goal:** Create an Iceberg table and find out what Iceberg stores on HDFS.
 
-Create the table with the same columns as `landisgyr_csv`. `PARTITIONED BY SPEC (station_id)` is Iceberg's partitioning clause and `STORED AS ICEBERG` selects the table format. The property `format-version` = 2 is needed for row-level changes. Impala writes Parquet files and handles row-level changes as **merge-on-read** (you see what that means in section 3):
+Create the table with the same columns as `grid_measurements_csv`. `PARTITIONED BY SPEC (station_id)` is Iceberg's partitioning clause and `STORED AS ICEBERG` selects the table format. The property `format-version` = 2 is needed for row-level changes. Impala writes Parquet files and handles row-level changes as **merge-on-read** (you see what that means in section 3):
 
 ```sql
 CREATE EXTERNAL TABLE ice_meter (
@@ -329,7 +342,7 @@ PARTITIONED BY SPEC (station_id)
 STORED AS ICEBERG
 TBLPROPERTIES ('format-version'='2');
 
-INSERT INTO ice_meter SELECT * FROM landisgyr_csv;
+INSERT INTO ice_meter SELECT * FROM grid_measurements_csv;
 
 SELECT station_id, COUNT(*) FROM ice_meter GROUP BY station_id ORDER BY station_id;
 SHOW TBLPROPERTIES ice_meter;
@@ -400,11 +413,11 @@ SELECT content, file_path, record_count FROM ${ws_user}.ice_meter.files ORDER BY
 
 `content = 1` means a **position delete** file. Every statement also added a `*.metadata.json` file and a snapshot.
 
-Now a `MERGE`. It reads the correction file through `landisgyr_changes` and handles all four rows at once: it updates the two readings that exist (`TS-101` at `08:45`, `TS-204` at `09:00`) and inserts the two new ones (`09:15` of both stations). `UPDATE SET *` and `INSERT *` map the columns of the source by name:
+Now a `MERGE`. It reads the correction file through `grid_measurements_changes` and handles all four rows at once: it updates the two readings that exist (`TS-101` at `08:45`, `TS-204` at `09:00`) and inserts the two new ones (`09:15` of both stations). `UPDATE SET *` and `INSERT *` map the columns of the source by name:
 
 ```sql
 MERGE INTO ice_meter AS t
-USING landisgyr_changes AS s
+USING grid_measurements_changes AS s
 ON t.station_id = s.station_id AND t.ts_utc = s.ts_utc
 WHEN MATCHED THEN UPDATE SET *
 WHEN NOT MATCHED THEN INSERT *;
@@ -667,7 +680,7 @@ When Iceberg is **not** the answer: raw landing zones where files arrive from ou
 ## Stretch (optional)
 
 - **Time travel by time:** `SELECT COUNT(*) FROM ice_meter FOR SYSTEM_TIME AS OF now() - INTERVAL 30 MINUTES;` — it works as soon as the snapshot you want is older than that and has not been expired.
-- **Migrate a table in place:** `CREATE TABLE meter_parquet STORED AS PARQUET AS SELECT * FROM landisgyr_csv;`, then `ALTER TABLE meter_parquet CONVERT TO ICEBERG;`. The table becomes an Iceberg table without rewriting the data files. Look at the folder of `meter_parquet` on HDFS afterwards: a new `metadata` folder next to the old files. The row count stays 15.
+- **Migrate a table in place:** `CREATE TABLE meter_parquet STORED AS PARQUET AS SELECT * FROM grid_measurements_csv;`, then `ALTER TABLE meter_parquet CONVERT TO ICEBERG;`. The table becomes an Iceberg table without rewriting the data files. Look at the folder of `meter_parquet` on HDFS afterwards: a new `metadata` folder next to the old files. The row count stays 15.
 - **Partition evolution:** `ALTER TABLE <t> SET PARTITION SPEC (HOUR(ts))` needs a timestamp column; the lab table has strings. Try it on a new Iceberg table created with `CAST(REPLACE(SUBSTR(ts_utc, 1, 19), 'T', ' ') AS TIMESTAMP)` as `ts`: old data stays in the old layout, new data uses the new one, and queries work on both.
 - **Compact small files:** every `INSERT` adds files. `OPTIMIZE TABLE ice_meter;` rewrites them into fewer, larger files (if your Runtime release supports it). List `${ICE_META}/data` before and after. After a compaction the old files stay until you expire the snapshots.
 - **Drop an Iceberg table:** create a throw-away table (`CREATE EXTERNAL TABLE t (i INT) STORED AS ICEBERG` and an `INSERT`), check `SHOW TBLPROPERTIES t`, drop it and look at its folder. Do the files stay (external) or go (`external.table.purge`)? Compare with what `DROP TABLE` did to the external CSV table in section 0.

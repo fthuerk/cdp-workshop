@@ -29,10 +29,10 @@ expect() { # description, actual, expected, hint
   if [[ "$2" == "$3" ]]; then pass "$1"; else fail_msg "$1 (got '${2:-nothing}', expected '$3') - $4"; fi
 }
 
-expect "landisgyr_v view works" "$(sql 'SELECT COUNT(*) FROM landisgyr_v')" "15" "lab section 0"
+expect "grid_measurements_v view works" "$(sql 'SELECT COUNT(*) FROM grid_measurements_v')" "15" "lab section 0"
 expect "stations table has rows" "$(sql 'SELECT COUNT(*) FROM stations')" "3" "lab section 0"
-expect "joined readings and weather (no row multiplication)" "$(sql 'WITH w AS (SELECT ts_utc, AVG(temperature_c) AS t FROM weather_operator GROUP BY ts_utc) SELECT COUNT(*) FROM landisgyr_csv m JOIN w ON m.ts_utc = w.ts_utc')" "15" "lab section 1"
-expect "one top-load reading per station (window function)" "$(sql 'SELECT COUNT(*) FROM (SELECT ROW_NUMBER() OVER (PARTITION BY station_id ORDER BY transformer_load_pct DESC) AS rn FROM landisgyr_v) r WHERE rn = 1')" "3" "lab section 2"
+expect "joined readings and weather (no row multiplication)" "$(sql 'WITH w AS (SELECT ts_utc, AVG(temperature_c) AS t FROM weather_operator GROUP BY ts_utc) SELECT COUNT(*) FROM grid_measurements_csv m JOIN w ON m.ts_utc = w.ts_utc')" "15" "lab section 1"
+expect "one top-load reading per station (window function)" "$(sql 'SELECT COUNT(*) FROM (SELECT ROW_NUMBER() OVER (PARTITION BY station_id ORDER BY transformer_load_pct DESC) AS rn FROM grid_measurements_v) r WHERE rn = 1')" "3" "lab section 2"
 expect "WKT point for every station" "$(sql "SELECT COUNT(*) FROM stations WHERE CONCAT('POINT(', CAST(longitude AS STRING), ' ', CAST(latitude AS STRING), ')') LIKE 'POINT(%'")" "3" "lab section 4"
 
 if [[ ${fail} -ne 0 ]]; then

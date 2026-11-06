@@ -18,7 +18,7 @@ Setup must be done before the session: [setup/setup.sh](../setup/setup.sh). Use 
 As the demo user, create the table and change rows, then find the location:
 
 ```sql
-CREATE TABLE demo_managed AS SELECT * FROM landisgyr_csv;
+CREATE TABLE demo_managed AS SELECT * FROM grid_measurements_csv;
 UPDATE demo_managed SET quality_flag = 'REVIEWED' WHERE quality_flag = 'WARN';
 DELETE FROM demo_managed WHERE station_id = 'TS-305' AND event_code = 'HIGH_LOAD';
 DESCRIBE FORMATTED demo_managed;
@@ -56,12 +56,12 @@ SHOW COMPACTIONS;
 Use `demo_managed` from section 1 and a new external table with a CSV copy in its folder. With the admin ticket, list both locations first:
 
 ```sql
-CREATE EXTERNAL TABLE demo_ext LIKE landisgyr_csv;
+CREATE EXTERNAL TABLE demo_ext LIKE grid_measurements_csv;
 DESCRIBE FORMATTED demo_ext;
 ```
 
 ```bash
-hdfs dfs -cp "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "<demo_ext-table-location>"
+hdfs dfs -cp "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "<demo_ext-table-location>"
 hdfs dfs -ls "<demo_ext-table-location>"
 hdfs dfs -ls "/warehouse/tablespace/managed/hive/<demo_user>.db/demo_managed"
 ```
@@ -133,7 +133,7 @@ Compare `HDFS_BYTES_READ` per query: the text file is read completely, the ORC f
 
 **Goal:** Show that Hive access is governed by policy, not by file permissions alone.
 
-As a participant account, try to read another participant's database (for example `SELECT * FROM <other_user>.landisgyr_csv LIMIT 1;`). If your Ranger policies allow it, skip this section. Otherwise the statement fails; open **Ranger → Audit** and find the denied request.
+As a participant account, try to read another participant's database (for example `SELECT * FROM <other_user>.grid_measurements_csv LIMIT 1;`). If your Ranger policies allow it, skip this section. Otherwise the statement fails; open **Ranger → Audit** and find the denied request.
 
 **Talking point:** Hive column and row policies (masking) arrive in the governance module.
 

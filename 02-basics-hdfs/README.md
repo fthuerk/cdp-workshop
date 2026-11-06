@@ -13,7 +13,7 @@ Distributed storage for the grid monitoring use case: explore sample CSVs in `${
 
 After this module you can:
 
-- Navigate workshop data paths and relate them to Landis&Gyr / weather / market files  
+- Navigate workshop data paths and relate them to grid measurements / weather / market files  
 - Perform create, copy, inspect, delete, and download operations safely  
 - Interpret block locations, replication factor, and space with replicas  
 - Recover files from `.Trash` and understand `-skipTrash`  

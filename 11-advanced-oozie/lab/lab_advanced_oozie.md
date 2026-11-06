@@ -16,6 +16,8 @@ The lab builds one small pipeline step by step:
 | 8 | Data-triggered coordinator | Dataset, done-flag, input event |
 | 9 | Monitor and clean up | Suspend, resume, kill |
 
+**Files you create.** You write the files of this lab yourself with `vim` (open the file, press `i`, type or paste the content, press `Esc`, then `:wq`). The file contents contain placeholders in angle brackets that you replace with your own values: `<your_user>` (your `WORKSHOP_USER`), `<name-node>` (from `echo "${NAME_NODE}"` in section 1), and the workshop path `/2026_cdp_workshop` (adjust if yours differs). In `vim`, one command replaces all occurrences: `:%s/<your_user>/alice/g` (use your own name).
+
 Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `OOZIE_LAB` holds the shared example applications on HDFS (the name of the HDFS folder is `11-oozie`). `OOZIE_HDFS` is your own Oozie folder on HDFS, `OOZIE_LOCAL` your working folder on the edge node. `OOZIE_URL` is the Oozie server URL from your handout; the `oozie` command reads it automatically.
 
 ```bash
@@ -67,17 +69,23 @@ export HS2_PRINCIPAL="<hiveserver2-principal-from-your-handout>"
 Write the properties that every job of this lab shares into one file. Later sections copy it and add their own lines. `oozie.use.system.libpath=true` switches the ShareLib on:
 
 ```bash
-cat > common.properties <<EOF
-nameNode=${NAME_NODE}
-resourceManager=${RESOURCE_MANAGER}
-oozie.use.system.libpath=true
-database=${WORKSHOP_USER}
-jdbcURL=${HS2_URL}
-jdbcPrincipal=${HS2_PRINCIPAL}
-outputRoot=${NAME_NODE}${OOZIE_HDFS}/out
-weatherDir=${NAME_NODE}${WORKSHOP_ROOT}/data/operator_weather
-EOF
+vim common.properties
 ```
+
+Content of the file (replace the placeholders with the values from your handout and from the `echo` above):
+
+```properties
+nameNode=<name-node>
+resourceManager=<resource-manager-host:port>
+oozie.use.system.libpath=true
+database=<your_user>
+jdbcURL=<hiveserver2-jdbc-url>
+jdbcPrincipal=<hiveserver2-principal>
+outputRoot=${nameNode}/user/<your_user>/oozie/out
+weatherDir=${nameNode}/2026_cdp_workshop/data/operator_weather
+```
+
+Oozie fills `${nameNode}` itself from the line above, so you write the NameNode only once.
 
 **Check question:** Oozie keeps the state of every job in a database. What happens to a running workflow if the Oozie server restarts?
 
@@ -94,18 +102,26 @@ Create the script that the action will run:
 ```bash
 mkdir -p "${OOZIE_LOCAL}/hello"
 cd "${OOZIE_LOCAL}/hello"
+vim hello.sh
+```
 
-cat > hello.sh <<'EOF'
+Content of the file:
+
+```bash
 #!/bin/bash
 echo "Greeting: $1"
 echo "Running on $(hostname) as $(whoami)"
-EOF
 ```
 
 Now the workflow. Read it from top to bottom: `start` points to the first node, the action has an `ok` and an `error` transition, `kill` ends the workflow as failed, `end` as succeeded. `<file>` ships the script to the container.
 
 ```bash
-cat > workflow.xml <<'EOF'
+vim workflow.xml
+```
+
+Content of the file:
+
+```xml
 <workflow-app name="hello-wf" xmlns="uri:oozie:workflow:1.0">
   <start to="hello"/>
   <action name="hello">
@@ -124,7 +140,6 @@ cat > workflow.xml <<'EOF'
   </kill>
   <end name="end"/>
 </workflow-app>
-EOF
 ```
 
 Check the XML against the schema, then upload the application folder:
@@ -143,11 +158,14 @@ Create the job properties: the shared file plus the application path and the val
 ```bash
 cd "${OOZIE_LOCAL}"
 cp common.properties hello.properties
+vim hello.properties
+```
 
-cat >> hello.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/hello
+Add these lines at the end of the file:
+
+```properties
+oozie.wf.application.path=${nameNode}/user/<your_user>/oozie/apps/hello
 greeting=Hello grid
-EOF
 ```
 
 Submit and start the job in one step. Oozie prints a job ID that ends with `-W` (workflow). Copy it into a variable:
@@ -212,12 +230,15 @@ Create the properties. `inputFile` is the smart-meter sample, `workDir` is where
 ```bash
 cd "${OOZIE_LOCAL}"
 cp common.properties landing.properties
+vim landing.properties
+```
 
-cat >> landing.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/landing-check
-inputFile=${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv
-workDir=${NAME_NODE}${OOZIE_HDFS}/work/landing-check
-EOF
+Add these lines at the end of the file:
+
+```properties
+oozie.wf.application.path=${nameNode}/user/<your_user>/oozie/apps/landing-check
+inputFile=${nameNode}/2026_cdp_workshop/data/grid_measurements/sample-grid-measurements.csv
+workDir=${nameNode}/user/<your_user>/oozie/work/landing-check
 ```
 
 Run it. The decision should take the first branch:
@@ -237,7 +258,7 @@ The job is `SUCCEEDED` and the fs action created `archive` and `_CHECKED`.
 Run it again, but override `inputFile` on the command line with a file that does not exist. `-D` beats the value in the properties file:
 
 ```bash
-oozie job -config landing.properties -D inputFile="${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr/does-not-exist.csv" -run
+oozie job -config landing.properties -D inputFile="${NAME_NODE}${WORKSHOP_ROOT}/data/grid_measurements/does-not-exist.csv" -run
 ```
 
 ```bash
@@ -273,12 +294,15 @@ Create the properties: the input folder is the shared meter sample and the run d
 ```bash
 cd "${OOZIE_LOCAL}"
 cp common.properties hive.properties
+vim hive.properties
+```
 
-cat >> hive.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/hive-summary
-inputDir=${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr
+Add these lines at the end of the file:
+
+```properties
+oozie.wf.application.path=${nameNode}/user/<your_user>/oozie/apps/hive-summary
+inputDir=${nameNode}/2026_cdp_workshop/data/grid_measurements
 runDate=2026-01-15
-EOF
 ```
 
 ```bash
@@ -328,11 +352,14 @@ Compare with the `spark-submit` command of the Spark lab: `master`, `mode`, `jar
 ```bash
 cd "${OOZIE_LOCAL}"
 cp common.properties spark.properties
+vim spark.properties
+```
 
-cat >> spark.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/spark-weather
+Add these lines at the end of the file:
+
+```properties
+oozie.wf.application.path=${nameNode}/user/<your_user>/oozie/apps/spark-weather
 runDate=2026-01-15
-EOF
 ```
 
 ```bash
@@ -378,12 +405,15 @@ Create the properties and run it:
 ```bash
 cd "${OOZIE_LOCAL}"
 cp common.properties pipeline.properties
+vim pipeline.properties
+```
 
-cat >> pipeline.properties <<EOF
-oozie.wf.application.path=${NAME_NODE}${OOZIE_HDFS}/apps/meter-daily
-inputDir=${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr
+Add these lines at the end of the file:
+
+```properties
+oozie.wf.application.path=${nameNode}/user/<your_user>/oozie/apps/meter-daily
+inputDir=${nameNode}/2026_cdp_workshop/data/grid_measurements
 runDate=2026-01-15
-EOF
 ```
 
 ```bash
@@ -450,15 +480,18 @@ echo "${START} ${END}"
 ```bash
 cd "${OOZIE_LOCAL}"
 cp common.properties landing-coord.properties
+vim landing-coord.properties
+```
 
-cat >> landing-coord.properties <<EOF
-oozie.coord.application.path=${NAME_NODE}${OOZIE_HDFS}/coord/landing-check-coord
-wfAppPath=${NAME_NODE}${OOZIE_HDFS}/apps/landing-check
-start=${START}
-end=${END}
-inputFile=${NAME_NODE}${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv
-workRoot=${NAME_NODE}${OOZIE_HDFS}/work/landing-check-coord
-EOF
+Add these lines at the end of the file (replace `<start>` and `<end>` with the values printed by `echo` above):
+
+```properties
+oozie.coord.application.path=${nameNode}/user/<your_user>/oozie/coord/landing-check-coord
+wfAppPath=${nameNode}/user/<your_user>/oozie/apps/landing-check
+start=<start>
+end=<end>
+inputFile=${nameNode}/2026_cdp_workshop/data/grid_measurements/sample-grid-measurements.csv
+workRoot=${nameNode}/user/<your_user>/oozie/work/landing-check-coord
 ```
 
 A **dry run** shows what the coordinator would create without starting anything:
@@ -524,14 +557,17 @@ export DAILY_END=$(date -u -d tomorrow +%Y-%m-%dT00:00Z)
 ```bash
 cd "${OOZIE_LOCAL}"
 cp common.properties daily-coord.properties
+vim daily-coord.properties
+```
 
-cat >> daily-coord.properties <<EOF
-oozie.coord.application.path=${NAME_NODE}${OOZIE_HDFS}/coord/meter-daily-coord
-wfAppPath=${NAME_NODE}${OOZIE_HDFS}/apps/meter-daily
-start=${DAILY_START}
-end=${DAILY_END}
-landingRoot=${NAME_NODE}${OOZIE_HDFS}/landing
-EOF
+Add these lines at the end of the file (replace `<daily-start>` and `<daily-end>` with the values of `DAILY_START` and `DAILY_END`: run `echo "${DAILY_START} ${DAILY_END}"`):
+
+```properties
+oozie.coord.application.path=${nameNode}/user/<your_user>/oozie/coord/meter-daily-coord
+wfAppPath=${nameNode}/user/<your_user>/oozie/apps/meter-daily
+start=<daily-start>
+end=<daily-end>
+landingRoot=${nameNode}/user/<your_user>/oozie/landing
 ```
 
 Start the coordinator. The landing folder for today does not exist yet:
@@ -557,7 +593,7 @@ Now act as the data source. First deliver the data **without** the flag:
 
 ```bash
 hdfs dfs -mkdir -p "${OOZIE_HDFS}/landing/${TODAY}"
-hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" "${OOZIE_HDFS}/landing/${TODAY}/"
+hdfs dfs -cp -f "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" "${OOZIE_HDFS}/landing/${TODAY}/"
 oozie job -info "${DAILY_ID}@1"
 ```
 

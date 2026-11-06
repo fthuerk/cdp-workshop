@@ -16,7 +16,7 @@ WORK="${MODULE_ROOT}/work"
 LOCAL_ASSETS="${WORKSHOP_LOCAL}/09-basics-livy/assets"
 
 for dataset in \
-  "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" \
+  "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" \
   "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv" \
   "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"; do
   if ! hdfs dfs -test -e "${dataset}"; then

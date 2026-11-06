@@ -17,7 +17,7 @@ if ! hdfs dfs -test -d /warehouse/tablespace/external/hive; then
   log_err "Missing /warehouse/tablespace/external/hive - check the Hive warehouse location"
   exit 1
 fi
-for f in landisgyr/sample-landisgyr-data.csv basemap/sample-basemap-at-locations.csv \
+for f in grid_measurements/sample-grid-measurements.csv basemap/sample-basemap-at-locations.csv \
          awattar/sample-awattar-prices.csv operator_weather/sample-operator-weather.csv; do
   if ! hdfs dfs -test -e "${WORKSHOP_ROOT}/data/${f}"; then
     log_err "Missing ${WORKSHOP_ROOT}/data/${f} - run 00-setup/admin/bootstrap.sh first"

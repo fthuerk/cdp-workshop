@@ -5,7 +5,7 @@
 | Minutes | Activity |
 |---------|----------|
 | 0–15 | CDP storage role; NameNode/DataNode; blocks & replication (whiteboard) |
-| 15–20 | Demo Hue File Browser on `data/landisgyr` |
+| 15–20 | Demo Hue File Browser on `data/grid_measurements` |
 | 20–50 | Participants: lab sections 1–5 (monitor room) |
 | 50–60 | Section 6 append; section 7 permissions |
 | 60–65 | Live demo: [demos.md](demos.md) sections 1–5, one block at a time |

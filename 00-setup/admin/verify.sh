@@ -21,15 +21,15 @@ check() {
 }
 
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/.bootstrap/status"
-check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
 check hdfs dfs -test -e "${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"
 
-rows="$(hdfs dfs -cat "${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv" 2>/dev/null | wc -l | tr -d ' ')"
+rows="$(hdfs dfs -cat "${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv" 2>/dev/null | wc -l | tr -d ' ')"
 if [[ "${rows}" -ge 2 ]]; then
-  echo "[PASS] landisgyr CSV has data rows (lines=${rows})"
+  echo "[PASS] grid_measurements CSV has data rows (lines=${rows})"
 else
-  echo "[FAIL] landisgyr CSV appears empty"
+  echo "[FAIL] grid_measurements CSV appears empty"
   fail=1
 fi
 

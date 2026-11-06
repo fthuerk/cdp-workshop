@@ -18,7 +18,7 @@ fi
 
 # dataset_folder:filename
 DATASETS=(
-  "landisgyr:sample-landisgyr-data.csv"
+  "grid_measurements:sample-grid-measurements.csv"
   "operator_weather:sample-operator-weather.csv"
   "awattar:sample-awattar-prices.csv"
   "energy_charts:sample-energy-charts.csv"

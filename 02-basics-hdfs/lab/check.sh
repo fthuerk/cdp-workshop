@@ -23,10 +23,10 @@ else
   fail_msg "Missing ${USER_HOME} — complete lab section 2"
 fi
 
-if hdfs dfs -test -e "${USER_HOME}/sample-landisgyr-data.csv" 2>/dev/null; then
-  pass "Landis&Gyr copy in home"
+if hdfs dfs -test -e "${USER_HOME}/sample-grid-measurements.csv" 2>/dev/null; then
+  pass "grid measurements copy in home"
 else
-  fail_msg "Missing ${USER_HOME}/sample-landisgyr-data.csv"
+  fail_msg "Missing ${USER_HOME}/sample-grid-measurements.csv"
 fi
 
 if hdfs dfs -test -e "${USER_HOME}/hosts" 2>/dev/null; then

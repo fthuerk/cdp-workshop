@@ -135,7 +135,7 @@ SHOW TABLES;
 ```sql
 -- Interactive query on external or curated table
 SELECT station_id, AVG(current_a) AS avg_a
-FROM landisgyr_csv
+FROM grid_measurements_csv
 WHERE station_id IS NOT NULL
 GROUP BY station_id
 ORDER BY avg_a DESC
@@ -144,13 +144,13 @@ LIMIT 20;
 
 ```sql
 -- After new files landed in HDFS for an existing table
-REFRESH landisgyr_csv;
-COMPUTE STATS landisgyr_csv;
+REFRESH grid_measurements_csv;
+COMPUTE STATS grid_measurements_csv;
 ```
 
 ```sql
 -- After Hive changed schema or location
-INVALIDATE METADATA landisgyr_csv;
+INVALIDATE METADATA grid_measurements_csv;
 ```
 
 ```bash

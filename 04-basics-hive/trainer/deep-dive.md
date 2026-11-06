@@ -2,7 +2,7 @@
 
 ## Why this matters
 
-Hive is the workshop’s primary **SQL metastore and batch engine** over HDFS: external CSV on `landisgyr`, partitioned staging, ORC/Parquet curated tables, and managed ACID for row-level changes. Data engineers define tables, partitions, file formats, and compaction; analysts run aggregations and joins in Beeline or Hue; data scientists consume stable table names from Spark or export curated features. The split between **Metastore schema** and **HDFS bytes** drives almost every ingestion bug (missing partition, double load, UPDATE on external tables).
+Hive is the workshop’s primary **SQL metastore and batch engine** over HDFS: external CSV on `grid_measurements`, partitioned staging, ORC/Parquet curated tables, and managed ACID for row-level changes. Data engineers define tables, partitions, file formats, and compaction; analysts run aggregations and joins in Beeline or Hue; data scientists consume stable table names from Spark or export curated features. The split between **Metastore schema** and **HDFS bytes** drives almost every ingestion bug (missing partition, double load, UPDATE on external tables).
 
 ---
 
@@ -133,7 +133,7 @@ HDFS files cannot be modified, so a transactional (managed, ORC) table never edi
 **Directory layout of a table (or partition):**
 
 ```text
-landisgyr_managed/
+grid_measurements_managed/
   base_0000005_v0000123/                 # compacted full state as of write id 5
     bucket_00000
   delta_0000006_0000006_0000/            # INSERT, write id 6
@@ -210,41 +210,41 @@ beeline -u "jdbc:hive2://<hs2-host>:10000/default;principal=hive/_HOST@REALM" \
 CREATE DATABASE IF NOT EXISTS ws_${hivevar:ws_user};
 USE ws_${hivevar:ws_user};
 
-CREATE EXTERNAL TABLE IF NOT EXISTS landisgyr_csv (
+CREATE EXTERNAL TABLE IF NOT EXISTS grid_measurements_csv (
   ts_utc STRING,
   station_id STRING,
   current_a DOUBLE
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-LOCATION '${hivevar:workshop_root}/data/landisgyr/';
+LOCATION '${hivevar:workshop_root}/data/grid_measurements/';
 ```
 
 ```sql
 -- Lab table (no LOCATION): file lands in the warehouse folder. Source path disappears.
 -- Point INPATH at a staged copy, never at the shared data directory above.
 LOAD DATA INPATH '/user/${hivevar:ws_user}/hive-staging/loaded-copy.csv'
-  INTO TABLE landisgyr_csv;
+  INTO TABLE grid_measurements_csv;
 ```
 
 ```sql
 -- Partition maintenance
 ALTER TABLE meter_partitioned ADD PARTITION (dt='2024-01-02')
-  LOCATION '${hivevar:workshop_root}/data/landisgyr/dt=2024-01-02/';
+  LOCATION '${hivevar:workshop_root}/data/grid_measurements/dt=2024-01-02/';
 MSCK REPAIR TABLE meter_partitioned;
 ```
 
 ```sql
 -- Stats for CBO
-ANALYZE TABLE landisgyr_orc COMPUTE STATISTICS;
-ANALYZE TABLE landisgyr_orc COMPUTE STATISTICS FOR COLUMNS;
+ANALYZE TABLE grid_measurements_orc COMPUTE STATISTICS;
+ANALYZE TABLE grid_measurements_orc COMPUTE STATISTICS FOR COLUMNS;
 ```
 
 ```sql
 -- Plan inspection
 EXPLAIN EXTENDED
 SELECT station_id, AVG(current_a)
-FROM landisgyr_orc
+FROM grid_measurements_orc
 WHERE dt = '2024-01-01'
 GROUP BY station_id;
 ```

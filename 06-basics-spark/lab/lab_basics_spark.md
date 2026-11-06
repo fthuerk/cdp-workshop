@@ -19,7 +19,7 @@ kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you may write to works
 export SPARK_LAB="${WORKSHOP_ROOT}/06-spark"
-export METER_CSV="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+export METER_CSV="${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 export WEATHER_CSV="${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
 export AWATTAR_CSV="${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"
 export HS2_URL="<jdbc-url-from-your-handout>"
@@ -645,7 +645,12 @@ yarn logs -applicationId "<application-id>" | tail -40
 Create a pi estimator. It runs in several rounds with a short pause, so the application stays alive for about 2–3 minutes and you can watch it:
 
 ```bash
-cat > /tmp/pi_lab.py <<'EOF'
+vim /tmp/pi_lab.py
+```
+
+Content of the file:
+
+```python
 import random, time
 from operator import add
 from pyspark.sql import SparkSession
@@ -661,8 +666,11 @@ for i in range(rounds):
     time.sleep(20)
 print(f"Pi is roughly {4.0 * total / (n * rounds)}")
 spark.stop()
-EOF
+```
 
+Run it in cluster mode:
+
+```bash
 spark-submit --deploy-mode cluster --name "spark-pi-${WORKSHOP_USER}" /tmp/pi_lab.py
 ```
 

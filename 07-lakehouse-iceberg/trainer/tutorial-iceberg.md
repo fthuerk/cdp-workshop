@@ -354,7 +354,7 @@ Write-audit-publish: write to `branch_audit`, run data-quality checks there, the
 
 ```sql
 -- Impala
-CREATE TABLE meter_parquet STORED AS PARQUET AS SELECT * FROM landisgyr_csv;
+CREATE TABLE meter_parquet STORED AS PARQUET AS SELECT * FROM grid_measurements_csv;
 ALTER TABLE meter_parquet CONVERT TO ICEBERG;
 ```
 

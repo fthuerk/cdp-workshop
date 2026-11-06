@@ -18,7 +18,7 @@ fail=0
 check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
 
 check hdfs dfs -test -e "${SCALED_FILE}"
-source="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+source="${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 if hdfs dfs -test -e "${source}"; then
   echo "[PASS] source sample at ${source}"
 else

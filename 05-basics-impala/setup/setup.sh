@@ -12,7 +12,7 @@ require_cmd hdfs awk mktemp
 
 MODULE_ROOT="${WORKSHOP_ROOT}/05-impala"
 SCALED="${MODULE_ROOT}/scaled"
-SOURCE="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+SOURCE="${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 SCALED_FILE="${SCALED}/meter-15k.csv"
 # Repeat the sample body so aggregation queries take long enough to compare Hive vs Impala.
 REPEAT=1000

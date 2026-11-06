@@ -11,8 +11,8 @@ require_admin_hdfs_kinit
 require_cmd hdfs awk sort mktemp
 
 MODULE_ROOT="${WORKSHOP_ROOT}/04-hive"
-LANDING="${MODULE_ROOT}/landing/landisgyr_by_station"
-SOURCE="${WORKSHOP_ROOT}/data/landisgyr/sample-landisgyr-data.csv"
+LANDING="${MODULE_ROOT}/landing/grid_measurements_by_station"
+SOURCE="${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 
 if ! hdfs dfs -test -e "${SOURCE}"; then
   log_err "Missing ${SOURCE} - run 00-setup/admin/bootstrap.sh first"
