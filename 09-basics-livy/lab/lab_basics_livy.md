@@ -10,8 +10,7 @@ The lab has three parts:
 | **B. Batch and Metastore** | 5–6 | `curl` | You hand Livy a finished script (like `spark-submit`), then register the result as a table |
 | **C. Jupyter on your laptop** | 7 | Jupyter + `sparkmagic` | The same session idea, with notebook cells instead of `curl` |
 
-Set your identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`; you need the Kerberos ticket for the `hdfs` and `yarn` commands. `LIVY_URL` is the Livy address behind the Knox gateway from your handout, without a trailing slash. `LAB_TMP` is a private folder for the request files you create. `LIVY_LAB` holds the shared batch script on HDFS. `HS2_URL` is the HiveServer2 JDBC URL from your handout (only needed for the optional check in section 6).
-
+Set your identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`; you need the Kerberos ticket for the `hdfs` and `yarn` commands. `LIVY_URL` is the Livy address behind the Knox gateway from your handout, without a trailing slash. `LAB_TMP` is a private folder for the request files you create. `LIVY_LAB` holds the shared batch script on HDFS.
 ```bash
 export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
@@ -20,10 +19,9 @@ export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you
 export LIVY_URL="<livy-url-from-your-handout>"
 export LIVY_LAB="${WORKSHOP_ROOT}/09-livy"
 export LAB_TMP="/tmp/livy-lab-${WORKSHOP_USER}"
-export HS2_URL="<jdbc-url-from-your-handout>"
 ```
 
-**Request files.** Livy takes JSON. You write the request bodies yourself with `vim` (open the file, press `i`, type or paste the content, press `Esc`, then `:wq`). The file contents in this lab contain two placeholders you replace with your own values: `<your_user>` (your `WORKSHOP_USER`) and the workshop path `/2026_cdp_workshop` (adjust if yours differs). In `vim`, one command replaces all occurrences: `:%s/<your_user>/alice/g` (use your own name). Check a file for valid JSON with `python3 -m json.tool < "${LAB_TMP}/<file>"`.
+**Request files.** Livy takes JSON. You write the request bodies yourself with `vim` (open the file, press `i`, type or paste the content, press `Esc`, then `:wq`). The file contents in this lab contain two placeholders you replace with your own values: `<your_user>` (your `WORKSHOP_USER`) and the workshop path `/2026_cdp_workshop` (adjust if yours differs). In `vim`, one command replaces all occurrences: `:%s/<your_user>/alice/g` (use your own name). Check a file for valid JSON with `jq . < "${LAB_TMP}/<file>"`.
 
 ## What is Livy?
 
@@ -68,12 +66,12 @@ First check only the HTTP status of a harmless call. `200` means Knox accepted y
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" -o /dev/null -w '%{http_code}\n' "${LIVY_URL}/sessions"
 ```
 
-You should see `200`. A `401` means a wrong user or password, a `403` means your user may not use the Livy service (see [troubleshooting.md](troubleshooting.md)). Now look at the content. `python3 -m json.tool` makes the JSON readable:
+You should see `200`. A `401` means a wrong user or password, a `403` means your user may not use the Livy service (see [troubleshooting.md](troubleshooting.md)). Now look at the content. `jq .` pretty-prints and colors the JSON:
 
 ```bash
 # List all sessions and batches that Livy currently knows
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions" | python3 -m json.tool
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/batches" | python3 -m json.tool
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions" | jq .
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/batches" | jq .
 ```
 
 The answer has the form `{"from": 0, "total": N, "sessions": [...]}`. Livy is shared: sessions of other participants may already be listed. Look at one entry if there is any: `id`, `name`, `state`, `appId`, and `owner` tell you who runs what.
@@ -114,7 +112,7 @@ Send it. The answer returns at once with the new session in state `starting`: Li
 # Create the session; note the "id" in the answer
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" \
   -H "Content-Type: application/json" -H "X-Requested-By: ${WORKSHOP_USER}" \
-  -X POST -d @"${LAB_TMP}/session.json" "${LIVY_URL}/sessions" | python3 -m json.tool
+  -X POST -d @"${LAB_TMP}/session.json" "${LIVY_URL}/sessions" | jq .
 ```
 
 Remember the id for all later calls and ask for the state until it is `idle` (ready for statements). This usually takes 20–60 seconds; repeat the second command:
@@ -130,7 +128,7 @@ You will see `starting`, then `idle`. Other states you may meet: `busy` (a state
 Read the full session description. Note `owner` and `proxyUser`, and the `appId` of the YARN application behind your session:
 
 ```bash
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}" | python3 -m json.tool
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}" | jq .
 ```
 
 Now switch to the **second terminal** (same user, valid ticket) and look at the same application from the YARN side:
@@ -157,21 +155,21 @@ Your session accepts **statements**: snippets of code that Livy executes in the 
 # POST one statement; the answer has the statement "id" (0 for the first one) and state "waiting" or "running"
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" \
   -H "Content-Type: application/json" -H "X-Requested-By: ${WORKSHOP_USER}" \
-  -X POST -d '{"code": "1 + 1"}' "${LIVY_URL}/sessions/${SESSION_ID}/statements" | python3 -m json.tool
+  -X POST -d '{"code": "1 + 1"}' "${LIVY_URL}/sessions/${SESSION_ID}/statements" | jq .
 ```
 
 A statement is **asynchronous**: you get an id and ask for the result. Statement ids count up per session (0, 1, 2, …). Repeat until `state` is `available`:
 
 ```bash
 # Replace the placeholder with the statement id
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/statements/<statement-id>" | python3 -m json.tool
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/statements/<statement-id>" | jq .
 ```
 
-Look at `output`: `status` is `ok` and `data` holds the result as `text/plain` — here `2`. Longer outputs contain `\n` for line breaks. If you want them as real lines, this one-liner prints only the text; use it as a suffix instead of `python3 -m json.tool` whenever you like:
+Look at `output`: `status` is `ok` and `data` holds the result as `text/plain` — here `2`. Longer outputs contain `\n` for line breaks. If you want them as real lines, this one-liner prints only the text; use it as a suffix instead of `jq .` whenever you like:
 
 ```bash
 # Suffix for the statement result: print only output.data["text/plain"]
-| python3 -c 'import json,sys; print(json.load(sys.stdin)["output"]["data"]["text/plain"])'
+| jq -r '.output.data["text/plain"]'
 ```
 
 From now on every statement lives in a file. Use **single quotes** for strings inside the Python code, so you do not have to escape the double quotes of JSON. First ask the session where it runs and who it is:
@@ -188,7 +186,7 @@ vim "${LAB_TMP}/s2a.json"
 # Send it (note the id), then fetch the result with the statement id
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" \
   -H "Content-Type: application/json" -H "X-Requested-By: ${WORKSHOP_USER}" \
-  -X POST -d @"${LAB_TMP}/s2a.json" "${LIVY_URL}/sessions/${SESSION_ID}/statements" | python3 -m json.tool
+  -X POST -d @"${LAB_TMP}/s2a.json" "${LIVY_URL}/sessions/${SESSION_ID}/statements" | jq .
 ```
 
 Compare the result with your edge node:
@@ -238,7 +236,7 @@ Send it and read the result. You should see `"status": "error"` with `ename` `An
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/state"
 ```
 
-It is back to `idle`. List all statements of the session with `curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/statements" | python3 -m json.tool` and find the failed one.
+It is back to `idle`. List all statements of the session with `curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/statements" | jq .` and find the failed one.
 
 **Check question:** What is the difference between a statement in state `error` and a session in state `dead`? Which of the two do you restart, and what do you lose?
 
@@ -309,7 +307,7 @@ vim "${LAB_TMP}/s4a.json"
 Send it and read the result. You should see **8** rows for each of the three stations. Livy also keeps a log for the session. It contains the output of the launch (YARN submission), **not** your `print` output — that is in the statement results (and, after the end, in `yarn logs`):
 
 ```bash
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/log?from=0&size=15" | python3 -m json.tool
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/log?from=0&size=15" | jq .
 ```
 
 A session stays alive until you delete it or Livy's idle timeout removes it (typically one hour). A forgotten session holds its YARN containers the whole time. Close yours with `DELETE`:
@@ -368,7 +366,7 @@ vim "${LAB_TMP}/batch.json"
 # Submit; note the "id" in the answer (batch ids are separate from session ids)
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" \
   -H "Content-Type: application/json" -H "X-Requested-By: ${WORKSHOP_USER}" \
-  -X POST -d @"${LAB_TMP}/batch.json" "${LIVY_URL}/batches" | python3 -m json.tool
+  -X POST -d @"${LAB_TMP}/batch.json" "${LIVY_URL}/batches" | jq .
 ```
 
 Follow the batch. States are `starting`, `running`, then `success` (or `dead` on failure). Repeat the state call every few seconds:
@@ -382,8 +380,8 @@ curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/batches/${BATCH_ID}/
 The batch description gives the YARN `appId`; the batch log shows what Livy's `spark-submit` printed while it watched the application:
 
 ```bash
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/batches/${BATCH_ID}" | python3 -m json.tool
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/batches/${BATCH_ID}/log?from=0&size=20" | python3 -m json.tool
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/batches/${BATCH_ID}" | jq .
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/batches/${BATCH_ID}/log?from=0&size=20" | jq .
 ```
 
 When the state is `success`, check the result in the second terminal:
@@ -422,7 +420,7 @@ You need a session again — the old one is gone. Send the request file from sec
 # New session with the same request; note the new id in the answer
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" \
   -H "Content-Type: application/json" -H "X-Requested-By: ${WORKSHOP_USER}" \
-  -X POST -d @"${LAB_TMP}/session.json" "${LIVY_URL}/sessions" | python3 -m json.tool
+  -X POST -d @"${LAB_TMP}/session.json" "${LIVY_URL}/sessions" | jq .
 ```
 
 ```bash
@@ -451,7 +449,7 @@ curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" -H "X-Requested-By: ${WORKSHOP_US
 **Optional cross-check** in Beeline (second terminal) — Hive reads the table that Spark created through Livy:
 
 ```bash
-beeline -u "${HS2_URL}" -e "
+beeline -e "
 USE ${WORKSHOP_USER};
 SELECT station_id, COUNT(*) AS n FROM livy_curated_join GROUP BY station_id ORDER BY station_id;
 "
@@ -550,14 +548,14 @@ curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/999999/stat
 # Request with a huge executor memory; note the id in the answer
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" \
   -H "Content-Type: application/json" -H "X-Requested-By: ${WORKSHOP_USER}" \
-  -X POST -d '{"kind": "pyspark", "executorMemory": "512g"}' "${LIVY_URL}/sessions" | python3 -m json.tool
+  -X POST -d '{"kind": "pyspark", "executorMemory": "512g"}' "${LIVY_URL}/sessions" | jq .
 ```
 
 ```bash
 # Replace the placeholder with the id from the answer; wait a minute, then read state and log
 export BIG_ID=<id-from-the-answer>
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${BIG_ID}/state"
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${BIG_ID}/log?from=0&size=40" | python3 -m json.tool
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${BIG_ID}/log?from=0&size=40" | jq .
 ```
 
 ```bash

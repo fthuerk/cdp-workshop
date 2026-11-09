@@ -1,6 +1,6 @@
 # Livy lab — troubleshooting
 
-## `401` from the Livy URL (or an empty answer, or `Expecting value` from `python3 -m json.tool`)
+## `401` from the Livy URL (or an empty answer, or `parse error` from `jq`)
 
 Knox rejected the login: wrong user name or LDAP password, or the account is locked after too many attempts.
 
@@ -34,7 +34,7 @@ The laptop cannot reach the Knox host: VPN, proxy, or firewall. Test with `curl 
 A session called `livy-lab-<your_user>` already exists (from an earlier try). List sessions, find the one with your name, delete it, and create again:
 
 ```bash
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions" | python3 -m json.tool
+curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions" | jq .
 curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" -H "X-Requested-By: ${WORKSHOP_USER}" -X DELETE "${LIVY_URL}/sessions/<id>"
 ```
 
@@ -62,7 +62,7 @@ The REST call worked; your code failed. Read `ename` and `evalue` (for example `
 
 ## The `POST` of a statement answers with an error instead of an id
 
-The `POST` returned an error instead of a statement: wrong `SESSION_ID`, session already deleted, or the session is not `idle` yet. Check `curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/state"`. A `400` with a message about the JSON body means the file is not valid JSON: `python3 -m json.tool < "${LAB_TMP}/<file>"` shows the line.
+The `POST` returned an error instead of a statement: wrong `SESSION_ID`, session already deleted, or the session is not `idle` yet. Check `curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/state"`. A `400` with a message about the JSON body means the file is not valid JSON: `jq . < "${LAB_TMP}/<file>"` shows the line.
 
 ## `AnalysisException: Path does not exist`
 
