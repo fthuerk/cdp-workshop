@@ -46,7 +46,7 @@ If you run short, shorten section 1 (run only the partition overwrite and the me
 
 | Issue | Mitigation |
 |-------|------------|
-| `STORED AS ICEBERG` denied | Ranger storage handler policy missing (see below) |
+| `STORED BY ICEBERG` denied | Ranger storage handler policy missing (see below) |
 | Impala `UPDATE`/`MERGE` unsupported | Needs Runtime 7.3.1.500 or later. On older clusters run section 3 with `UPDATE`/`DELETE` only and skip the `MERGE` |
 | `INSERT OVERWRITE` on `meter_part` fails | Impala cannot write ORC; the lab uses Parquet |
 | Metadata tables (`.snapshots` / `.history` / `.files`) not available | Version-dependent. Fallbacks: `DESCRIBE HISTORY` and `SHOW FILES IN`. Adjust the lab if your Impala does not support them |

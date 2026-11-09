@@ -23,9 +23,8 @@ export HIVE_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"
 CREATE DATABASE IF NOT EXISTS ${ws_user};
 USE ${ws_user};
 
-CREATE EXTERNAL TABLE demo_ice (id INT, name STRING, amount DOUBLE)
-STORED AS ICEBERG
-TBLPROPERTIES ('format-version'='2');
+CREATE TABLE demo_ice (id INT, name STRING, amount DOUBLE)
+STORED BY ICEBERG;
 
 INSERT INTO demo_ice VALUES (1, 'alpha', 10.0), (2, 'beta', 20.0), (3, 'gamma', 30.0);
 ```
@@ -133,15 +132,14 @@ Check whether the table folder is still there (depends on `external.table.purge`
 Part B uses a small table with a timestamp and a partition-friendly column. Run it in Impala unless a section says otherwise. Section C shows the same operations in the other engines.
 
 ```sql
-CREATE EXTERNAL TABLE ice_func (
+CREATE TABLE ice_func (
   id INT,
   station_id STRING,
   ts TIMESTAMP,
   kwh DOUBLE
 )
 PARTITIONED BY SPEC (station_id)
-STORED AS ICEBERG
-TBLPROPERTIES ('format-version'='2');
+STORED BY ICEBERG;
 
 INSERT INTO ice_func VALUES
   (1, 'TS-101', '2026-01-15 08:00:00', 1.5),
@@ -179,10 +177,9 @@ Time travel and schema: a query `FOR SYSTEM_VERSION AS OF` an old snapshot uses 
 `ice_func` is partitioned by the identity of `station_id`. Create a second table partitioned by a **transform** of the timestamp:
 
 ```sql
-CREATE EXTERNAL TABLE ice_func_month (id BIGINT, station_id STRING, ts TIMESTAMP, energy_kwh DOUBLE)
+CREATE TABLE ice_func_month (id BIGINT, station_id STRING, ts TIMESTAMP, energy_kwh DOUBLE)
 PARTITIONED BY SPEC (MONTH(ts), BUCKET(4, station_id))
-STORED AS ICEBERG
-TBLPROPERTIES ('format-version'='2');
+STORED BY ICEBERG;
 
 INSERT INTO ice_func_month SELECT * FROM ice_func;
 
@@ -350,7 +347,7 @@ Write-audit-publish: write to `branch_audit`, run data-quality checks there, the
 | In place, with a copy of the metadata | Spark `CALL system.migrate('db.t')` | no | keeps a backup table `t_backup_` |
 | Try first, don't touch the source | Spark `CALL system.snapshot('db.src', 'db.src_ice')` | no | new Iceberg table sharing the files. **Do not write to both** or expire on the snapshot table |
 | Add files to an existing table | Spark `CALL system.add_files(table => 'db.ice', source_table => 'db.src')` | no | registers files, no rewrite |
-| Copy | `CREATE TABLE ice STORED AS ICEBERG AS SELECT * FROM src` (Impala/Hive) | yes | the cleanest layout: new files, chosen partition spec |
+| Copy | `CREATE TABLE ice STORED BY ICEBERG AS SELECT * FROM src` (Impala/Hive) | yes | the cleanest layout: new files, chosen partition spec |
 
 ```sql
 -- Impala
@@ -409,8 +406,8 @@ pyspark \
 
 ```sql
 -- Impala
-CREATE EXTERNAL TABLE ice_cmp (id INT, name STRING, amount DOUBLE)
-STORED AS ICEBERG TBLPROPERTIES ('format-version'='2');
+CREATE TABLE ice_cmp (id INT, name STRING, amount DOUBLE)
+STORED BY ICEBERG;
 INSERT INTO ice_cmp VALUES (1, 'from-impala', 1.0);
 ```
 
@@ -434,10 +431,10 @@ Back in Impala: run `REFRESH ice_cmp;` (Impala caches table metadata, and change
 
 | | Impala | Hive | Spark |
 |---|--------|------|-------|
-| Format clause | `STORED AS ICEBERG` | `STORED BY ICEBERG` (CDP also accepts `STORED AS ICEBERG`) | `USING iceberg` |
+| Format clause | `STORED BY ICEBERG` (`STORED AS ICEBERG` also works) | `STORED BY ICEBERG` | `USING iceberg` |
 | Partitioning | `PARTITIONED BY SPEC (MONTH(ts), BUCKET(4, id))` | `PARTITIONED BY SPEC (month(ts), bucket(4, id))` | `PARTITIONED BY (months(ts), bucket(4, id))` |
-| Table type | `CREATE EXTERNAL TABLE` | `CREATE EXTERNAL TABLE` (external, purge on drop) | `CREATE TABLE` (external in the Metastore, files owned by Iceberg) |
-| Format version | `TBLPROPERTIES ('format-version'='2')` | same | same (`'format-version'='2'`) |
+| Table type | `CREATE TABLE` (no `EXTERNAL`) | `CREATE TABLE` (no `EXTERNAL`) | `CREATE TABLE` (external in the Metastore, files owned by Iceberg) |
+| Format version | v2 is the default, nothing to set | same | same (`'format-version'='2'` is the default) |
 | CTAS | yes | yes | yes (`CREATE TABLE … USING iceberg AS SELECT`) |
 | Create from DataFrame | — | — | `df.writeTo("t").using("iceberg").partitionedBy(F.months("ts")).createOrReplace()` |
 
@@ -570,7 +567,7 @@ Confirm on the target 7.3.2 cluster and move the results to the pitfalls table i
 
 1. Impala: `OPTIMIZE TABLE` options, `ALTER TABLE … EXECUTE ROLLBACK('<timestamp>')`, metadata tables `refs`, `metadata_log_entries`, `manifests`, `partitions`, `all_*`.
 2. Impala: branch and tag support (read by name?) and equality-delete reading.
-3. Hive: `STORED BY ICEBERG` vs `STORED AS ICEBERG`, `COMPACT` for Iceberg, `EXECUTE SET_CURRENT_SNAPSHOT / CHERRY_PICK / FAST_FORWARD`, branch/tag read syntax, `EXPIRE_SNAPSHOTS RETAIN LAST`.
+3. Hive: `COMPACT` for Iceberg, `EXECUTE SET_CURRENT_SNAPSHOT / CHERRY_PICK / FAST_FORWARD`, branch/tag read syntax, `EXPIRE_SNAPSHOTS RETAIN LAST`.
 4. Hive: default of `write.*.mode` and of `external.table.purge` for Iceberg tables.
 5. Spark: preconfigured extensions and catalog; `CALL system.*` available; branch/tag SQL; Ranger enforcement on Iceberg reads.
 6. Time-zone behavior of time travel in all three engines.

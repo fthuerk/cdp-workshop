@@ -14,13 +14,13 @@ The CSV files were not copied into the table folders, or Impala has not seen the
 
 The placeholder has no value. Type your `WORKSHOP_USER` into the `ws_user` input field below the editor. The same applies to `snap_first`, `snap_now`, and `snap_good`: paste the snapshot ID from the result of the query that the lab names.
 
-## `CREATE TABLE … STORED AS ICEBERG` is denied or fails with an authorization error
+## `CREATE TABLE … STORED BY ICEBERG` is denied or fails with an authorization error
 
 Iceberg needs **two** Ranger policies: the usual Hive table policy on `{USER}`, and the Hadoop SQL **storage handler** policy (storage-type `iceberg`, storage-url `*`, permission *RW Storage*) for the workshop users. A missing second policy shows up when you create or alter an Iceberg table. Trainers: see the [ranger README](../../00-setup/admin/ranger/README.md), section module 07.
 
 ## `UPDATE` / `DELETE` / `MERGE` fails on `ice_meter` with a message about the format version or row-level operations
 
-The table was created as format version 1. Check with `SHOW TBLPROPERTIES ice_meter;` that `format-version` is `2`. Drop the table (`DROP TABLE ice_meter;`, then remove leftover files in its folder) and create it again with the statement of section 2. Some versions also allow `ALTER TABLE ice_meter SET TBLPROPERTIES ('format-version'='2');` — a downgrade is never possible.
+Format version 2 is the default, so the table is probably not an Iceberg table created with the statement of section 2 (for example a table converted from an old one, or created with `'format-version'='1'`). Check with `SHOW TBLPROPERTIES ice_meter;` that `format-version` is `2`. Drop the table (`DROP TABLE ice_meter;`, then remove leftover files in its folder) and create it again with the statement of section 2. Some versions also allow `ALTER TABLE ice_meter SET TBLPROPERTIES ('format-version'='2');` — a downgrade is never possible.
 
 ## `UPDATE` / `MERGE` is not supported
 

@@ -319,10 +319,10 @@ Now count what this approach costs. Every change rewrote a **whole partition**, 
 
 **Goal:** Create an Iceberg table and find out what Iceberg stores on HDFS.
 
-Create the table with the same columns as `grid_measurements_csv`. `PARTITIONED BY SPEC (station_id)` is Iceberg's partitioning clause and `STORED AS ICEBERG` selects the table format. The property `format-version` = 2 is needed for row-level changes. Impala writes Parquet files and handles row-level changes as **merge-on-read** (you see what that means in section 3):
+Create the table with the same columns as `grid_measurements_csv`. `PARTITIONED BY SPEC (station_id)` is Iceberg's partitioning clause and `STORED BY ICEBERG` selects the table format. Iceberg tables are created with a plain `CREATE TABLE` (no `EXTERNAL`), and `format-version` 2, which row-level changes need, is the default, so there is nothing to set. Impala writes Parquet files and handles row-level changes as **merge-on-read** (you see what that means in section 3):
 
 ```sql
-CREATE EXTERNAL TABLE ice_meter (
+CREATE TABLE ice_meter (
   ts_utc STRING,
   station_id STRING,
   device_id STRING,
@@ -339,8 +339,7 @@ CREATE EXTERNAL TABLE ice_meter (
   comm_status STRING
 )
 PARTITIONED BY SPEC (station_id)
-STORED AS ICEBERG
-TBLPROPERTIES ('format-version'='2');
+STORED BY ICEBERG;
 
 INSERT INTO ice_meter SELECT * FROM grid_measurements_csv;
 
@@ -683,7 +682,7 @@ When Iceberg is **not** the answer: raw landing zones where files arrive from ou
 - **Migrate a table in place:** `CREATE TABLE meter_parquet STORED AS PARQUET AS SELECT * FROM grid_measurements_csv;`, then `ALTER TABLE meter_parquet CONVERT TO ICEBERG;`. The table becomes an Iceberg table without rewriting the data files. Look at the folder of `meter_parquet` on HDFS afterwards: a new `metadata` folder next to the old files. The row count stays 15.
 - **Partition evolution:** `ALTER TABLE <t> SET PARTITION SPEC (HOUR(ts))` needs a timestamp column; the lab table has strings. Try it on a new Iceberg table created with `CAST(REPLACE(SUBSTR(ts_utc, 1, 19), 'T', ' ') AS TIMESTAMP)` as `ts`: old data stays in the old layout, new data uses the new one, and queries work on both.
 - **Compact small files:** every `INSERT` adds files. `OPTIMIZE TABLE ice_meter;` rewrites them into fewer, larger files (if your Runtime release supports it). List `${ICE_META}/data` before and after. After a compaction the old files stay until you expire the snapshots.
-- **Drop an Iceberg table:** create a throw-away table (`CREATE EXTERNAL TABLE t (i INT) STORED AS ICEBERG` and an `INSERT`), check `SHOW TBLPROPERTIES t`, drop it and look at its folder. Do the files stay (external) or go (`external.table.purge`)? Compare with what `DROP TABLE` did to the external CSV table in section 0.
+- **Drop an Iceberg table:** create a throw-away table (`CREATE TABLE t (i INT) STORED BY ICEBERG` and an `INSERT`), check `SHOW TBLPROPERTIES t`, drop it and look at its folder. Do the files stay (external) or go (`external.table.purge`)? Compare with what `DROP TABLE` did to the external CSV table in section 0.
 
 ---
 

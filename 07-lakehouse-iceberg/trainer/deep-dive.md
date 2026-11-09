@@ -116,13 +116,13 @@ kinit "${WORKSHOP_USER}"
 ```
 
 ```sql
--- Iceberg table (Impala pattern; exact STORED BY syntax varies by CDP version)
+-- Iceberg table (Impala/Hive; format-version 2 is the default)
 CREATE TABLE ${WORKSHOP_USER}.meters_iceberg (
   ts_utc TIMESTAMP,
   station_id STRING,
   current_a DOUBLE
 )
-STORED AS ICEBERG
+STORED BY ICEBERG
 LOCATION '/user/${WORKSHOP_USER}/iceberg/meters';
 ```
 
