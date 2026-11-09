@@ -666,11 +666,17 @@ ALTER TABLE grid_measurements_managed COMPACT 'major';
 SHOW COMPACTIONS;
 ```
 
-Now a correction file arrives for `TS-101`: one corrected reading (`08:45`) and one new reading (`09:15`). First create an external table for it. `LIKE` copies the column definitions and settings of `grid_measurements_csv` — including the skipped header line, so the file you create next needs a header too:
+When the compaction has finished, list the table location again. The many `delta_…` and `delete_delta_…` folders are merged into a single `base_…` folder (the old deltas are removed once no reader needs them):
+
+```bash
+hdfs dfs -ls -R "${HIVE_MANAGED}/grid_measurements_managed"
+```
+
+Now a correction file arrives for `TS-101`: one corrected reading (`08:45`) and one new reading (`09:15`). First create an external table for it. `LIKE` copies the column definitions of `grid_measurements_csv`, but **not** its table properties. Set `skip.header.line.count` again, otherwise the header line of the file you create next would show up as a data row:
 
 ```sql
 CREATE EXTERNAL TABLE grid_measurements_changes LIKE grid_measurements_csv
-TBLPROPERTIES ('external.table.purge'='true');
+TBLPROPERTIES ('skip.header.line.count'='1', 'external.table.purge'='true');
 ```
 
 Create the file locally with `vim`, with a header like the original CSV:
@@ -700,9 +706,12 @@ SELECT * FROM grid_measurements_changes;
 Apply the file with a real `MERGE`: update the row that exists, insert the row that does not. The match condition is the key of a reading (station + timestamp):
 
 ```sql
-MERGE INTO grid_measurements_managed AS t
-USING grid_measurements_changes AS s
+MERGE INTO grid_measurements_managed AS t   -- t = target: the managed ACID table that gets changed
+USING grid_measurements_changes AS s        -- s = source: the external table over the correction file
+-- Match condition: a reading is identified by station + timestamp
 ON t.station_id = s.station_id AND t.ts_utc = s.ts_utc
+-- Reading exists in the target (08:45): overwrite its measured values with the corrected ones.
+-- Only the columns that can change are listed; the key columns stay as they are.
 WHEN MATCHED THEN UPDATE SET
   active_power_kw = s.active_power_kw,
   reactive_power_kvar = s.reactive_power_kvar,
@@ -712,6 +721,8 @@ WHEN MATCHED THEN UPDATE SET
   transformer_load_pct = s.transformer_load_pct,
   quality_flag = s.quality_flag,
   event_code = s.event_code
+-- Reading is new (09:15): insert it as a new row.
+-- The values must follow the column order of the target table.
 WHEN NOT MATCHED THEN INSERT VALUES (
   s.ts_utc, s.station_id, s.device_id, s.phase, s.active_power_kw, s.reactive_power_kvar,
   s.voltage_v, s.current_a, s.power_factor, s.frequency_hz, s.transformer_load_pct,
