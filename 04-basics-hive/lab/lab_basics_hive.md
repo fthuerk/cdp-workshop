@@ -499,8 +499,12 @@ You should see `PAR1` and, among the readable fragments, your column names and v
 
 A data engineer finds that all `WARN` readings were reviewed and wants to flag them. Try an `UPDATE` and a `DELETE`:
 
+> 🔴 **Failure case — an error is expected here.** Both statements below are supposed to fail. Run them anyway, read the error message, and then continue.
+
 ```sql
+-- FAILURE CASE: expected to fail with "table is not transactional"
 UPDATE meter_orc SET quality_flag = 'REVIEWED' WHERE quality_flag = 'WARN';
+-- FAILURE CASE: expected to fail with "table is not transactional"
 DELETE FROM meter_orc WHERE station_id = 'TS-305';
 ```
 
@@ -508,8 +512,11 @@ Both statements should fail with an error saying the table is **not transactiona
 
 What does work is adding data. Run the same insert a second time, as a job would after a retry:
 
+> 🔴 **Failure case — no error, but a wrong result.** The statement below succeeds, and that is the problem: it simulates a job that is restarted and loads the same data again. Look at the row count before and after.
+
 ```sql
 SELECT COUNT(*) FROM meter_orc;
+-- FAILURE CASE: runs without an error, but duplicates every row
 INSERT INTO meter_orc SELECT * FROM meter_csv;
 SELECT COUNT(*) FROM meter_orc;
 ```
@@ -556,7 +563,10 @@ The `WARN` rows are now `REVIEWED`, but look at the cost: Hive rewrote **all 15,
 
 **Now the danger.** Somebody wants to refresh only station `TS-305` and runs the overwrite with a filter. Nothing in the statement says that this replaces the *whole* table:
 
+> 🔴 **Failure case — no error, but data is lost.** The statement below succeeds and silently deletes two thirds of the table. Run it, compare the counts, and then run the repair statement after it.
+
 ```sql
+-- FAILURE CASE: runs without an error, but replaces the whole table with one station
 INSERT OVERWRITE TABLE meter_orc
 SELECT * FROM meter_csv WHERE station_id = 'TS-305';
 
@@ -566,6 +576,7 @@ SELECT station_id, COUNT(*) FROM meter_orc GROUP BY station_id;
 There is no error and no warning. The other two stations are gone, and a dashboard on this table now shows a third of the data. There is no undo: the old file was replaced, and there is no history to go back to. Repair the table from the source:
 
 ```sql
+-- REPAIR: restores the table from the complete source
 INSERT OVERWRITE TABLE meter_orc SELECT * FROM meter_csv;
 SELECT station_id, COUNT(*) FROM meter_orc GROUP BY station_id;
 ```

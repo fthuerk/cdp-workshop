@@ -166,6 +166,11 @@ Align section themes with [concept.md — Didactic pattern](concept.md#didactic-
 - **Never more than 3 command lines in a row without a `#` comment.** Longer blocks get a short comment line before each group of up to 3 commands (blank line between groups).
 - Keep blocks **readable aloud** — one logical step per line; no hidden magic.
 - After a block, add a **short outcome cue** when it is not obvious (e.g. “You should see three files in the listing” or “You should get permission denied on the last command”).
+- **Failure cases are marked.** When participants run a statement that is meant to fail or to do damage, they must not mistake it for a typo or a broken lab. Use this design everywhere:
+  - A red-circle callout directly **before** the block: `> 🔴 **Failure case — an error is expected here.** <what to do: run it, read the message, continue>`. For a statement that succeeds but gives a wrong result, say `— no error, but a wrong result` (or `— no error, but data is lost`) instead.
+  - A first comment line **inside** the block, so the clue survives copy and paste: `-- FAILURE CASE: expected to fail with "<message>"` (SQL) or `# FAILURE CASE: ...` (shell). Put it before each failing statement.
+  - A repair or cleanup statement after a destructive case starts with `-- REPAIR: ...`.
+  - After the block, explain the error or the damage in prose (see [04-basics-hive/lab/lab_basics_hive.md](../04-basics-hive/lab/lab_basics_hive.md) section 5).
 - When output has **no headers**, explain columns right after the block (see `-count`, `-du`, `fsck` in [02-basics-hdfs/lab/lab_basics_hdfs.md](../02-basics-hdfs/lab/lab_basics_hdfs.md) section 3).
 
 ---
