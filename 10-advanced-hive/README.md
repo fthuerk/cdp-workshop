@@ -2,7 +2,7 @@
 
 Complex Hive SQL on the grid monitoring pilot data: joins beyond the inner join, window functions such as `RANK` and `LAG`, arrays, maps, and structs, subtotals with `ROLLUP`, and geo data as WKT.
 
-**Estimated time:** ~75 minutes (core ~60 min + stretch).
+**Estimated time:** ~90 minutes (core ~75 min + stretch).
 
 ## Prerequisites
 
@@ -19,13 +19,14 @@ After this module you can:
 - Build and unpack arrays, maps, and structs with `collect_list`, `named_struct`, and `LATERAL VIEW explode`
 - Produce subtotals with `ROLLUP`, `CUBE`, and `GROUPING SETS`
 - Build and parse geometries in WKT, and compute a distance between stations in SQL
+- Explain how an ACID table handles `INSERT`, `UPDATE`, and `DELETE` with `delta_` and `delete_delta_` directories, read `ROW__ID`, and run and interpret minor and major compaction
 
 ## Flow
 
 | Phase | Content |
 |-------|---------|
 | Concept (trainer) | How a window differs from `GROUP BY`; why complex types exist in a columnar world |
-| Core lab | [lab_advanced_hive.md](lab/lab_advanced_hive.md) sections 0–4 |
+| Core lab | [lab_advanced_hive.md](lab/lab_advanced_hive.md) sections 0–5 |
 | Stretch | [lab_advanced_hive.md](lab/lab_advanced_hive.md) stretch tasks |
 | Self-check | `./10-advanced-hive/lab/check.sh` |
 

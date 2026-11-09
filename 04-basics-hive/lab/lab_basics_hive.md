@@ -490,7 +490,7 @@ You should see `PAR1` and, among the readable fragments, your column names and v
 
 ## 5. UPDATE and DELETE on external tables
 
-**Goal:** Try to change single rows in an external table, read the error, and see why re-running `INSERT INTO` is dangerous.
+**Goal:** Try to change single rows in an external table, read the error, see why re-running `INSERT INTO` is dangerous, and find out what `INSERT OVERWRITE` fixes — and what it costs.
 
 A data engineer finds that all `WARN` readings were reviewed and wants to flag them. Try an `UPDATE` and a `DELETE`:
 
@@ -526,7 +526,55 @@ hdfs dfs -ls "${HIVE_EXT}/meter_orc"
 
 You should be back at 15,000 rows with a single file.
 
-**Check question:** An hourly job uses `INSERT INTO` and fails halfway, then the scheduler restarts it. What does the table look like afterwards?
+Run the overwrite once more. The count stays at 15,000: `INSERT OVERWRITE` is **idempotent** — running it twice leaves the same result as running it once. That is why it is the standard way to load a table from a job that may be retried.
+
+**Overwrite is also the only way to "update".** Flag the `WARN` readings by rewriting the whole table from its source, with a `CASE` expression:
+
+```sql
+SELECT quality_flag, COUNT(*) FROM meter_orc GROUP BY quality_flag;
+
+INSERT OVERWRITE TABLE meter_orc
+SELECT ts_utc, station_id, active_power_kw, reactive_power_kvar, voltage_v, current_a,
+       transformer_load_pct,
+       CASE WHEN quality_flag = 'WARN' THEN 'REVIEWED' ELSE quality_flag END,
+       event_code, comm_status
+FROM meter_csv;
+
+SELECT quality_flag, COUNT(*) FROM meter_orc GROUP BY quality_flag;
+```
+
+```bash
+hdfs dfs -ls "${HIVE_EXT}/meter_orc"
+```
+
+The `WARN` rows are now `REVIEWED`, but look at the cost: Hive rewrote **all 15,000 rows** and the file has a new name and time stamp, although only a few rows changed.
+
+**Now the danger.** Somebody wants to refresh only station `TS-305` and runs the overwrite with a filter. Nothing in the statement says that this replaces the *whole* table:
+
+```sql
+INSERT OVERWRITE TABLE meter_orc
+SELECT * FROM meter_csv WHERE station_id = 'TS-305';
+
+SELECT station_id, COUNT(*) FROM meter_orc GROUP BY station_id;
+```
+
+There is no error and no warning. The other two stations are gone, and a dashboard on this table now shows a third of the data. There is no undo: the old file was replaced, and there is no history to go back to. Repair the table from the source:
+
+```sql
+INSERT OVERWRITE TABLE meter_orc SELECT * FROM meter_csv;
+SELECT station_id, COUNT(*) FROM meter_orc GROUP BY station_id;
+```
+
+You were able to repair it only because the complete source `meter_csv` still existed. If the source is gone or has changed in the meantime, the lost data is lost. And a reader that queries `meter_orc` while an overwrite is running can meet missing or half-written files: there is no atomic switch from the old to the new state.
+
+| | `INSERT INTO` | `INSERT OVERWRITE` |
+|---|---|---|
+| Retry of a failed job | duplicates rows | safe (idempotent) |
+| Change one row | not possible | rewrites the whole table or partition |
+| Wrong `SELECT` or `WHERE` | adds wrong rows | silently deletes the rest, no undo |
+| Reader during the write | may see partial data | may see missing or partial data |
+
+**Check question:** An hourly job uses `INSERT INTO` and fails halfway, then the scheduler restarts it. What does the table look like afterwards? Would `INSERT OVERWRITE` fix it, and what new risk does it bring?
 
 **Where to go from here:** `INSERT OVERWRITE` fixes the retry problem for a whole table. Changing or deleting *single rows* in external tables safely (overwrite one partition, rewrite it, drop it, merge by rewriting) takes more work, and it is the reason lakehouse table formats exist. You try both ways side by side in the [lakehouse module](../../07-lakehouse-iceberg/README.md). Next in this lab: **managed** tables, where Hive does the row-level work for you.
 

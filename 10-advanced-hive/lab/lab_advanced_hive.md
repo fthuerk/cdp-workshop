@@ -1,6 +1,6 @@
 # Advanced Hive hands-on lab
 
-Run sections in order. You need one terminal on the edge node with `beeline`; the second terminal is only used once, to copy the sample files. This lab is about the **complex operations and functions** of Hive SQL on the smart-meter data: joins beyond the basic inner join, window functions, complex types, grouping sets, and geo data as WKT.
+Run sections in order. You need one terminal on the edge node with `beeline`; the second terminal is used to copy the sample files and, in section 5, to look at the files of an ACID table. This lab is about the **complex operations and functions** of Hive SQL on the smart-meter data: joins beyond the basic inner join, window functions, complex types, grouping sets, and geo data as WKT. The last section looks at ACID managed tables: delta files and compaction.
 
 Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `HIVE_EXT` is the folder where Hive keeps the data of your external tables (one sub-folder per table, created by Hive). `HS2_URL` is the HiveServer2 JDBC URL from your workshop handout.
 
@@ -461,11 +461,124 @@ If the command returns nothing, skip this step: the haversine query above gives 
 
 ---
 
+## 5. ACID tables — delta files and compaction
+
+**Goal:** See how a transactional (ACID) managed table changes single rows although HDFS files are immutable: which directories Hive writes, how readers combine them, and what compaction does.
+
+Section 0 used external tables, which Hive cannot update. A **managed** ORC table with `transactional = true` supports `INSERT`, `UPDATE`, `DELETE`, and `MERGE`. Create one from the readings:
+
+```sql
+DROP TABLE IF EXISTS meter_acid;
+CREATE TABLE meter_acid STORED AS ORC TBLPROPERTIES ('transactional'='true') AS
+SELECT * FROM grid_measurements_csv;
+
+SELECT COUNT(*) FROM meter_acid;
+```
+
+**Look at the files.** Hive never edits a file. Every write transaction gets a **write ID** and adds new directories named after it. In the terminal (the second one), set the folder of your managed tables. It differs from the external folder, and `Permission denied` is possible depending on your cluster policies:
+
+```bash
+export HIVE_MANAGED="/warehouse/tablespace/managed/hive/${WORKSHOP_USER}.db"   # adjust if needed
+hdfs dfs -ls -R "${HIVE_MANAGED}/meter_acid"
+```
+
+You should see one directory `delta_0000001_0000001_…` with an ORC file: the `CTAS` was an insert with write ID 1. If the listing is denied, ask the same question in SQL. `INPUT__FILE__NAME` is the file a row was read from, and `ROW__ID` is a hidden column that only ACID tables have:
+
+```sql
+SELECT ROW__ID, station_id, ts_utc, INPUT__FILE__NAME
+FROM meter_acid
+ORDER BY ROW__ID.rowid
+LIMIT 5;
+```
+
+`ROW__ID` has three parts: the **write ID** of the transaction that created the row, the bucket, and a **row ID** that is unique within them. A row is identified by this triple — that is how a delete can say *which* row it removes without knowing a position in a file.
+
+**Insert, update, delete.** Add one new reading, flag the `WARN` readings, and remove the `HIGH_LOAD` events of `TS-305`. Run the statements one at a time:
+
+```sql
+INSERT INTO meter_acid VALUES
+  ('2026-01-15T09:15:00Z', 'TS-101', 'GM-TS-101-A', 'L1', 199.5, 38.1, 229.6, 313.0, 0.981, 50.0, 67.4, 'OK', '', 'ONLINE');
+
+UPDATE meter_acid SET quality_flag = 'REVIEWED' WHERE quality_flag = 'WARN';
+
+DELETE FROM meter_acid WHERE station_id = 'TS-305' AND event_code = 'HIGH_LOAD';
+
+SELECT COUNT(*) FROM meter_acid;
+```
+
+You should see 16 rows after the insert and 14 after the delete (two `HIGH_LOAD` readings of `TS-305`). List the folder again:
+
+```bash
+hdfs dfs -ls "${HIVE_MANAGED}/meter_acid"
+```
+
+Every statement left its own directories:
+
+| Statement | New directory | Content |
+|-----------|---------------|---------|
+| `INSERT` | `delta_<w>_<w>` | the new rows |
+| `DELETE` | `delete_delta_<w>_<w>` | only the `ROW__ID` of every deleted row |
+| `UPDATE` | **both** `delete_delta_` **and** `delta_` | the old row version is deleted, the new version is inserted (**split update**) |
+
+`<w>` is the write ID of the statement. The names show the order: `delta_0000001_0000001` came from the `CTAS`, the later ones from your three statements. Every file is a normal ORC file; Hive wraps your columns in a hidden struct with `operation` (0 insert, 1 update, 2 delete), `originalTransaction`, `bucket`, `rowId`, `currentTransaction`, and `row`. If you have terminal access to the files, see it with `hive --orcfiledump -d "<file>" | head`.
+
+**How a query reads this.** The reader asks the Metastore which write IDs are committed, then opens the newest `base_` directory (if any) and **all** `delta_` and `delete_delta_` directories above it. Rows that appear in a `delete_delta_` are skipped. Look at the rows you updated: they are now in a newer file and carry a new write ID in `ROW__ID`:
+
+```sql
+SELECT ROW__ID.writeid, quality_flag, COUNT(*) AS readings
+FROM meter_acid
+GROUP BY ROW__ID.writeid, quality_flag
+ORDER BY ROW__ID.writeid;
+```
+
+Rows from the `CTAS` have write ID 1, the inserted reading has the next one, and the `REVIEWED` rows have the write ID of the `UPDATE`. A directory listing is therefore **not** the table state: aborted transactions also leave directories, and readers ignore them.
+
+**Compaction.** The price of this design: after hundreds of small statements a query opens hundreds of files and merges them. Hive cleans up with **compaction**, a background job on YARN. The Metastore **Initiator** decides when to run it, **Workers** do the work, and the **Cleaner** removes the old directories afterwards.
+
+| | Minor compaction | Major compaction |
+|---|---|---|
+| What it does | merges all `delta_` into one, and all `delete_delta_` into one | rewrites `base_` + all deltas into one new `base_N` and applies the deletes |
+| Automatic when | more than 10 delta directories (`hive.compactor.delta.num.threshold`) | deltas larger than 10 % of the base (`hive.compactor.delta.pct.threshold`) |
+| Deleted rows | still physically present | physically removed |
+| Result | fewer files | a clean table, one `base_` |
+
+Start a minor compaction and wait for it. `SHOW COMPACTIONS` shows its state: `initiated`, `working`, `ready for cleaning`, `succeeded` (or `failed`):
+
+```sql
+ALTER TABLE meter_acid COMPACT 'minor' AND WAIT;
+SHOW COMPACTIONS;
+```
+
+```bash
+hdfs dfs -ls "${HIVE_MANAGED}/meter_acid"
+```
+
+The directory with the inserts and the one with the deletes have each been merged into one. Their names now cover a **range** of write IDs (`delta_0000001_0000004`) and carry a `_v…` suffix. Old directories can stay for a moment until the Cleaner has run. Now the major compaction:
+
+```sql
+ALTER TABLE meter_acid COMPACT 'major' AND WAIT;
+SHOW COMPACTIONS;
+SELECT COUNT(*) FROM meter_acid;
+```
+
+```bash
+hdfs dfs -ls "${HIVE_MANAGED}/meter_acid"
+```
+
+A single `base_000000N_v…` directory remains. The count is still 14: compaction changes the files, never the content. If the command hangs or `SHOW COMPACTIONS` stays at `initiated`, the compactor threads are not enabled on the Metastore (`hive.compactor.initiator.on`, `hive.compactor.worker.threads`); tell your instructor.
+
+**What this model costs.** The files are small and numerous until compaction runs. Compaction is an operational duty: you monitor it, and a table that is updated every second needs it all the time. ACID tables must be ORC, only Hive writes them (Impala and Spark can read them), and there is no history to go back to once a major compaction removed the old versions. The [lakehouse module](../../07-lakehouse-iceberg/README.md) shows the same row-level changes with Iceberg, where several engines write, snapshots stay readable, and the file changes are tracked in metadata.
+
+**Check question:** Why does a `DELETE` write the `ROW__ID` of the row into a new directory instead of removing the row from the ORC file? What happens to the read time of `meter_acid` if a job updates single rows every second and compaction never runs — and why does a minor compaction not shrink the table although it reduces the number of files?
+
+---
+
 ## Stretch (optional)
 
 - Rank the **hours** of the day by market price with `RANK()` and join the result to the energy per hour of each station — which station used the most energy in the most expensive hour?
 - Use `LAG` to flag every reading whose load jumped by more than 5 percentage points since the previous reading, and `collect_list` to list the flagged times per station.
-- Clean up: `DROP VIEW grid_measurements_v;` and `DROP TABLE` for the four tables; the files stay in `${HIVE_EXT}` because the tables are external — remove the table folders with `hdfs dfs -rm -r -skipTrash`.
+- Run the `UPDATE` from section 5 several more times with different conditions, run `SHOW COMPACTIONS`, and count the `delta_` / `delete_delta_` directories. How many statements does it take before Hive starts a compaction on its own (`hive.compactor.delta.num.threshold`, checked every few minutes)?
+- Clean up: `DROP TABLE meter_acid;` (a managed table: Hive deletes its files too), `DROP VIEW grid_measurements_v;` and `DROP TABLE` for the four external tables; the files stay in `${HIVE_EXT}` because the tables are external — remove the table folders with `hdfs dfs -rm -r -skipTrash`.
 
 ---
 

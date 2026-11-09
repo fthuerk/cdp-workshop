@@ -34,6 +34,7 @@ expect "stations table has rows" "$(sql 'SELECT COUNT(*) FROM stations')" "3" "l
 expect "joined readings and weather (no row multiplication)" "$(sql 'WITH w AS (SELECT ts_utc, AVG(temperature_c) AS t FROM weather_operator GROUP BY ts_utc) SELECT COUNT(*) FROM grid_measurements_csv m JOIN w ON m.ts_utc = w.ts_utc')" "15" "lab section 1"
 expect "one top-load reading per station (window function)" "$(sql 'SELECT COUNT(*) FROM (SELECT ROW_NUMBER() OVER (PARTITION BY station_id ORDER BY transformer_load_pct DESC) AS rn FROM grid_measurements_v) r WHERE rn = 1')" "3" "lab section 2"
 expect "WKT point for every station" "$(sql "SELECT COUNT(*) FROM stations WHERE CONCAT('POINT(', CAST(longitude AS STRING), ' ', CAST(latitude AS STRING), ')') LIKE 'POINT(%'")" "3" "lab section 4"
+expect "meter_acid is a transactional table" "$(sql 'SHOW TBLPROPERTIES meter_acid("transactional")')" "true" "lab section 5"
 
 if [[ ${fail} -ne 0 ]]; then
   echo "Self-check failed."
