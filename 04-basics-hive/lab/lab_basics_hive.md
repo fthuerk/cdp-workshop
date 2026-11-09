@@ -111,8 +111,10 @@ CREATE EXTERNAL TABLE grid_measurements_csv (
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-TBLPROPERTIES ('skip.header.line.count'='1');
+TBLPROPERTIES ('skip.header.line.count'='1', 'external.table.purge'='true');
 ```
+
+**Why `external.table.purge`?** By default, `DROP TABLE` on an external table removes only the definition and leaves the files (section 2 shows this). Every table in this lab lives in a folder that Hive creates under your own `HIVE_EXT` and holds only copies that you made yourself. For such a table, leftover files after a drop are a trap: create the table again, and Hive reads the old files too. With `'external.table.purge'='true'`, `DROP TABLE` deletes the files as well, so you can drop and re-create tables and repeat the lab without stale data. We therefore set the property on every table in the default folder. Do **not** set it on a table over shared or source data (a `LOCATION` of somebody else's folder): a drop would delete that data. Section 2 shows the difference.
 
 Switch to the second terminal. Hive has created the table folder — it is empty. Copy the CSV from the shared workshop data into it:
 
@@ -205,7 +207,7 @@ The count matches the single original CSV again.
 
 **Goal:** See what Hive does when the table definition does not match the file, and what `DROP TABLE` does to external data.
 
-Define a second table with wrong types: a timestamp that is not in Hive's format, and a number column that contains `L1`/`L2`/`L3`. It also declares only five of the fourteen columns. Copy the CSV into its folder, like in section 1, and query it:
+Define a second table with wrong types: a timestamp that is not in Hive's format, and a number column that contains `L1`/`L2`/`L3`. It also declares only five of the fourteen columns. This table is created **without** `external.table.purge` on purpose: it shows the default behavior of `DROP TABLE` below. Copy the CSV into its folder, like in section 1, and query it:
 
 ```sql
 CREATE EXTERNAL TABLE grid_measurements_wrong (
@@ -248,7 +250,7 @@ The table is gone, but the folder and the CSV are still on HDFS: dropping an **e
 hdfs dfs -rm -r -skipTrash "${HIVE_EXT}/grid_measurements_wrong"
 ```
 
-**Dropping the data with the table.** Sometimes an external table should clean up after itself, for example a scratch table. The table property `external.table.purge` makes `DROP TABLE` delete the files as well. Create a table like `grid_measurements_csv`, set the property, and put a CSV into its folder:
+**Dropping the data with the table.** The property `external.table.purge` that you set in section 1 changes this: `DROP TABLE` then deletes the files as well. It suits scratch tables and tables that only hold your own copies. You can also set it later on an existing table. Try it on a new table like `grid_measurements_csv` and put a CSV into its folder:
 
 ```sql
 CREATE EXTERNAL TABLE grid_measurements_purge LIKE grid_measurements_csv;
@@ -310,7 +312,7 @@ CREATE EXTERNAL TABLE grid_measurements_by_station (
 PARTITIONED BY (station_id STRING)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-TBLPROPERTIES ('discover.partitions'='false');
+TBLPROPERTIES ('discover.partitions'='false', 'external.table.purge'='true');
 ```
 
 Now copy **only one** station into the table folder, and query:
@@ -414,7 +416,8 @@ CREATE EXTERNAL TABLE meter_csv (
   comm_status STRING
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
-STORED AS TEXTFILE;
+STORED AS TEXTFILE
+TBLPROPERTIES ('external.table.purge'='true');
 
 INSERT INTO meter_csv
 SELECT ts_utc, station_id,
@@ -431,10 +434,12 @@ LATERAL VIEW explode(split(space(999), ' ')) r AS i;
 Now the ORC and Parquet versions. Instead of writing out the column list again, use **CTAS** (`CREATE TABLE AS SELECT`): the new table takes its columns and types from the query, and Hive writes the query result in the file format you name — create and load in one statement. Both tables are filled from `meter_csv`, so every format holds identical data:
 
 ```sql
-CREATE EXTERNAL TABLE meter_orc STORED AS ORC AS
+CREATE EXTERNAL TABLE meter_orc STORED AS ORC
+TBLPROPERTIES ('external.table.purge'='true') AS
 SELECT * FROM meter_csv;
 
-CREATE EXTERNAL TABLE meter_parquet STORED AS PARQUET AS
+CREATE EXTERNAL TABLE meter_parquet STORED AS PARQUET
+TBLPROPERTIES ('external.table.purge'='true') AS
 SELECT * FROM meter_csv;
 ```
 
@@ -653,7 +658,8 @@ SHOW COMPACTIONS;
 Now a correction file arrives for `TS-101`: one corrected reading (`08:45`) and one new reading (`09:15`). First create an external table for it. `LIKE` copies the column definitions and settings of `grid_measurements_csv` — including the skipped header line, so the file you create next needs a header too:
 
 ```sql
-CREATE EXTERNAL TABLE grid_measurements_changes LIKE grid_measurements_csv;
+CREATE EXTERNAL TABLE grid_measurements_changes LIKE grid_measurements_csv
+TBLPROPERTIES ('external.table.purge'='true');
 ```
 
 Create the file locally with `vim`, with a header like the original CSV:
@@ -809,7 +815,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS stations (
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
 STORED AS TEXTFILE
-TBLPROPERTIES ('skip.header.line.count'='1');
+TBLPROPERTIES ('skip.header.line.count'='1', 'external.table.purge'='true');
 ```
 
 Copy the shared CSV into the table folder and check that the table returns rows. `-f` overwrites the file if it is already there, so you can repeat the step:

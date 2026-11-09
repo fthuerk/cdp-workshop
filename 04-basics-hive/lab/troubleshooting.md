@@ -24,13 +24,13 @@ Your Beeline session lost its database. Run `USE ws_<your_username>;` (or start 
 
 ## `Table already exists`
 
-You ran a `CREATE` twice. Drop the table and create it again — for an **external** table the files stay:
+You ran a `CREATE` twice. Drop the table and create it again. The lab tables have `external.table.purge` set, so the drop also deletes their files; for an external table without the property the files stay:
 
 ```sql
 DROP TABLE meter_orc;
 ```
 
-If a table sits on top of files you want to start over with, also remove the files in that table's folder with `hdfs dfs -rm -skipTrash "${HIVE_EXT}/<table>/*"` (the folder itself belongs to the table).
+If a table without the property sits on top of files you want to start over with, also remove the files in that table's folder with `hdfs dfs -rm -skipTrash "${HIVE_EXT}/<table>/*"` (the folder itself belongs to the table).
 
 ## `LOAD DATA` cannot find the file
 
