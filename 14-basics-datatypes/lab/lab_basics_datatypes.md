@@ -7,7 +7,7 @@ The idea is simple: one small table, **all columns stored as plain text**, and t
 Set your Kerberos identity and paths once in the terminal. `TYPES_LAB` holds the shared module file on HDFS (the raw values). `TYPES_EXT` is the default external warehouse folder of your database: you never set a table location in this lab — the engine creates a folder per table below `TYPES_EXT`, and you copy the file into it. `IMPALA_OPTS` holds the `impala-shell` connection options; only the self-check uses them (replace `<impala-host>` with the coordinator host from your handout).
 
 ```bash
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export TYPES_LAB="${WORKSHOP_ROOT}/14-datatypes"

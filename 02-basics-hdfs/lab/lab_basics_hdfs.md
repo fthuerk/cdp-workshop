@@ -6,7 +6,7 @@ Set your Kerberos identity and paths once for the whole lab. `WORKSHOP_USER` is 
 
 ```bash
 # Your identity and Kerberos ticket
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 
 # Workshop paths on HDFS (adjust WORKSHOP_ROOT if needed)

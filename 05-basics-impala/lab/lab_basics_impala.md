@@ -5,7 +5,7 @@ Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different w
 Set your Kerberos identity and paths once in the terminal. `WORKSHOP_USER` is the short name you use with `kinit`. `IMPALA_LAB` holds shared module files on HDFS (including a scaled smart-meter CSV for timing). `IMPALA_EXT` is the default external warehouse folder of your database: you never set a table location in this lab — the engine creates a folder per table below `IMPALA_EXT`, and you copy files into it. `IMPALA_OPTS` holds the `impala-shell` connection options (used by the one shell example and the self-check) (HiveServer2 over HTTP on port 28000, Kerberos, TLS).
 
 ```bash
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export IMPALA_LAB="${WORKSHOP_ROOT}/05-impala"

@@ -13,7 +13,7 @@ The lab has three parts:
 Set your identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`; you need the Kerberos ticket for the `hdfs` and `yarn` commands. `LIVY_URL` is the Livy address behind the Knox gateway from your handout, without a trailing slash. `LAB_TMP` is a private folder for the request files you create. `LIVY_LAB` holds the shared batch script on HDFS. `HS2_URL` is the HiveServer2 JDBC URL from your handout (only needed for the optional check in section 6).
 
 ```bash
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you may write to works

@@ -104,7 +104,7 @@ flowchart TB
 
 ```bash
 # Kerberos then list your applications
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 yarn application -list -appStates RUNNING,ACCEPTED
 ```

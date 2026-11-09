@@ -104,7 +104,7 @@ Write path (simplified): client → NameNode allocates blocks → client streams
 
 ```bash
 # Workshop context
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"
 kinit "${WORKSHOP_USER}"
 ```

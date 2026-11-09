@@ -8,7 +8,7 @@ This lab starts **without** a ticket on purpose, so you see what a missing ticke
 
 ```bash
 # Your identity (short name, same account as on the edge node)
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 
 # Workshop path on HDFS (adjust WORKSHOP_ROOT if needed)
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"

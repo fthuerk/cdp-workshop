@@ -27,7 +27,7 @@ load_config() {
   [[ -d "${WORKSHOP_LOCAL}/data/samples" ]] || WORKSHOP_LOCAL="${_ws_repo_root}"   # not at the configured path: use this clone
   : "${WORKSHOP_ROOT:?WORKSHOP_ROOT must be set}"
   # Participant HDFS home for lab output; override for a different folder.
-  WORKSHOP_USER="${WORKSHOP_USER:-${USER:-}}"
+  WORKSHOP_USER="${WORKSHOP_USER:-${USER:-$(whoami 2>/dev/null || true)}}"
   WORKSHOP_HOME="${WORKSHOP_HOME:-/user/${WORKSHOP_USER}}"
   export WORKSHOP_ROOT WORKSHOP_LOCAL HS2_URL WORKSHOP_HOME
 }

@@ -90,7 +90,7 @@ Authentication (Kerberos) is separate from authorization (Ranger policies, HDFS 
 
 ```bash
 # Identity and ticket inspection
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 klist
 klist -ef

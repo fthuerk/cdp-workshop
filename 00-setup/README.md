@@ -53,7 +53,7 @@ keeps your exported `WORKSHOP_ROOT`; set `WORKSHOP_HOME` there too if you want l
 | Module | Difference |
 |--------|------------|
 | 02 HDFS | No space quota (the quota upload does not fail). You own `secret`, so `cat` works: use another user's path or skip. |
-| 04, 05, 07, 10 | Use the shared Hive warehouse (`ws_<you>` database); your account needs the usual Hive/HDFS rights there. |
+| 04, 05, 07, 10 | Use the shared Hive warehouse (database named like your user name); your account needs the usual Hive/HDFS rights there. |
 | 06 Spark | Output goes to `WORKSHOP_HOME`; the table step needs the same Hive rights. |
 | 08 Oozie | Needs a running Oozie server with the `hive2` and `spark3` ShareLibs; the setup script only stages the example applications in your root. |
 | 09 Livy | Output goes to `WORKSHOP_HOME`; you also need the Livy URL and an LDAP login from your trainer (Livy access does not use your Kerberos ticket). |

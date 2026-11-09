@@ -13,7 +13,7 @@ Suggested flow: setup -> Part A demos (A1 after lab section 5, the rest as time 
 Use your own `<trainer_user>` database. Two Hue Impala editor tabs (**A** and **B**) and one terminal for `hdfs`. For Part C you need additionally a Beeline session (Hive) and a `pyspark` session (Spark).
 
 ```bash
-export WORKSHOP_USER=<trainer_user>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 export HIVE_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"
 ```

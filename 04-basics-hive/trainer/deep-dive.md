@@ -193,7 +193,7 @@ grid_measurements_managed/
 ## Cheat sheet
 
 ```bash
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"
 kinit "${WORKSHOP_USER}"
 ```
@@ -207,8 +207,8 @@ beeline -u "jdbc:hive2://<hs2-host>:10000/default;principal=hive/_HOST@REALM" \
 
 ```sql
 -- External table on landing CSV (pattern from lab)
-CREATE DATABASE IF NOT EXISTS ws_${hivevar:ws_user};
-USE ws_${hivevar:ws_user};
+CREATE DATABASE IF NOT EXISTS ${hivevar:ws_user};
+USE ${hivevar:ws_user};
 
 CREATE EXTERNAL TABLE IF NOT EXISTS grid_measurements_csv (
   ts_utc STRING,

@@ -20,7 +20,7 @@ The variables belong to the editor tab. Fill in the `ws_user` field below the ed
 
 ## `Table not found` or `Database does not exist`
 
-Your Beeline session lost its database. Run `USE ws_<your_username>;` (or start Beeline again, which resets it). `SHOW TABLES;` tells you what exists.
+Your Beeline session lost its database. Run `USE <your_username>;` (or start Beeline again, which resets it). `SHOW TABLES;` tells you what exists.
 
 ## `Table already exists`
 
@@ -40,9 +40,9 @@ If a table without the property sits on top of files you want to start over with
 
 You cannot write into the table folder under `HIVE_EXT` (for example `hdfs dfs -cp` fails with permission denied). Check with `hdfs dfs -ls -d "${HIVE_EXT}"` that the folder exists and that `WORKSHOP_USER` is your own name, then ask your instructor — an HDFS policy for the workshop users on `{USER}` folders is missing. Trainers: see [ranger README](../../00-setup/admin/ranger/README.md).
 
-## `user … does not have [ALL] privilege on [hdfs://…]` or `[CREATE] on [ws_<your_username>…]`
+## `user … does not have [ALL] privilege on [hdfs://…]` or `[CREATE] on [<your_username>…]`
 
-Ranger does not allow your user to create objects in that database. Check that the database is named `ws_<your_username>` and ask your instructor — a Hive policy for the workshop group is missing. Trainers: see [ranger README](../../00-setup/admin/ranger/README.md), section module 04.
+Ranger does not allow your user to create objects in that database. Check that the database is named `<your_username>` and ask your instructor — a Hive policy for the workshop group is missing. Trainers: see [ranger README](../../00-setup/admin/ranger/README.md), section module 04.
 
 ## CTAS with `CREATE EXTERNAL TABLE … AS SELECT` is rejected
 
@@ -99,4 +99,4 @@ More than one source row matched the same target row. Check `grid_measurements_c
 
 ## Your username contains `-` or `.`
 
-Database names with special characters need backticks. Use ``USE `ws_<your_username>`;`` and ask your instructor for help with `CREATE DATABASE`.
+Database names with special characters need backticks. Use ``USE `<your_username>`;`` and ask your instructor for help with `CREATE DATABASE`.

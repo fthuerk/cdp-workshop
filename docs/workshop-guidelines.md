@@ -87,7 +87,7 @@ Every lab markdown (for example `lab/lab_basics_hdfs.md`) starts with the same p
 3. Use **`WORKSHOP_USER` everywhere** in lab commands (HDFS home, local temp file suffixes). Do not mix `<your_user>`, `$USER`, and `${USER}` in participant instructions.
 
 ```bash
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
 # module-specific paths below, e.g. HDFS_LAB=...
@@ -102,7 +102,7 @@ WS_USER="${WORKSHOP_USER:-${USER}}"
 USER_HOME="/user/${WS_USER}"
 ```
 
-Participants can `export WORKSHOP_USER="${USER}"` on the edge node if their shell already matches their login.
+The export line defaults to `whoami`, so on the edge node it is correct whenever the Linux login matches the Kerberos short name. Participants whose names differ set `WORKSHOP_USER` before the line (or edit it).
 
 **Personal database = user name.** Each participant's Hive/Impala database is named exactly like `WORKSHOP_USER` (for example `jdoe`), **not** `ws_<user>` or any other prefix or suffix. This applies to all modules:
 

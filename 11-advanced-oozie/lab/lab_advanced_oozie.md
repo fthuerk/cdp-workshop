@@ -21,7 +21,7 @@ The lab builds one small pipeline step by step:
 Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `OOZIE_LAB` holds the shared example applications on HDFS (the name of the HDFS folder is `11-oozie`). `OOZIE_HDFS` is your own Oozie folder on HDFS, `OOZIE_LOCAL` your working folder on the edge node. `OOZIE_URL` is the Oozie server URL from your handout; the `oozie` command reads it automatically.
 
 ```bash
-export WORKSHOP_USER=<your_username>
+export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export OOZIE_LAB="${WORKSHOP_ROOT}/11-oozie"
