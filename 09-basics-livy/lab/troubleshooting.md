@@ -94,6 +94,10 @@ The session must use the Hive Metastore. Check that your `session.json` contains
 - Hang at `starting`: queue full (see above) or `livy_session_startup_timeout_seconds` in `~/.sparkmagic/config.json` too small — raise it to `300`.  
 - `Duplicate session name` does not occur here (sparkmagic does not set a name), but old notebook sessions pile up: list `${LIVY_URL}/sessions`, find yours by `owner`, delete them.
 
+## Jupyter: `%%send_to_spark` not found
+
+`%%send_to_spark` is part of sparkmagic's *PySpark kernel*, not of the `%spark` magics that the plain Python 3 kernel loads with `%load_ext sparkmagic.magics`. The lab notebook defines it in section 2 as the **line** magic `%send_to_spark -i <var> -t str -n <name>` (one `%`). Run that cell first; if the kernel was restarted, run section 2 again, including `%spark add`.
+
 ## Jupyter: `%%spark -o hourly` fails with a conversion error
 
 `-o` copies a **DataFrame** (or a value `sparkmagic` can convert). Check that the cell ends with the variable defined as a DataFrame and that the result is small. Timestamps are cast to strings in the lab notebook for this reason.

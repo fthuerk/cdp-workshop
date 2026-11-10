@@ -4,6 +4,7 @@ pandas>=2.2.0,<3.0.0
 numpy>=1.21,<2.0.0
 pyarrow>=10.0.0,<21  # newer pyarrow releases need numpy>=2
 sparkmagic>=0.23
+pyspark==3.5.4  # local only: completion and syntax highlighting; the code runs on the cluster
 jupyterlab
 ipywidgets>=7.6,<9
 matplotlib
