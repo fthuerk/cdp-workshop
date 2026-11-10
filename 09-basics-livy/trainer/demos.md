@@ -24,7 +24,7 @@ Send a heavier statement (for example the `s3c.json` pipeline with `repartition(
 
 ## 6. Resource limits (3 min)
 
-Show the lab 8 request with `"executorMemory": "512g"`: YARN refuses the request at submission, the session goes `dead`, and the reason is in `GET /sessions/<id>/log`. Relate to the YARN module (container limits, queues).
+Show the lab section 7 request with `"executorMemory": "512g"`: YARN refuses the request at submission, the session goes `dead`, and the reason is in `GET /sessions/<id>/log`. Relate to the YARN module (container limits, queues).
 
 ## 7. Hue / other clients (optional)
 

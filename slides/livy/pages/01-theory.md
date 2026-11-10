@@ -526,9 +526,8 @@ Livy does not replace Spark, YARN or Knox. It is the <b>thin service in the midd
 | 2 | Send statements, make an error on purpose | Statements, state in the session, `error` vs `dead` |
 | 3, 4 | Run the pipeline, read the log, delete the session | Session state, lifetime, cleanup |
 | 5 | Submit the same script as a batch | Batch, `success`, YARN log |
-| 6 | Register the result as a table | Hive Metastore from a session |
-| 7 | Jupyter on your laptop with `sparkmagic` | Notebook as a Livy client |
-| 8 | Break it on purpose (optional) | Failure signals, Livy or `spark-submit` |
+| 6 | Jupyter on your laptop with `sparkmagic` | Notebook as a Livy client |
+| 7 | Break it on purpose (optional) | Failure signals, Livy or `spark-submit` |
 
 </div>
 

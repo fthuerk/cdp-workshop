@@ -1,14 +1,14 @@
 # Spark via Livy hands-on lab
 
-Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need two terminals on the edge node (one for `curl`, one for `hdfs` and `yarn` commands). Section 7 additionally needs a terminal and a browser on **your own laptop**.
+Run sections in order. Adjust `WORKSHOP_ROOT` if your cluster uses a different workshop path. You need two terminals on the edge node (one for `curl`, one for `hdfs` and `yarn` commands). Section 6 additionally needs a terminal and a browser on **your own laptop**.
 
 The lab has three parts:
 
 | Part | Sections | Client | Style |
 |------|----------|--------|-------|
 | **A. Interactive session** | 0–4 | `curl` | You open a Spark session through REST and send it statements one by one |
-| **B. Batch and Metastore** | 5–6 | `curl` | You hand Livy a finished script (like `spark-submit`), then register the result as a table |
-| **C. Jupyter on your laptop** | 7 | Jupyter + `sparkmagic` | The same session idea, with notebook cells instead of `curl` |
+| **B. Batch** | 5 | `curl` | You hand Livy a finished script (like `spark-submit`) and follow it without a session |
+| **C. Jupyter on your laptop** | 6 | Jupyter + `sparkmagic` | The same session idea, with notebook cells instead of `curl` |
 
 Set your identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`; you need the Kerberos ticket for the `hdfs` and `yarn` commands. `LIVY_URL` is the Livy address behind the Knox gateway from your handout, without a trailing slash. `LAB_TMP` is a private folder for the request files you create. `LIVY_LAB` holds the shared batch script on HDFS.
 ```bash
@@ -104,7 +104,7 @@ Content of the file (replace `<your_user>`):
 }
 ```
 
-`kind: pyspark` selects Python. The memory and core values are the same resources you would pass to `spark-submit`. `conf` hands arbitrary Spark properties to the application; this one makes the session use the Hive Metastore (needed in section 6). The `name` must be **unique on the Livy server**, so it contains your user name.
+`kind: pyspark` selects Python. The memory and core values are the same resources you would pass to `spark-submit`. `conf` hands arbitrary Spark properties to the application; this one makes the session use the Hive Metastore, so `spark.sql` sees the Hive databases. The `name` must be **unique on the Livy server**, so it contains your user name.
 
 Send it. The answer returns at once with the new session in state `starting`: Livy has only *accepted* your request, the Spark application is still being launched on YARN:
 
@@ -337,7 +337,7 @@ You should see an error message from Livy (session not found) and your applicati
 
 ---
 
-# Part B — Batch and Metastore
+# Part B — Batch
 
 ## 5. Batch — a script on HDFS
 
@@ -410,64 +410,15 @@ curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" -H "X-Requested-By: ${WORKSHOP_US
 
 ---
 
-## 6. Relate — register Parquet in the Metastore
-
-**Goal:** Save your curated data as a table, so Hive and Impala can query it.
-
-You need a session again — the old one is gone. Send the request file from section 1 once more; the `catalogImplementation=hive` setting in it makes the session talk to the Hive Metastore. The new session has a new id, and statement ids start at 0 again:
-
-```bash
-# New session with the same request; note the new id in the answer
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" \
-  -H "Content-Type: application/json" -H "X-Requested-By: ${WORKSHOP_USER}" \
-  -X POST -d @"${LAB_TMP}/session.json" "${LIVY_URL}/sessions" | jq .
-```
-
-```bash
-# Replace the placeholder with the id; repeat the state call until it shows idle
-export SESSION_ID=<id-from-the-answer>
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" "${LIVY_URL}/sessions/${SESSION_ID}/state"
-```
-
-When the state is `idle`, create your personal database and save the batch output as a table. There is no `LOCATION` clause: Spark writes the table files into the default external warehouse folder of your database. Replace `<your_user>` in the file (three places):
-
-```bash
-vim "${LAB_TMP}/s6.json"
-```
-
-```json
-{"code": "spark.sql('CREATE DATABASE IF NOT EXISTS <your_user>')\nspark.sql('USE <your_user>')\nspark.read.parquet('/user/<your_user>/livy-batch-curated').write.mode('overwrite').format('parquet').saveAsTable('livy_curated_join')\nspark.sql('SELECT COUNT(*) AS n, COUNT(DISTINCT station_id) AS stations FROM livy_curated_join').show()\nspark.sql('DESCRIBE FORMATTED livy_curated_join').show(50, False)"}
-```
-
-Send it and read the result. You should see **24** rows and **3** stations. In the `DESCRIBE FORMATTED` output find the `Location`: it sits under the default external warehouse folder of your database, not under `/user/...`. Close the session, so it does not keep containers:
-
-```bash
-curl -s -u "${WORKSHOP_USER}:${LDAP_PASSWORD}" -H "X-Requested-By: ${WORKSHOP_USER}" \
-  -X DELETE "${LIVY_URL}/sessions/${SESSION_ID}"
-```
-
-**Optional cross-check** in Beeline (second terminal) — Hive reads the table that Spark created through Livy:
-
-```bash
-beeline -e "
-USE ${WORKSHOP_USER};
-SELECT station_id, COUNT(*) AS n FROM livy_curated_join GROUP BY station_id ORDER BY station_id;
-"
-```
-
-**Check question:** Which three places could now hold your curated data (session output, batch output, table), and which of them is the one other tools should use?
-
----
-
 # Part C — Jupyter on your laptop
 
-## 7. A local Jupyter notebook with a Livy session
+## 6. A local Jupyter notebook with a Livy session
 
 **Goal:** Work interactively from a notebook on your own laptop; the Spark code runs on the cluster, and only small results come back.
 
 So far `curl` was the client. A notebook is just a friendlier client: **`sparkmagic`** is a Jupyter extension that creates a Livy session for you and sends the code of each `%%spark` cell as a statement — the REST calls you made by hand. Your laptop needs **no Spark installation and no Kerberos**; it only needs HTTPS access to `LIVY_URL` and your LDAP login. Everything in this section runs on **your laptop**, in a new terminal (not on the edge node). It does not change the core lab: `check.sh` does not depend on it.
 
-**7.1 Get the notebooks.** Put the folder `09-basics-livy/lab/notebooks` from the workshop repository on your laptop (clone the repository, or copy the folder from the edge node with `scp -r`; the location is in your handout). It contains two notebooks and two helper files.
+**6.1 Get the notebooks.** Put the folder `09-basics-livy/lab/notebooks` from the workshop repository on your laptop (clone the repository, or copy the folder from the edge node with `scp -r`; the location is in your handout). It contains two notebooks and two helper files.
 
 | File | Purpose |
 |------|---------|
@@ -476,7 +427,7 @@ So far `curl` was the client. A notebook is just a friendlier client: **`sparkma
 | `requirements.txt` | Python packages for both notebooks (includes `pyspark==3.5.4`, only for code completion and highlighting on your laptop; Spark itself runs on the cluster) |
 | `sparkmagic_config.template.json` | Settings for `sparkmagic` (no credentials) |
 
-**7.2 Install.** Use a Python virtual environment (Python 3.12) so that nothing else on your laptop is touched. Choose **one** of the two ways:
+**6.2 Install.** Use a Python virtual environment (Python 3.12) so that nothing else on your laptop is touched. Choose **one** of the two ways:
 
 ```bash
 # Option A: pip + venv (run in the notebooks folder on your laptop)
@@ -493,7 +444,7 @@ conda activate livy-lab
 pip install -r requirements.txt   # sparkmagic is not on the default conda channel; pip inside the env is fine
 ```
 
-**7.3 Configure.** `sparkmagic` reads timeouts and headers from `~/.sparkmagic/config.json`. The template has no password in it: the notebook asks for it when you run it. If the Knox certificate comes from an internal CA, point Python to the CA file from your handout before you start Jupyter:
+**6.3 Configure.** `sparkmagic` reads timeouts and headers from `~/.sparkmagic/config.json`. The template has no password in it: the notebook asks for it when you run it. If the Knox certificate comes from an internal CA, point Python to the CA file from your handout before you start Jupyter:
 
 ```bash
 # Copy the template (keep an existing config as backup)
@@ -508,14 +459,14 @@ export REQUESTS_CA_BUNDLE="<path-to-ca.pem>"
 jupyter lab
 ```
 
-**7.4 Run the notebook.** Open `livy_sparkmagic.ipynb` in the browser and run it cell by cell. The first cell asks for the Livy URL, your user name, and your LDAP password. Read the markdown cells before each step; the table at the top of the notebook explains every flag (`-s`, `-c`, `-o`, `-m`, `-n`, `-t`, `-i`, …). What the notebook shows:
+**6.4 Run the notebook.** Open `livy_sparkmagic.ipynb` in the browser and run it cell by cell. The first cell asks for the Livy URL, your user name, and your LDAP password. Read the markdown cells before each step; the table at the top of the notebook explains every flag (`-s`, `-c`, `-o`, `-m`, `-n`, `-t`, `-i`, …). What the notebook shows:
 
 | Step | What you learn |
 |------|----------------|
 | `%load_ext sparkmagic.magics`, `%spark add` | The magic opens a Livy session in the background — the `POST /sessions` of section 1 |
 | `%spark info` | Session id, YARN application id, and the Spark UI link of **your** session |
 | `%%spark` cells | The cell code is the statement body; `spark` is the session's `SparkSession`. All cells share one session, so the pipeline is split into small cells, one per step |
-| `%send_to_spark` | Your laptop variables do not exist on the cluster — you send them on purpose, like the paths you wrote into the request files in section 3. sparkmagic offers this only in its PySpark kernel (as `%%send_to_spark`); the notebook defines the same magic for the plain Python kernel |
+| Paths on the cluster | Notebook variables live on your laptop only; the first `%%spark` cell sets `workshop_root` and `workshop_home` inside the session |
 | `%%spark -c sql` | A cell that is a Spark SQL query; the result is shown as a table |
 | `%%spark -o hourly` | Copies the (small!) DataFrame `hourly` **to your laptop** as a pandas DataFrame, so you can plot it locally |
 | `%spark delete`, `%spark cleanup` | Closes the session — the `DELETE` of section 4 |
@@ -534,7 +485,7 @@ At the end of the notebook the pipeline writes to `${WORKSHOP_HOME}/livy-nb-cura
 
 ---
 
-## 8. Optional — failure signals and when to use Livy
+## 7. Optional — failure signals and when to use Livy
 
 **Goal:** Provoke typical Livy failures and learn to tell them apart.
 

@@ -20,7 +20,6 @@ After this module you can:
 - Open an interactive session, submit **statements**, read their results, and see that session state survives between statements
 - Find the Livy session as a Spark application on YARN and close it cleanly
 - Submit the shared PySpark script as a Livy **batch** and follow its state and log
-- Register curated Parquet as a table in the Hive Metastore from a Livy session
 - Connect a **local Jupyter notebook** to a Livy session with `sparkmagic`, run PySpark cells on the cluster, and pull a small result back into pandas
 
 ## Flow
@@ -28,9 +27,9 @@ After this module you can:
 | Phase | Content |
 |-------|---------|
 | Concept (trainer) | Why a REST gateway for Spark; session vs batch; Knox + LDAP; where the driver runs |
-| Core lab | [lab_basics_livy.md](lab/lab_basics_livy.md) sections 0–6 (REST with `curl`, session, statements, batch, Metastore) |
-| Jupyter (laptop) | [lab_basics_livy.md](lab/lab_basics_livy.md) section 7 with the notebooks in [lab/notebooks](lab/notebooks/) |
-| Optional | Section 8 (failure signals, Livy vs `spark-submit`) |
+| Core lab | [lab_basics_livy.md](lab/lab_basics_livy.md) sections 0–5 (REST with `curl`, session, statements, batch) |
+| Jupyter (laptop) | [lab_basics_livy.md](lab/lab_basics_livy.md) section 6 with the notebooks in [lab/notebooks](lab/notebooks/) |
+| Optional | Section 7 (failure signals, Livy vs `spark-submit`) |
 | Stretch | [lab_basics_livy.md](lab/lab_basics_livy.md) stretch |
 | Self-check | `./09-basics-livy/lab/check.sh` |
 

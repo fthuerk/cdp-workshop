@@ -13,11 +13,10 @@
 | 40–50 | Section 3: pipeline in three statements (15/10, 12/3, 24 rows), Parquet in the home |
 | 50–55 | Section 4: state survives, log, `DELETE`, YARN check |
 | 55–65 | Section 5: batch, state polling, comparison table |
-| 65–70 | Section 6: `saveAsTable` through Livy (24 rows, 3 stations) |
-| 70–90 | Section 7: Jupyter on the laptop (install happens before the session if possible) |
-| — | Section 8 optional / stretch; `check.sh` |
+| 65–90 | Section 6: Jupyter on the laptop (install happens before the session if possible) |
+| — | Section 7 optional / stretch; `check.sh` |
 
-If time is tight: demo section 5 and 6 on the projector and skip section 8. Ask participants to **install the Jupyter environment (7.2) before the workshop** — pip downloads are the usual time sink; the fallback notebook (`requests` only) is the plan B for locked-down laptops.
+If time is tight: demo section 5 on the projector and skip section 7. Ask participants to **install the Jupyter environment (6.2) before the workshop** — pip downloads are the usual time sink; the fallback notebook (`requests` only) is the plan B for locked-down laptops.
 
 ## Check-question answers
 
@@ -27,8 +26,7 @@ If time is tight: demo section 5 and 6 on the projector and skip section 8. Ask 
 4. **New session per statement (3):** Each session needs 20–60 seconds to start and has empty state — the CSV would be read and cleansed again. The price of an open session is its YARN containers (driver + executors) for the whole time, also when nobody sends statements; forgotten sessions block the shared queue until the idle timeout.
 5. **After `DELETE` (4):** The variables are lost with the driver; only files and tables written to HDFS / Metastore stay. A batch is the answer: the logic lives in a versioned script and is started with the same arguments tomorrow.
 6. **Scheduler outside the cluster zone (5):** A batch needs one HTTPS call, ends by itself, keeps no containers, and is repeatable from a script; no interactive state has to be kept alive or cleaned up. The `print` output of the script is in the driver's `stdout` in the YARN logs (`yarn logs -applicationId <appId>`), not in the Livy batch log (which only shows the submission).
-7. **Three places (6):** Session output (`livy-curated`), batch output (`livy-batch-curated`) and the table `livy_curated_join`. Other tools should use the **table** (Metastore entry, Ranger-governed); the Parquet folders are build artifacts.
-8. **Closed tab (7):** No. The Livy session and the YARN application keep running until someone sends `DELETE` (`%spark delete`) or Livy's session timeout removes the idle session. Resources are freed by the participant or by the timeout/admin — the same lesson as in section 4.
+7. **Closed tab (6):** No. The Livy session and the YARN application keep running until someone sends `DELETE` (`%spark delete`) or Livy's session timeout removes the idle session. Resources are freed by the participant or by the timeout/admin — the same lesson as in section 4.
 
 ## Pitfalls
 
@@ -40,7 +38,6 @@ If time is tight: demo section 5 and 6 on the projector and skip section 8. Ask 
 | All participants start sessions at once | Each session = driver + executor containers (about 2–3 GB with overhead). Check the queue capacity for N participants, or stagger the start. Sessions stuck in `starting` show as `ACCEPTED` on YARN |
 | Session limits | Livy can cap the number of sessions or creation rate (`livy.server.session.max-creation`); `429`/`Rejected` answers mean the cap was hit |
 | Variables from the shell missing in the driver | Intended: shows that the driver runs on the cluster. Statement files contain real paths and the user name (placeholder `<your_user>`, replaced in `vim` with `:%s`). A typical mistake is a forgotten placeholder or a left-over `${...}` in a file |
-| `saveAsTable` fails | The Livy session needs Hive support. The lab sets `spark.sql.catalogImplementation=hive` in the request; if the cluster blocks session `conf`, enable the Hive context in the Livy configuration (`livy.repl.enable-hive-context=true`) |
 | Script path in batch | `file` must be on HDFS (or in `livy.file.local-dir-whitelist`); a local laptop path is rejected |
 | Certificates | Internal CA: participants need the CA file (handout); do not tell them to disable verification |
 | Passwords | The lab keeps the password in a shell variable and passes it with `curl -u`, so it is visible in the process list of the shared edge node while `curl` runs. Acceptable for a workshop; mention that production uses tokens or a netrc file. The notebook keeps it in kernel memory only (`getpass`). Remind participants to close terminals / `unset LDAP_PASSWORD` afterwards |

@@ -78,10 +78,6 @@ The batch log in Livy only shows the submission. The real error is in the YARN a
 
 Livy runs Spark as `WORKSHOP_USER`; that user must own `${WORKSHOP_HOME}`. Ask your instructor if your home directory is missing or if Livy runs everything as one service user (impersonation off) — then the written files belong to `livy`, which you can see with `hdfs dfs -ls "${WORKSHOP_HOME}"`.
 
-## Section 6: `saveAsTable` fails or the database is not found
-
-The session must use the Hive Metastore. Check that your `session.json` contains `"conf": {"spark.sql.catalogImplementation": "hive"}` and create a new session. For `Permission denied` or `does not have privilege`, ask your instructor: workshop users need Hive policies on `{USER}` and HDFS write on `/warehouse/tablespace/external/hive/{USER}.db` (same as the Spark lab).
-
 ## Jupyter: `pip install` fails, or `No module named sparkmagic.magics`
 
 - Use Python 3.12 in a fresh virtual environment or conda environment (`python --version`); the lab needs `sparkmagic>=0.23` (older versions pin `pandas<2`, which does not install on Python 3.12).  
@@ -93,10 +89,6 @@ The session must use the Hive Metastore. Check that your `session.json` contains
 - 401: wrong user or password in the first cell — rerun it.  
 - Hang at `starting`: queue full (see above) or `livy_session_startup_timeout_seconds` in `~/.sparkmagic/config.json` too small — raise it to `300`.  
 - `Duplicate session name` does not occur here (sparkmagic does not set a name), but old notebook sessions pile up: list `${LIVY_URL}/sessions`, find yours by `owner`, delete them.
-
-## Jupyter: `%%send_to_spark` not found
-
-`%%send_to_spark` is part of sparkmagic's *PySpark kernel*, not of the `%spark` magics that the plain Python 3 kernel loads with `%load_ext sparkmagic.magics`. The lab notebook defines it in section 2 as the **line** magic `%send_to_spark -i <var> -t str -n <name>` (one `%`). Run that cell first; if the kernel was restarted, run section 2 again, including `%spark add`.
 
 ## Jupyter: `%%spark -o hourly` fails with a conversion error
 

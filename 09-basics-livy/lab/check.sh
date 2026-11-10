@@ -21,7 +21,6 @@ USER_HOME="${WORKSHOP_HOME}"
 LIVY_LAB="${WORKSHOP_ROOT}/09-livy"
 SESSION_OUT="${USER_HOME}/livy-curated"
 BATCH_OUT="${USER_HOME}/livy-batch-curated"
-TABLE_DIR="/warehouse/tablespace/external/hive/${WS_USER}.db/livy_curated_join"
 EXPECTED_JOINED=24
 
 expect_path() {
@@ -39,10 +38,6 @@ expect_path "${SESSION_OUT}/_SUCCESS" \
 expect_path "${BATCH_OUT}/_SUCCESS" \
   "Batch output (_SUCCESS)" \
   "redo lab section 5"
-
-expect_path "${TABLE_DIR}" \
-  "Table livy_curated_join in database ${WS_USER}" \
-  "redo lab section 6"
 
 count_py="$(mktemp)"
 trap 'rm -f "${count_py}"' EXIT
@@ -100,9 +95,9 @@ else
 fi
 
 if hdfs dfs -test -e "${USER_HOME}/livy-nb-curated/_SUCCESS" 2>/dev/null; then
-  pass "Notebook output present (section 7)"
+  pass "Notebook output present (section 6)"
 else
-  skip "Notebook output not found — section 7 runs on your laptop and is not required"
+  skip "Notebook output not found — section 6 runs on your laptop and is not required"
 fi
 
 if [[ ${fail} -ne 0 ]]; then
