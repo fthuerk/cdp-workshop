@@ -4,4 +4,6 @@ config.env
 .env
 
 .cursor
-.github
+.github/*
+!.github/workflows/
+_site

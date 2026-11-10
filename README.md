@@ -45,6 +45,8 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 
 See [docs/concept.md](docs/concept.md) for learning objectives, dependencies, and fallbacks.
 
+**Slides:** modules with a slide deck are published together with an overview page of all labs on GitHub Pages (`https://<user>.github.io/<repo>/`). Decks live in [slides/](slides/README.md).
+
 **Authors:** [docs/workshop-guidelines.md](docs/workshop-guidelines.md) (labs and modules) · [docs/simplicity.md](docs/simplicity.md) (scripts)
 
 ## Repository layout
@@ -68,6 +70,7 @@ data/samples/        # synthetic CSVs (uploaded to HDFS by bootstrap)
 14-basics-datatypes/ # Data types and functions compared across Hive, Impala, Spark + trainer + setup scripts
 I1-basics-ranger/    # Ranger lab (allow, deny, masking, row filter) + trainer + setup scripts
 I2-basics-atlas/     # Atlas UI lab (metadata, lineage, tags, glossary) + trainer
+slides/              # Slidev decks + build-site.mjs (overview page for GitHub Pages)
 docs/concept.md              # curriculum concept
 docs/workshop-guidelines.md  # how to author labs and modules
 ```

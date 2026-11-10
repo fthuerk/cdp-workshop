@@ -28,7 +28,7 @@
       "spark.sql.catalogImplementation": "hive"
     }
   },
-  "ignore_ssl_errors": false,
+  "ignore_ssl_errors": true,
   "livy_session_startup_timeout_seconds": 240,
   "wait_for_idle_timeout_seconds": 60,
   "heartbeat_refresh_seconds": 30,

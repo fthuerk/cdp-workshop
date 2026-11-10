@@ -1,0 +1,22 @@
+{
+  "name": "livy-slides",
+  "private": true,
+  "type": "module",
+  "description": "Apache Livy: introduction for the Livy lab (Slidev)",
+  "scripts": {
+    "dev": "slidev --open",
+    "build": "slidev build",
+    "export": "slidev export --output livy-slides.pdf"
+  },
+  "dependencies": {
+    "@slidev/cli": "^53.1.0",
+    "@slidev/theme-default": "^0.25.0",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "playwright-chromium": "^1.50.0"
+  },
+  "workshop": {
+    "module": "09"
+  }
+}
