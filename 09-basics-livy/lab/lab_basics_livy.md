@@ -444,17 +444,12 @@ conda activate livy-lab
 pip install -r requirements.txt   # sparkmagic is not on the default conda channel; pip inside the env is fine
 ```
 
-**6.3 Configure.** `sparkmagic` reads timeouts and headers from `~/.sparkmagic/config.json`. The template has no password in it: the notebook asks for it when you run it. If the Knox certificate comes from an internal CA, point Python to the CA file from your handout before you start Jupyter:
+**6.3 Configure.** `sparkmagic` reads its settings (timeouts, headers) from `~/.sparkmagic/config.json`. Copy the contents of [`notebooks/sparkmagic_config.template.json`](notebooks/sparkmagic_config.template.json) into that file (create the folder `~/.sparkmagic` and the file if they do not exist; if you already have a config there, keep a backup first). The template has no password in it: the notebook asks for it when you run it.
+
+Then start Jupyter. If the Knox certificate comes from an internal CA, set the CA file from your handout first:
 
 ```bash
-# Copy the template (keep an existing config as backup)
-mkdir -p ~/.sparkmagic
-[ -f ~/.sparkmagic/config.json ] && cp ~/.sparkmagic/config.json ~/.sparkmagic/config.json.bak
-cp sparkmagic_config.template.json ~/.sparkmagic/config.json
-```
-
-```bash
-# Only if your handout names a CA file, then start Jupyter
+# Only if your handout names a CA file
 export REQUESTS_CA_BUNDLE="<path-to-ca.pem>"
 jupyter lab
 ```
