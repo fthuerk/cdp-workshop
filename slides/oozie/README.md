@@ -1,9 +1,6 @@
-# Apache Oozie: theory and Hue lab (Slidev)
+# Apache Oozie: introduction (Slidev)
 
-Slide deck with two parts:
-
-1. **Theory**: what Oozie is, workflows, coordinators, bundles, actions, datasets
-2. **Lab**: the Hue lab (module 08, basics Oozie) step by step, with screenshots
+Short slide deck on the basic functionality of Apache Oozie: what it is, workflows, coordinators, bundles, actions, datasets, variables, and how Hue fits in. The hands-on lab is not part of the deck; it is in `08-basics-oozie/lab/lab_basics_oozie.md`.
 
 Every command, path, SQL statement and XML snippet sits in a code block. Hover over a block in the browser and click the copy button.
 
@@ -33,7 +30,6 @@ Done by the workflow `.github/workflows/pages.yml` in the repository root: it bu
 
 | Path | Content |
 |------|---------|
-| `slides.md` | Title slide and imports of the two parts |
-| `pages/01-theory.md` | Part 1: theory |
-| `pages/02-lab.md` | Part 2: lab |
-| `public/images/` | Screenshots from the lab (copied from the workshop repository) |
+| `slides.md` | Title slide, platform slide and import of the theory part |
+| `pages/01-theory.md` | All slides |
+| `public/images/` | Navigation diagram used on the second slide |

@@ -11,7 +11,7 @@ Modules are **numbered for sequence only**. You map them to workshop days or hou
 1. **Orient** — where the component sits in CDP and in the use case  
 2. **Explain** — concepts trainers cover in slides or live demo  
 3. **Apply** — hands-on steps with check questions and visible outcomes (see [workshop-guidelines.md](workshop-guidelines.md))  
-4. **Relate** — link to landing/staging/curated thinking, governance, and the MVP pipeline  
+4. **Relate** — link to landing/staging/curated thinking and governance  
 
 Each hands-on block should end with a **visible outcome** (a path in HDFS, a YARN app, a query result, a table).
 
@@ -28,7 +28,7 @@ Participants should recognize:
 | **YARN** | Resource manager for batch and interactive engines |
 | **Hive / Impala** | SQL over data in HDFS |
 | **Spark** | Distributed processing (batch and structured APIs) |
-| **Ranger / Atlas** | Access control and metadata (introduced in basics, deepened in advanced/MVP) |
+| **Ranger / Atlas** | Access control and metadata (introduced in basics, deepened in advanced) |
 
 Module **00-setup** includes a short participant checklist (SSH, `kinit`, Hue/Knox URLs from your runbook).
 
@@ -53,10 +53,6 @@ After modules **10–13**, participants should be able to:
 - Use **Impala** for exploratory analysis on curated tables  
 - Sketch a **repeatable Oozie** workflow (check → process → quality → publish)  
 
-### MVP module
-
-Module **20** ties the pipeline together: parameterized runs, quality gates, Ranger/Atlas touchpoints, and a documented data product outcome.
-
 ## Module catalog
 
 Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only shop may shorten Hive depth). “Depends on” is the recommended **learning order** only — every lab is technically independent and needs just the `00-setup` bootstrap plus its own `setup/setup.sh` (see [workshop-guidelines.md](workshop-guidelines.md#labs-are-independent)).
@@ -73,14 +69,13 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 | **07-lakehouse-iceberg** | Lakehouse with Iceberg | 04, 05 | ~120 min | Idempotent loads by hand vs Iceberg; `UPDATE`/`DELETE`/`MERGE` in Hue/Impala; files on HDFS; time travel, snapshot isolation, rollback; joins |
 | **08-basics-oozie** | Oozie in Hue (UI tour) | 03, 04 | ~70 min | Build a workflow, a time-based and a data-triggered coordinator (Hive action adds a daily partition) in the Hue editors; read the generated `workflow.xml` and `coordinator.xml`; follow runs in the Job Browser |
 | **09-basics-livy** | Spark via Livy (REST, Jupyter) | 06 | ~90 min | LDAP login against Knox; Livy session with statements, batch, and `saveAsTable` through REST; the same cleanse/join pipeline from a local Jupyter notebook (`sparkmagic`) |
-| **I1-basics-ranger** | Ranger (Hive authorization) | 04 | ~30 min | Shared `cdp_workshop` tables; allow/deny; column masking; row-level filter; Ranger audit (policies created live by trainer) |
-| **I2-basics-atlas** | Atlas UI (metadata & lineage) | 04 | ~20 min | Hive tables in Hue; search entities in Atlas; CTAS lineage; classifications with propagation; business glossary term assignment |
 | **10-advanced-hive** | Advanced Hive SQL | 04 | ~75 min | Complex joins, window functions (rank, lag, running totals), complex types, ROLLUP, WKT geo data on use case |
 | **11-advanced-oozie** | Oozie workflows and coordinators by hand | 03, 04, 06, 08 | ~110 min | Shell, fs, hive2, spark3 actions; decision, fork/join, kill; rerun of failed nodes; time-based and data-triggered (`_SUCCESS`) coordinators written as XML on the use case data |
 | **12-advanced-spark** | Spark pipelines | 06, 10 | ~90 min | Multi-source alignment, derived features |
 | **13-advanced-impala** | Impala for analytics | 05, 12 | ~60 min | Aggregations, KPIs for pilot sensors |
 | **14-basics-datatypes** | Data types across engines | 04, 05, 06 | ~40 min | Same raw text cast in Hive, Impala and Spark; overflow, decimals, timestamps, booleans, strings; function and UDF availability; portable cast check |
-| **20-mvp-pipeline** | Full pipeline | 10–13 | ~120 min | End-to-end run, documentation, governance checklist |
+| **I1-basics-ranger** | Ranger (Hive authorization) | 04 | ~30 min | Shared `cdp_workshop` tables; allow/deny; column masking; row-level filter; Ranger audit (policies created live by trainer) |
+| **I2-basics-atlas** | Atlas UI (metadata & lineage) | 04 | ~20 min | Hive tables in Hue; search entities in Atlas; CTAS lineage; classifications with propagation; business glossary term assignment |
 
 ## Use case data on HDFS
 
@@ -136,7 +131,7 @@ flowchart TB
   ops --> curated
 ```
 
-Basics modules establish **landing** literacy and first **staging** steps. Advanced modules deepen **curated** layers and **ops**. MVP module runs the chain with checks and governance.
+Basics modules establish **landing** literacy and first **staging** steps. Advanced modules deepen **curated** layers and **ops**.
 
 ## Relation to legacy day-1 concept
 

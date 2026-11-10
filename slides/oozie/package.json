@@ -2,13 +2,15 @@
   "name": "oozie-slides",
   "private": true,
   "type": "module",
-  "description": "Apache Oozie: theory and Hue lab (Slidev)",
+  "description": "Apache Oozie: introduction to the basics (Slidev)",
   "scripts": {
     "dev": "slidev --open",
     "build": "slidev build",
     "export": "slidev export --output oozie-slides.pdf"
   },
   "dependencies": {
+    "@fontsource/fira-code": "^5.3.0",
+    "@fontsource/nunito-sans": "^5.3.0",
     "@slidev/cli": "^53.1.0",
     "@slidev/theme-default": "^0.25.0",
     "vue": "^3.5.0"

@@ -9,6 +9,8 @@
     "export": "slidev export --output livy-slides.pdf"
   },
   "dependencies": {
+    "@fontsource/fira-code": "^5.3.0",
+    "@fontsource/nunito-sans": "^5.3.0",
     "@slidev/cli": "^53.1.0",
     "@slidev/theme-default": "^0.25.0",
     "vue": "^3.5.0"

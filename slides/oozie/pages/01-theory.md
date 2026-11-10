@@ -2,7 +2,7 @@
 layout: section
 ---
 
-# Part 1: Theory
+# The basics
 
 What Oozie is and what it can do
 
@@ -363,7 +363,7 @@ A bundle **groups coordinators** that belong together, for example all parts of 
 - **Shared parameters**, and parameters per coordinator
 - It does **not run anything itself** and it does **not order** its coordinators. Dependencies between them are still expressed with datasets
 - Optional: pipelines with a single coordinator do not need one
-- Hue has a **Bundle** editor (Scheduler menu). The lab does not build one
+- Hue has a **Bundle** editor (Scheduler menu)
 
 </div>
 <div>
@@ -418,7 +418,7 @@ In its XML files, Oozie **replaces every `${...}`** with a value before the acti
 
 ---
 
-# How a variable travels (lab section 4)
+# How a variable travels
 
 One day's load, from the submit dialog down to the Hive script. Each step hands the value to the next one.
 
@@ -475,6 +475,6 @@ The script text `ADD PARTITION (dt='${day}')` becomes `ADD PARTITION (dt='202611
 - The **Job Browser** shows workflows, schedules, bundles and their **XML**, **Logs** and **Configuration**
 
 <div class="mt-6 p-3 rounded bg-green-500/10">
-In the lab you do not type XML. You build with the mouse and then read what Hue generated.
+With Hue you do not type XML: you build with the mouse and can read what Hue generated.
 Writing XML by hand is the topic of the advanced Oozie module.
 </div>

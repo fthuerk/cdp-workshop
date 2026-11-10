@@ -51,8 +51,8 @@ function readModules() {
   const rows = []
   for (const line of readFileSync(join(root, 'README.md'), 'utf8').split('\n')) {
     const cells = line.split('|').map((c) => c.trim())
-    if (cells.length < 7 || !/^(\d\d|[A-Z]\d)$/.test(cells[1])) continue
-    const [, id, module, track, time, status] = cells
+    if (cells.length < 5 || !/^(\d\d|[A-Z]\d)$/.test(cells[1])) continue
+    const [, id, module, track] = cells
     const link = module.match(/^\[(.+)\]\((.+)\)$/)
     const title = link ? link[1] : module
     const dir = link ? dirname(link[2]) : null
@@ -65,7 +65,7 @@ function readModules() {
       : []
     // Modules without a lab folder (00-setup) link to their README.
     if (dir && labs.length === 0) labs.push({ title, path: `${link[2]}` })
-    rows.push({ id, title, track, time, status: status.split(/\s|\(/)[0], dir, labs })
+    rows.push({ id, title, track, dir, labs })
   }
   return rows
 }
@@ -87,6 +87,29 @@ function buildDeck(deck) {
   console.log(`\n== building deck "${deck.name}" ==`)
   run('npm', [existsSync(join(cwd, 'package-lock.json')) ? 'ci' : 'install'])
   run('npx', ['slidev', 'build', '--base', `${base}slides/${deck.name}/`, '--out', join(out, 'slides', deck.name)])
+}
+
+// Privacy guard: the published pages must not load anything from third-party hosts (fonts, CDNs, trackers),
+// because the visitor's IP address would be sent to them. Fails the build if a page or stylesheet does.
+function assertNoExternalRequests(dir) {
+  const found = []
+  const walk = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name)
+      if (e.isDirectory()) walk(p)
+      else if (/\.(html|css)$/.test(e.name)) {
+        const text = readFileSync(p, 'utf8')
+        const refs = [
+          ...text.matchAll(/<(?:link|script|img|iframe|source|video|audio)\b[^>]*?\b(?:src|href)=["'](https?:\/\/[^"']+)/g),
+          ...text.matchAll(/url\(\s*["']?(https?:\/\/[^)"']+)/g),
+          ...text.matchAll(/@import\s+(?:url\()?\s*["']?(https?:\/\/[^;)"']+)/g),
+        ]
+        for (const m of refs) found.push(`${p.slice(out.length + 1)}: ${m[1]}`)
+      }
+    }
+  }
+  walk(dir)
+  if (found.length) throw new Error(`Third-party requests in the built site:\n  ${found.join('\n  ')}`)
 }
 
 // ---- 3. overview page ----
@@ -114,8 +137,7 @@ function renderIndex(modules, decks) {
         : ''
       return (
         `<tr class="${planned ? 'planned' : ''}"><td class="id">${esc(m.id)}</td><td>${labCell}</td>` +
-        `<td class="slidecol">${slidesCell}</td><td>${esc(m.track)}</td><td>${esc(m.time)}</td>` +
-        `<td><span class="badge ${esc(m.status.toLowerCase())}">${esc(m.status)}</span></td></tr>`
+        `<td class="slidecol">${slidesCell}</td><td>${esc(m.track)}</td></tr>`
       )
     })
     .join('\n')
@@ -152,7 +174,7 @@ function renderIndex(modules, decks) {
 <h1>CDP workshop</h1>
 <p class="lead">Hands-on modules for Cloudera Data Platform. Click a module to open its lab on GitHub; the ${slidesIcon.replace('width="18" height="18"', 'width="14" height="14"')} icon opens the slide deck.</p>
 <table>
-<thead><tr><th>ID</th><th>Lab</th><th>Slides</th><th>Track</th><th>Time</th><th>Status</th></tr></thead>
+<thead><tr><th>ID</th><th>Lab</th><th>Slides</th><th>Track</th></tr></thead>
 <tbody>
 ${body}
 </tbody>
@@ -176,4 +198,5 @@ mkdirSync(out, { recursive: true })
 if (!indexOnly) decks.forEach(buildDeck)
 writeFileSync(join(out, 'index.html'), renderIndex(modules, decks))
 writeFileSync(join(out, '.nojekyll'), '')
+assertNoExternalRequests(out)
 console.log(`\nSite written to ${out} (${modules.length} modules, ${decks.length} decks, base ${base})`)

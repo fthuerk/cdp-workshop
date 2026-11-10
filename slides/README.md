@@ -23,6 +23,16 @@ The overview page is generated from the module table in the root `README.md`. Ev
 2. In its `package.json` add `"workshop": { "module": "<id>" }` with the module ID from the README table (for example `"07"`).
 3. Push to `main`. The workflow builds every folder in `slides/`.
 
+## Privacy: no third-party requests
+
+The published pages load nothing from third-party hosts, so no visitor IP address is sent to Google or a CDN:
+
+- Fonts (Nunito Sans, Fira Code; SIL OFL) are bundled from the `@fontsource/*` npm packages via each deck's `style.css`. `fonts: provider: none` in `slides.md` turns off Slidev's Google Fonts loading.
+- The favicon is `public/favicon.png` (`favicon:` in `slides.md`) instead of Slidev's default jsdelivr URL.
+- `build-site.mjs` fails the build if any built page or stylesheet references an external `http(s)` host. Mermaid diagrams and code highlighting run in the browser.
+
+Keep it that way when you add a deck: copy `style.css`, the `fonts`/`favicon` lines of an existing `slides.md`, and avoid external images, iframes and `plantuml` code blocks (Slidev renders those through plantuml.com).
+
 Decks use `routerMode: hash` in `slides.md`, so slide URLs survive a page refresh on GitHub Pages.
 
 ## Build locally

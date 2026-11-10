@@ -1,8 +1,8 @@
 ---
 theme: default
-title: Apache Oozie - Workflows and Coordinators in Hue
+title: Apache Oozie - Workflows and Coordinators
 info: |
-  Apache Oozie: theory and hands-on lab in Hue.
+  Apache Oozie: introduction to the basic functionality.
 class: text-left
 highlighter: shiki
 drawings:
@@ -10,6 +10,9 @@ drawings:
 transition: slide-left
 mdc: true
 routerMode: hash
+fonts:
+  provider: none
+favicon: /favicon.png
 lineNumbers: false
 colorSchema: auto
 ---
@@ -19,11 +22,11 @@ colorSchema: auto
 Workflows and coordinators on the Hadoop platform
 
 <div class="pt-8 text-gray-500">
-Theory and hands-on lab in Hue
+Introduction to the basics
 </div>
 
 <!--
-Part 1 is the theory (about 15 minutes). Part 2 is the lab, section by section.
+About 15 minutes of theory.
 Press "o" for the slide overview, "d" for dark mode, "f" for fullscreen.
 -->
 
@@ -41,8 +44,4 @@ Oozie is the **orchestration layer**: it sits above the processing engines and s
 
 ---
 src: ./pages/01-theory.md
----
-
----
-src: ./pages/02-lab.md
 ---

@@ -10,6 +10,9 @@ drawings:
 transition: slide-left
 mdc: true
 routerMode: hash
+fonts:
+  provider: none
+favicon: /favicon.png
 lineNumbers: false
 colorSchema: auto
 ---

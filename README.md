@@ -14,34 +14,32 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 
 ## Module catalog
 
-| ID | Module | Track | Est. time | Status |
-|----|--------|-------|-----------|--------|
-| 00 | [Setup](00-setup/README.md) | — | 15 min | **Ready** |
-| 01 | [Basics: Kerberos](01-basics-kerberos/README.md) | Basics | ~35 min | Draft (not yet dry-run on a cluster) |
-| 02 | [Basics: HDFS](02-basics-hdfs/README.md) | Basics | ~75 min | **Ready** |
-| 03 | [Basics: YARN](03-basics-yarn/README.md) | Basics | ~80 min | **Ready** |
-| 04 | [Basics: Hive](04-basics-hive/README.md) | Basics | ~100 min | Draft (not yet dry-run on a cluster) |
-| 05 | [Basics: Impala](05-basics-impala/README.md) | Basics | ~45 min | Draft (not yet dry-run on a cluster) |
-| 06 | [Basics: Spark](06-basics-spark/README.md) | Basics | ~90 min | Draft (not yet dry-run on a cluster) |
-| 07 | [Lakehouse: Iceberg](07-lakehouse-iceberg/README.md) | Lakehouse | ~120 min | Draft (not yet dry-run on a cluster) |
-| 08 | [Basics: Oozie in Hue](08-basics-oozie/README.md) | Basics | ~70 min | Draft (not yet dry-run on a cluster) |
-| 09 | [Basics: Spark via Livy](09-basics-livy/README.md) | Basics | ~90 min | Draft (not yet dry-run on a cluster) |
-| I1 | [Instructor-led: Ranger](I1-basics-ranger/README.md) | Instructor-led | ~30 min | Draft (not yet dry-run on a cluster) |
-| I2 | [Instructor-led: Atlas](I2-basics-atlas/README.md) | Instructor-led | ~20 min | Draft (not yet dry-run on a cluster) |
-| 10 | [Advanced: Hive](10-advanced-hive/README.md) | Advanced | ~75 min | Draft (not yet dry-run on a cluster) |
-| 11 | [Advanced: Oozie](11-advanced-oozie/README.md) | Advanced | ~110 min | Draft (not yet dry-run on a cluster) |
-| 14 | [Basics: Data types across engines](14-basics-datatypes/README.md) | Basics | ~40 min | Draft (not yet dry-run on a cluster) |
-| 12 | Advanced: Spark | Advanced | ~90 min | Planned |
-| 13 | Advanced: Impala | Advanced | ~60 min | Planned |
-| 20 | MVP: Full pipeline | MVP | ~120 min | Planned |
+| ID | Module | Track |
+|----|--------|-------|
+| 00 | [Setup](00-setup/README.md) | — |
+| 01 | [Basics: Kerberos](01-basics-kerberos/README.md) | Basics |
+| 02 | [Basics: HDFS](02-basics-hdfs/README.md) | Basics |
+| 03 | [Basics: YARN](03-basics-yarn/README.md) | Basics |
+| 04 | [Basics: Hive](04-basics-hive/README.md) | Basics |
+| 05 | [Basics: Impala](05-basics-impala/README.md) | Basics |
+| 06 | [Basics: Spark](06-basics-spark/README.md) | Basics |
+| 07 | [Lakehouse: Iceberg](07-lakehouse-iceberg/README.md) | Lakehouse |
+| 08 | [Basics: Oozie in Hue](08-basics-oozie/README.md) | Basics |
+| 09 | [Basics: Spark via Livy](09-basics-livy/README.md) | Basics |
+| 10 | [Advanced: Hive](10-advanced-hive/README.md) | Advanced |
+| 11 | [Advanced: Oozie](11-advanced-oozie/README.md) | Advanced |
+| 14 | [Basics: Data types across engines](14-basics-datatypes/README.md) | Basics |
+| 12 | Advanced: Spark | Advanced |
+| 13 | Advanced: Impala | Advanced |
+| I1 | [Instructor-led: Ranger](I1-basics-ranger/README.md) | Instructor-led |
+| I2 | [Instructor-led: Atlas](I2-basics-atlas/README.md) | Instructor-led |
 
 **Basics track:** Kerberos → HDFS → YARN → Hive → Spark → Impala  
 **Spark access via REST:** `09` runs the Spark pipeline through Livy behind Knox (LDAP login), with `curl` and with a Jupyter notebook on your laptop  
 **Lakehouse:** Iceberg tables in Hue/Impala (after Hive and Impala basics)  
 **Orchestration:** Oozie: `08` is a Hue UI tour, `11` builds the same pipeline by hand (workflow XML, Hive and Spark actions, coordinators)  
-**Instructor-led (`I1`, `I2`):** Ranger and Atlas are driven live by the trainer in the UI (policies and tags change while you watch), so they are numbered separately and can be dropped into any day  
 **Advanced track:** Hive → Oozie → Spark → Impala (deeper patterns on the same use case)  
-**MVP:** end-to-end pipeline with quality checks and governance touchpoints
+**Instructor-led (`I1`, `I2`):** Ranger and Atlas are driven live by the trainer in the UI (policies and tags change while you watch), so they are numbered separately and can be dropped into any day  
 
 See [docs/concept.md](docs/concept.md) for learning objectives, dependencies, and fallbacks.
 
