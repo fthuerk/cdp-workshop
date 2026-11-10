@@ -222,7 +222,7 @@ flowchart LR
 - **OK** goes to the next action, **error** goes to the kill node (default in Hue)
 - Finished actions are **not undone** when a later action fails
 - A workflow ends in one of two states: **SUCCEEDED** (end node) or **KILLED** (kill node)
-- Values are passed with **variables** `${...}` and **EL functions** such as `${wf:user()}`
+- Values are passed with `${...}` placeholders: **variables** like `${wf_date}` and **EL functions** like `${wf:user()}` (explained in the section on variables)
 
 ---
 
@@ -390,6 +390,50 @@ A bundle **groups coordinators** that belong together, for example all parts of 
 ```
 
 </div>
+</div>
+
+---
+
+# Expression Language (EL)
+
+The XML files of Oozie are not fixed text. Wherever you see `${...}`, Oozie **evaluates** what is inside and puts the result in its place. The small language for this is the **Expression Language (EL)**, the same syntax as in Java web pages (JSP).
+
+<div class="grid grid-cols-2 gap-6 mt-4 text-sm">
+<div class="p-3 rounded bg-blue-500/10">
+
+### A name
+
+`${wf_date}`
+
+Looks up a **variable** that someone has to supply, for example Hue, the CLI or the coordinator. If nobody supplies it, the job fails.
+
+</div>
+<div class="p-3 rounded bg-green-500/10">
+
+### A function call
+
+`${wf:user()}`
+
+Calls an **EL function**: Oozie works out the value itself. Nobody has to define it.
+
+</div>
+</div>
+
+<div class="mt-6 text-center font-mono text-2xl">
+${<span class="text-blue-500">wf</span>:<span class="text-green-600">user</span>()}
+</div>
+
+<div class="grid grid-cols-3 gap-4 mt-2 text-center text-xs">
+  <div><span class="text-blue-500 font-bold">wf</span><br/>function family (prefix)</div>
+  <div><span class="text-green-600 font-bold">user</span><br/>function name</div>
+  <div><span class="font-bold">()</span><br/>arguments, here none; result: the user who started the job</div>
+</div>
+
+<div class="mt-4 text-sm">
+
+- Families: `wf:` (the running workflow), `coord:` (schedule time and data), `fs:` (HDFS checks such as `fs:exists(path)`)
+- The next slide lists the variables and EL functions side by side
+
 </div>
 
 ---
