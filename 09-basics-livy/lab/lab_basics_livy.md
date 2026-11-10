@@ -476,13 +476,21 @@ So far `curl` was the client. A notebook is just a friendlier client: **`sparkma
 | `requirements.txt` | Python packages for both notebooks |
 | `sparkmagic_config.template.json` | Settings for `sparkmagic` (no credentials) |
 
-**7.2 Install.** Use a Python virtual environment (Python 3.9–3.11) so that nothing else on your laptop is touched:
+**7.2 Install.** Use a Python virtual environment (Python 3.12) so that nothing else on your laptop is touched. Choose **one** of the two ways:
 
 ```bash
-# Run in the notebooks folder on your laptop
-python3 -m venv livy-venv
+# Option A: pip + venv (run in the notebooks folder on your laptop)
+python3.12 -m venv livy-venv
 source livy-venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+```bash
+# Option B: conda (run in the notebooks folder on your laptop)
+conda create -n livy-lab python=3.12 -y
+conda activate livy-lab
+pip install -r requirements.txt   # sparkmagic is not on the default conda channel; pip inside the env is fine
 ```
 
 **7.3 Configure.** `sparkmagic` reads timeouts and headers from `~/.sparkmagic/config.json`. The template has no password in it: the notebook asks for it when you run it. If the Knox certificate comes from an internal CA, point Python to the CA file from your handout before you start Jupyter:

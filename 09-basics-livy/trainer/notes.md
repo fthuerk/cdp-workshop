@@ -46,7 +46,7 @@ If time is tight: demo section 5 and 6 on the projector and skip section 8. Ask 
 | Passwords | The lab keeps the password in a shell variable and passes it with `curl -u`, so it is visible in the process list of the shared edge node while `curl` runs. Acceptable for a workshop; mention that production uses tokens or a netrc file. The notebook keeps it in kernel memory only (`getpass`). Remind participants to close terminals / `unset LDAP_PASSWORD` afterwards |
 | Long JSON lines in `vim` | The statement files are one-line JSON strings (`\n` between Python lines). Hand out the lines on the projector or in the handout if typing is too slow; `jq . < file` finds typos |
 | LDAP lockout | Many wrong attempts lock accounts; tell participants to stop after two 401 answers and ask you |
-| `sparkmagic` and Python | `sparkmagic 0.21` needs `pandas<2`, which needs Python ≤ 3.11. Newer Python → fallback notebook |
+| `sparkmagic` and Python | Lab uses Python 3.12 with `sparkmagic>=0.23` (pandas 2.x). `sparkmagic 0.21` needs `pandas<2` (Python ≤ 3.11); if a participant has an older sparkmagic pinned → fallback notebook |
 | Self-service participants (no admin) | `00-setup/participant/setup.sh` runs this module's setup too; they still need the Livy URL and an LDAP account |
 
 ## Admin checklist (before the session)

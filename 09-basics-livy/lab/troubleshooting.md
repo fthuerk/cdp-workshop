@@ -84,7 +84,7 @@ The session must use the Hive Metastore. Check that your `session.json` contains
 
 ## Jupyter: `pip install` fails, or `No module named sparkmagic.magics`
 
-- Use Python 3.9–3.11 in a fresh virtual environment (`python3 --version`); `pandas<2` does not install on newer Python versions.  
+- Use Python 3.12 in a fresh virtual environment or conda environment (`python --version`); the lab needs `sparkmagic>=0.23` (older versions pin `pandas<2`, which does not install on Python 3.12).  
 - Make sure the virtual environment is active (`source livy-venv/bin/activate`) and that you start `jupyter lab` from **that** environment.  
 - If installation stays blocked, use `livy_rest_requests.ipynb` — it needs only `requests`.
 
