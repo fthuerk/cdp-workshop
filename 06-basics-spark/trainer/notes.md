@@ -34,6 +34,7 @@ If time is tight, skip section 8 and stretch; run section 7 as a trainer demo wi
 | PySpark client cannot reach RM | Firewall or wrong `YARN_CONF_DIR` — use same edge node as other labs |
 | No rows after join | Participant joined on wrong column names — weather first field must be timestamp typed as `ts_utc` |
 | Section 7 `saveAsTable` fails | Enable Hive support (`spark.sql.catalogImplementation=hive`) if your cluster requires it. Do not switch to a custom `LOCATION` (needs Ranger URL policies); check the table location with `DESCRIBE FORMATTED` — it must be under the default external warehouse. Verify once on your cluster that Spark creates it as an external table |
+| Notebook route (Livy) | Participants without an edge-node shell use `lab/notebooks/spark_lab_sparkmagic.ipynb` for Part A; it needs the Livy URL, an LDAP account and the Jupyter setup of module 09. Its driver runs in a YARN container (cluster mode), so check question 1 has a different answer there. Part B stays on the edge node |
 | Small cluster, slow local check | `check.sh` uses `local[2]` — acceptable on edge node; warn if laptops not used |
 | Ranger | Module 04 Hive policies on `{USER}` plus HDFS home write; optional path `${WORKSHOP_ROOT}/06-spark/work` if you redirect tables there |
 

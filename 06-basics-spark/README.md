@@ -28,6 +28,7 @@ After this module you can:
 |-------|---------|
 | Concept (trainer) | Spark vs MapReduce/Tez; lazy evaluation; batch vs interactive; place in the landing → curated pipeline |
 | Core lab | [lab_basics_spark.md](lab/lab_basics_spark.md) sections 0–7 |
+| Alternative client | [lab/notebooks/spark_lab_sparkmagic.ipynb](lab/notebooks/spark_lab_sparkmagic.ipynb): Part A (sections 0–10) from a laptop notebook via Livy + `sparkmagic` (setup in [module 09](../09-basics-livy/README.md)) |
 | Optional | [lab_basics_spark.md](lab/lab_basics_spark.md) section 8 (failure signals) |
 | Stretch | [lab_basics_spark.md](lab/lab_basics_spark.md) stretch |
 | Self-check | `./06-basics-spark/lab/check.sh` |

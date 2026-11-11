@@ -11,6 +11,8 @@ The lab has two clearly separated parts:
 
 Part A starts **very slowly**: first plain Python variables, then tiny DataFrames built by hand (no files, no HDFS). Only from section 6 on do we read real CSV files.
 
+**No shell on the edge node?** Sections 0–10 of Part A also run from a Jupyter notebook on your laptop through Livy and `sparkmagic`: [notebooks/spark_lab_sparkmagic.ipynb](notebooks/spark_lab_sparkmagic.ipynb). Set up Jupyter as in [module 09, section 6](../../09-basics-livy/lab/lab_basics_livy.md). The notebook writes the same `spark-curated` folder, so `check.sh` works for both ways. Part B (`spark-submit`) always runs on the edge node.
+
 Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `SPARK_LAB` holds the shared batch script on HDFS. The three `*_CSV` paths point at workshop sample data under `${WORKSHOP_ROOT}/data`.
 
 ```bash
