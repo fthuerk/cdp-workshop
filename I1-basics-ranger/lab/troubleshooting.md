@@ -34,7 +34,7 @@
 ## `check.sh` fails after the lab
 
 - The script expects **final** trainer state: allow + **nullify** on `customer_name` + row filter. Running it after section 2 only will fail — that is expected.
-- Export `WORKSHOP_USER` and `HS2_URL` if beeline cannot connect.
+- Export `WORKSHOP_USER` and check your ticket (`klist`) if beeline cannot connect.
 
 ## Impala vs Hive
 

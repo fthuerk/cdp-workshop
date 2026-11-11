@@ -36,7 +36,7 @@ Your Kerberos user must own `${WORKSHOP_HOME}`. Ask your instructor if your home
 
 ## Beeline / Metastore section 7: `GSS initiate failed`
 
-Verify `HS2_URL` from your handout and a valid ticket (`klist`).
+Check that you have a valid ticket (`klist`); Beeline is preconfigured, so no JDBC URL is needed.
 
 ## Ranger: `does not have privilege` on `{USER}` or HDFS
 

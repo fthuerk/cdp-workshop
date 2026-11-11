@@ -2,12 +2,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# keep the HS2_URL you exported in the lab; config.env would overwrite it
-PARTICIPANT_HS2_URL="${HS2_URL:-}"
 # shellcheck source=../../lib/common.sh
 source "${REPO_ROOT}/lib/common.sh"
 load_config
-HS2_URL="${PARTICIPANT_HS2_URL:-${HS2_URL}}"
 
 require_cmd beeline
 require_kerberos_ticket
@@ -21,7 +18,7 @@ DB="${WS_USER}"
 
 # Run SQL in your database; print the last output line (empty if the query failed).
 sql() {
-  beeline -u "${HS2_URL}" --silent=true --showHeader=false --outputformat=tsv2 \
+  beeline --silent=true --showHeader=false --outputformat=tsv2 \
     -e "USE ${DB}; $1" 2>/dev/null | tail -1 || true
 }
 

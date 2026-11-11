@@ -2,14 +2,13 @@
 
 Run sections in order. You need one terminal on the edge node with `beeline`; the second terminal is used to copy the sample files and, in section 5, to look at the files of an ACID table. This lab is about the **complex operations and functions** of Hive SQL on the smart-meter data: joins beyond the basic inner join, window functions, complex types, grouping sets, and geo data as WKT. The last section looks at ACID managed tables: delta files and compaction.
 
-Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `HIVE_EXT` is the folder where Hive keeps the data of your external tables (one sub-folder per table, created by Hive). `HS2_URL` is the HiveServer2 JDBC URL from your workshop handout.
+Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `HIVE_EXT` is the folder where Hive keeps the data of your external tables (one sub-folder per table, created by Hive).
 
 ```bash
 export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export HIVE_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"   # adjust if needed
-export HS2_URL="<jdbc-url-from-your-handout>"
 ```
 
 The lab expects everyday SQL (`WHERE`, `GROUP BY`, `CASE`, views, a basic `JOIN`). Section 0 creates everything it needs and you can repeat it at any time, so you can start here without any other lab.
@@ -23,8 +22,7 @@ The lab expects everyday SQL (`WHERE`, `GROUP BY`, `CASE`, views, a basic `JOIN`
 Start Beeline. The `--hivevar` option defines the variable `${ws_user}` that the SQL below uses (in Hue the same placeholder becomes an input field):
 
 ```bash
-beeline -u "${HS2_URL}" \
-  --hivevar ws_user="${WORKSHOP_USER}"
+beeline --hivevar ws_user="${WORKSHOP_USER}"
 ```
 
 Create your database (if it does not exist yet) and the four external tables: meter readings, station reference data, hourly market prices, and operator weather. All fields are read by position, and the header line is skipped:
@@ -584,7 +582,7 @@ A single `base_000000N_v…` directory remains. The count is still 14: compactio
 
 ## Self-check
 
-From the repo root on the edge node, run the module check script (uses your Kerberos ticket, `HS2_URL`, and your database):
+From the repo root on the edge node, run the module check script (uses your Kerberos ticket, and your database):
 
 ```bash
 ./10-advanced-hive/lab/check.sh

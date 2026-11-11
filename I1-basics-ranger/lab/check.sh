@@ -2,16 +2,13 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PARTICIPANT_HS2_URL="${HS2_URL:-}"
 # shellcheck source=../../lib/common.sh
 source "${REPO_ROOT}/lib/common.sh"
 load_config
-HS2_URL="${PARTICIPANT_HS2_URL:-${HS2_URL}}"
 
 require_cmd beeline
 require_kerberos_ticket
 
-: "${HS2_URL:?Set HS2_URL in config.env or export HS2_URL}"
 
 fail=0
 pass() { echo "[PASS] $*"; }
@@ -20,7 +17,7 @@ fail_msg() { echo "[FAIL] $*"; fail=1; }
 WS_USER="${WORKSHOP_USER:-${USER}}"
 
 beeline_q() {
-  beeline -u "${HS2_URL}" --silent=true --showHeader=false --outputformat=tsv2 \
+  beeline --silent=true --showHeader=false --outputformat=tsv2 \
     -e "$1" 2>/dev/null | tail -1 || true
 }
 

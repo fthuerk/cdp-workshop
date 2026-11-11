@@ -29,7 +29,7 @@ The lab only uses managed tables in your own database (default locations, no `LO
 ## Self-check: table missing
 
 - Re-run lab sections 1 and 3 in Hue.  
-- Set `HS2_URL` if `check.sh` cannot reach HiveServer2 (the same JDBC URL you use for Beeline).  
+- Check your ticket (`klist`) if `check.sh` cannot reach HiveServer2 (Beeline is preconfigured, no URL needed).  
 ## Hue / Knox session expired
 
 Renew Kerberos (`kinit`) and reload Hue. Atlas uses the same SSO path when opened via Knox.

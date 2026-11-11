@@ -62,7 +62,6 @@ echo "${NAME_NODE}"
 
 # From your handout
 export RESOURCE_MANAGER="<resource-manager-host:port-from-your-handout>"
-export HS2_URL="<hiveserver2-jdbc-url-from-your-handout>"
 export HS2_PRINCIPAL="<hiveserver2-principal-from-your-handout>"
 ```
 

@@ -11,7 +11,7 @@ The lab has two clearly separated parts:
 
 Part A starts **very slowly**: first plain Python variables, then tiny DataFrames built by hand (no files, no HDFS). Only from section 6 on do we read real CSV files.
 
-Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `SPARK_LAB` holds the shared batch script on HDFS. The three `*_CSV` paths point at workshop sample data under `${WORKSHOP_ROOT}/data`. `HS2_URL` is the HiveServer2 JDBC URL from your handout (section 12 only).
+Set your Kerberos identity and paths once. `WORKSHOP_USER` is the short name you use with `kinit`. `SPARK_LAB` holds the shared batch script on HDFS. The three `*_CSV` paths point at workshop sample data under `${WORKSHOP_ROOT}/data`.
 
 ```bash
 export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
@@ -22,7 +22,6 @@ export SPARK_LAB="${WORKSHOP_ROOT}/06-spark"
 export METER_CSV="${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 export WEATHER_CSV="${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
 export AWATTAR_CSV="${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"
-export HS2_URL="<jdbc-url-from-your-handout>"
 ```
 
 **Spark** runs distributed transforms: the **driver** plans work, **executors** run tasks in parallel on YARN **containers**. Input and output stay on **HDFS** — same storage pattern as MapReduce, Tez, and Hive. This lab reads landing CSVs, builds a small **curated** Parquet dataset in your home directory, and optionally registers it in the **Hive Metastore** for SQL engines.
@@ -589,7 +588,7 @@ spark.sql("DESCRIBE FORMATTED spark_curated_join").show(50, False)
 You should see **24** rows and **3** stations. **Optional cross-check** in Beeline (second terminal):
 
 ```bash
-beeline -u "${HS2_URL}" -e "
+beeline -e "
 USE ${WORKSHOP_USER};
 SELECT station_id, COUNT(*) AS n FROM spark_curated_join GROUP BY station_id ORDER BY station_id;
 "

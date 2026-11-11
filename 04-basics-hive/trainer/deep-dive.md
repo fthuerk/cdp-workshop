@@ -200,7 +200,7 @@ kinit "${WORKSHOP_USER}"
 
 ```bash
 # Beeline session with workshop variables
-beeline -u "jdbc:hive2://<hs2-host>:10000/default;principal=hive/_HOST@REALM" \
+beeline \
   --hivevar ws_user="${WORKSHOP_USER}" \
   --hivevar workshop_root="${WORKSHOP_ROOT}"
 ```

@@ -6,10 +6,10 @@ set -euo pipefail
 _ws_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _ws_repo_root="$(cd "${_ws_script_dir}/.." && pwd)"
 
-# Precedence: environment (WORKSHOP_ROOT, WORKSHOP_LOCAL, HS2_URL) > config.env > config.env.example.
+# Precedence: environment (WORKSHOP_ROOT, WORKSHOP_LOCAL) > config.env > config.env.example.
 load_config() {
   local cfg="${CDP_WORKSHOP_CONFIG:-${_ws_repo_root}/config.env}"
-  local env_root="${WORKSHOP_ROOT:-}" env_local="${WORKSHOP_LOCAL:-}" env_hs2="${HS2_URL:-}"
+  local env_root="${WORKSHOP_ROOT:-}" env_local="${WORKSHOP_LOCAL:-}"
   if [[ -f "${cfg}" ]]; then
     # shellcheck disable=SC1090
     source "${cfg}"
@@ -23,13 +23,12 @@ load_config() {
   fi
   WORKSHOP_ROOT="${env_root:-${WORKSHOP_ROOT:-}}"
   WORKSHOP_LOCAL="${env_local:-${WORKSHOP_LOCAL:-${_ws_repo_root}}}"
-  HS2_URL="${env_hs2:-${HS2_URL:-}}"
   [[ -d "${WORKSHOP_LOCAL}/data/samples" ]] || WORKSHOP_LOCAL="${_ws_repo_root}"   # not at the configured path: use this clone
   : "${WORKSHOP_ROOT:?WORKSHOP_ROOT must be set}"
   # Participant HDFS home for lab output; override for a different folder.
   WORKSHOP_USER="${WORKSHOP_USER:-${USER:-$(whoami 2>/dev/null || true)}}"
   WORKSHOP_HOME="${WORKSHOP_HOME:-/user/${WORKSHOP_USER}}"
-  export WORKSHOP_ROOT WORKSHOP_LOCAL HS2_URL WORKSHOP_HOME
+  export WORKSHOP_ROOT WORKSHOP_LOCAL WORKSHOP_HOME
 }
 
 log_info() { echo "[INFO] $*"; }

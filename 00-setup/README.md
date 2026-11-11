@@ -16,7 +16,7 @@ Prepare your account and confirm cluster access before any hands-on module.
 4. Copy configuration (trainer may do this globally):
    ```bash
    cp config.env.example config.env
-   # edit WORKSHOP_ROOT, HS2_URL, Knox/Hue URLs if needed
+   # edit WORKSHOP_ROOT, Knox/Hue URLs if needed
    ```
 5. Run the environment check:
    ```bash

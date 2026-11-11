@@ -385,10 +385,10 @@ Create the table in one engine, change it in the second, read it in the third. T
 
 **Impala:** Hue editor (as above) or `impala-shell` with the options from the handout.
 
-**Hive:** Beeline with the JDBC URL from the handout (HiveServer2):
+**Hive:** Beeline (preconfigured on the edge node, no URL needed):
 
 ```bash
-beeline -u "<hs2-jdbc-url-from-handout>"
+beeline
 ```
 
 **Spark:** `pyspark` (or `spark3-shell`) after `kinit`. In CDP the Iceberg runtime is part of the Spark 3 parcel; the Hive catalog is the session catalog. Features beyond reading and writing (stored procedures `CALL system.*`, `ALTER TABLE … ADD PARTITION FIELD`, branches and tags) need the **Iceberg SQL extensions**:
