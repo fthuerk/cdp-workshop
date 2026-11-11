@@ -9,6 +9,11 @@ Set your Kerberos identity and paths once in the terminal. `TYPES_LAB` holds the
 ```bash
 export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
+```
+
+The `kinit` asks for your password, so it has its own block. Then set the rest:
+
+```bash
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export TYPES_LAB="${WORKSHOP_ROOT}/14-datatypes"
 export TYPES_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"   # adjust if needed

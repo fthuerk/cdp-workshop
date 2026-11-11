@@ -7,6 +7,11 @@ Set your Kerberos identity and paths once for the whole lab. `WORKSHOP_USER` is 
 ```bash
 export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
+```
+
+The `kinit` asks for your password, so it has its own block. Then set the rest:
+
+```bash
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you may write to works
 export YARN_LAB="${WORKSHOP_ROOT}/03-yarn"

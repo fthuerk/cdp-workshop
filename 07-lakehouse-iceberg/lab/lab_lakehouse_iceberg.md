@@ -22,6 +22,11 @@ An external Hive table is **a folder plus a definition in the Metastore**. Every
 ```bash
 export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
+```
+
+The `kinit` asks for your password, so it has its own block. Then set the rest:
+
+```bash
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export HIVE_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"   # adjust if needed
 export ICE_META="${HIVE_EXT}/ice_meter"

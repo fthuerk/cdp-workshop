@@ -89,6 +89,11 @@ Every lab markdown (for example `lab/lab_basics_hdfs.md`) starts with the same p
 ```bash
 export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
+```
+
+The `kinit` asks for your password, so it has its own block. Then set the rest:
+
+```bash
 export WORKSHOP_ROOT=/2026_cdp_workshop   # adjust if needed
 # module-specific paths below, e.g. HDFS_LAB=...
 ```

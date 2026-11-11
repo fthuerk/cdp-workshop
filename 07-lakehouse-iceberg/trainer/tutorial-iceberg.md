@@ -15,6 +15,11 @@ Use your own `<trainer_user>` database. Two Hue Impala editor tabs (**A** and **
 ```bash
 export WORKSHOP_USER="${WORKSHOP_USER:-$(whoami)}"   # default: your Linux login; change if your Kerberos name differs
 kinit "${WORKSHOP_USER}"
+```
+
+The `kinit` asks for your password, so it has its own block. Then set the rest:
+
+```bash
 export HIVE_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"
 ```
 
