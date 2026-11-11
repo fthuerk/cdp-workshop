@@ -8,6 +8,10 @@ Wrong username or realm. Use the principal from your instructor (`user@REALM`).
 
 Use the PySpark binary from your handout (`pyspark3`, `/opt/cloudera/parcels/.../bin/pyspark`, etc.). The lab assumes Spark 3 on CDP.
 
+## Many warnings or errors when `pyspark3` starts
+
+`HADOOP_CONF_DIR` is not set in this terminal. Run `export HADOOP_CONF_DIR=/etc/hadoop/conf`, then start `pyspark3` (or `spark-submit`) again. The variable only exists in the terminal where you exported it, so set it again in every new terminal.
+
 ## `AnalysisException: Path does not exist` or `Unable to infer schema`
 
 - Check `echo "${METER_CSV}"` and `hdfs dfs -ls "${METER_CSV}"`.  

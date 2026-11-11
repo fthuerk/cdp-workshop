@@ -24,6 +24,7 @@ The `kinit` asks for your password, so it has its own block. Then set the rest:
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you may write to works
 export SPARK_LAB="${WORKSHOP_ROOT}/06-spark"
+export HADOOP_CONF_DIR=/etc/hadoop/conf   # must be set before pyspark3 / spark-submit, otherwise the shell prints many warnings
 export METER_CSV="${WORKSHOP_ROOT}/data/grid_measurements/sample-grid-measurements.csv"
 export WEATHER_CSV="${WORKSHOP_ROOT}/data/operator_weather/sample-operator-weather.csv"
 export AWATTAR_CSV="${WORKSHOP_ROOT}/data/awattar/sample-awattar-prices.csv"

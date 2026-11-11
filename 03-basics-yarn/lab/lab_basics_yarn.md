@@ -14,6 +14,7 @@ The `kinit` asks for your password, so it has its own block. Then set the rest:
 ```bash
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export WORKSHOP_HOME="/user/${WORKSHOP_USER}"   # your HDFS home; any folder you may write to works
+export HADOOP_CONF_DIR=/etc/hadoop/conf   # needed by spark-submit in section 8
 export YARN_LAB="${WORKSHOP_ROOT}/03-yarn"
 ```
 

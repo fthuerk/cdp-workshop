@@ -16,6 +16,7 @@ The `kinit` asks for your password, so it has its own block. Then set the rest:
 ```bash
 export WORKSHOP_ROOT="${WORKSHOP_ROOT:-/2026_cdp_workshop}"   # adjust if needed
 export TYPES_LAB="${WORKSHOP_ROOT}/14-datatypes"
+export HADOOP_CONF_DIR=/etc/hadoop/conf   # must be set before pyspark3, otherwise the shell prints many warnings
 export TYPES_EXT="/warehouse/tablespace/external/hive/${WORKSHOP_USER}.db"   # adjust if needed
 
 # Only used by the self-check at the end
