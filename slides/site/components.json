@@ -5,7 +5,7 @@
     { "id": "tools", "label": "Tools & Interfaces" },
     { "id": "orchestration", "label": "Orchestration" },
     { "id": "engines", "label": "Processing Engines" },
-    { "id": "data", "label": "Structured Data" },
+    { "id": "data", "label": "Data Stores & Streams" },
     { "id": "resources", "label": "Resource Management" },
     { "id": "foundation", "label": "Storage" }
   ],

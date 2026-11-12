@@ -184,6 +184,9 @@ const PAGE_SCRIPT = `
 })()
 `
 
+// All links on the overview page (labs, slides, source) open in a new browser tab.
+const NEW_TAB = ' target="_blank" rel="noopener noreferrer"'
+
 function renderIndex(modules, decks, components) {
   const deckByModule = new Map(decks.map((d) => [d.module, d]))
   const body = modules
@@ -192,14 +195,14 @@ function renderIndex(modules, decks, components) {
       const planned = !m.dir
       let labCell
       if (planned) labCell = `<span class="muted">${esc(m.title)}</span>`
-      else if (m.labs.length === 1) labCell = `<a href="${blobUrl(m.labs[0].path)}">${esc(m.title)}</a>`
+      else if (m.labs.length === 1) labCell = `<a href="${blobUrl(m.labs[0].path)}"${NEW_TAB}>${esc(m.title)}</a>`
       else
         labCell =
           `<span>${esc(m.title)}</span><ul>` +
-          m.labs.map((l) => `<li><a href="${blobUrl(l.path)}">${esc(l.title)}</a></li>`).join('') +
+          m.labs.map((l) => `<li><a href="${blobUrl(l.path)}"${NEW_TAB}>${esc(l.title)}</a></li>`).join('') +
           '</ul>'
       const slidesCell = deck
-        ? `<a class="slides" href="slides/${esc(deck.name)}/" title="Slides: ${esc(deck.title)}" aria-label="Slides: ${esc(deck.title)}">${slidesIcon}</a>`
+        ? `<a class="slides"${NEW_TAB} href="slides/${esc(deck.name)}/" title="Slides: ${esc(deck.title)}" aria-label="Slides: ${esc(deck.title)}">${slidesIcon}</a>`
         : ''
       return (
         `<tr class="${planned ? 'planned' : ''}" data-techs="${esc((components.modules[m.id] ?? []).join(' '))}">` +
@@ -278,7 +281,7 @@ ${body}
 </table>
 </section>
 </div>
-<footer><a href="https://github.com/${slug}">Source on GitHub</a></footer>
+<footer><a href="https://github.com/${slug}"${NEW_TAB}>Source on GitHub</a></footer>
 <script>
 ${PAGE_SCRIPT}
 </script>
