@@ -88,7 +88,7 @@ Livy runs Spark as `WORKSHOP_USER`; that user must own `${WORKSHOP_HOME}`. Ask y
 
 - 401: wrong user or password in the first cell — rerun it.  
 - Hang at `starting`: queue full (see above) or `livy_session_startup_timeout_seconds` in `~/.sparkmagic/config.json` too small — raise it to `300`.  
-- `Duplicate session name` does not occur here (sparkmagic does not set a name), but old notebook sessions pile up: list `${LIVY_URL}/sessions`, find yours by `owner`, delete them.
+- `Duplicate session name` is unlikely here: the notebook names the Livy session `<user>-livy-nb-<HHMMSS>` (or `<user>-spark-lab-<HHMMSS>` in module 06), so every start gets a new name. Old notebook sessions pile up, though: list `${LIVY_URL}/sessions`, find yours by `owner` or by the name, delete them.
 
 ## Jupyter: `%%spark -o hourly` fails with a conversion error
 

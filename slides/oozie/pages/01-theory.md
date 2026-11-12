@@ -351,6 +351,50 @@ stateDiagram-v2
 
 ---
 
+# SLAs: is the job on time?
+
+<div class="grid grid-cols-[1fr_1.2fr] gap-6">
+<div class="text-sm">
+
+An **SLA** (service level agreement) tells Oozie **when a job should start and end**. Oozie then watches it and records every violation.
+
+- Defined with an `<sla:info>` block in `workflow.xml` or `coordinator.xml`
+- All times are relative to the **nominal time**
+- Three possible **events**:
+  - **START_MISS**: did not start by `should-start`
+  - **END_MISS**: not finished by `should-end`
+  - **DURATION_MISS**: ran longer than `max-duration`
+- `alert-events` and `alert-contact` send an **e-mail** on a miss
+- Status of all SLAs: **Jobs → SLAs** tab in Hue
+- Oozie only **reports**. It does not kill or restart the job
+
+</div>
+<div>
+
+```xml
+<action name="load-daily" ...>
+  ...
+  <sla:info>
+    <sla:nominal-time>${coord:nominalTime()}</sla:nominal-time>
+    <sla:should-start>${10 * MINUTES}</sla:should-start>
+    <sla:should-end>${60 * MINUTES}</sla:should-end>
+    <sla:max-duration>${45 * MINUTES}</sla:max-duration>
+    <sla:alert-events>end_miss,duration_miss</sla:alert-events>
+    <sla:alert-contact>team@example.com</sla:alert-contact>
+  </sla:info>
+</action>
+```
+
+<div class="text-xs mt-2">
+
+Needs the namespace `xmlns:sla="uri:oozie:sla:0.2"` in the root element.
+
+</div>
+</div>
+</div>
+
+---
+
 # Bundles
 
 <div class="grid grid-cols-[1fr_1.15fr] gap-6">
