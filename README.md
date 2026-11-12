@@ -43,7 +43,7 @@ Hands-on modules for Cloudera Data Platform, organized as a **sequential curricu
 
 See [docs/concept.md](docs/concept.md) for learning objectives, dependencies, and fallbacks.
 
-**Slides:** modules with a slide deck are published together with an overview page of all labs on GitHub Pages (`https://<user>.github.io/<repo>/`). Decks live in [slides/](slides/README.md).
+**Slides:** modules with a slide deck are published together with an overview page (platform component map and all labs) on GitHub Pages (`https://<user>.github.io/<repo>/`). Decks live in [slides/](slides/README.md).
 
 **Authors:** [docs/workshop-guidelines.md](docs/workshop-guidelines.md) (labs and modules) · [docs/simplicity.md](docs/simplicity.md) (scripts)
 

@@ -1,0 +1,62 @@
+{
+  "caption": "Cloudera Data Platform",
+  "coreLabel": "Core Services",
+  "layers": [
+    { "id": "tools", "label": "Tools & Interfaces" },
+    { "id": "orchestration", "label": "Orchestration" },
+    { "id": "engines", "label": "Processing Engines" },
+    { "id": "data", "label": "Structured Data" },
+    { "id": "resources", "label": "Resource Management" },
+    { "id": "foundation", "label": "Storage" }
+  ],
+  "bars": [
+    { "id": "security", "label": "Security & Governance" },
+    { "id": "management", "label": "Management" }
+  ],
+  "nodes": [
+    { "id": "hue", "label": "Hue", "icon": "hue.png", "role": "SQL & data UI", "layer": "tools", "col": 0, "cols": 3 },
+    { "id": "livy", "label": "Livy", "icon": "livy.svg", "role": "REST API for Spark", "layer": "tools", "col": 1, "cols": 3 },
+    { "id": "spark-history", "label": "Spark History Server", "icon": "spark.png", "role": "Job history UI", "layer": "tools", "col": 2, "cols": 3 },
+
+    { "id": "oozie", "label": "Oozie", "icon": "oozie.svg", "role": "Workflow scheduler", "layer": "orchestration", "col": 0, "cols": 1 },
+
+    { "id": "spark", "label": "Spark", "icon": "spark.png", "role": "Batch & ETL", "layer": "engines", "col": 0, "cols": 3 },
+    { "id": "hive", "label": "Hive", "icon": "hive.svg", "role": "SQL & metastore", "layer": "engines", "col": 1, "cols": 3 },
+    { "id": "impala", "label": "Impala", "icon": "impala.png", "role": "Interactive SQL", "layer": "engines", "col": 2, "cols": 3 },
+
+    { "id": "hive-tables", "tech": "hive", "label": "Hive", "icon": "hive.svg", "role": "Tables & metastore", "layer": "data", "col": 0, "cols": 4 },
+    { "id": "kafka", "label": "Kafka", "icon": "kafka.svg", "role": "Streaming", "layer": "data", "col": 1, "cols": 4 },
+    { "id": "iceberg", "label": "Iceberg", "icon": "iceberg.png", "role": "Table format", "layer": "data", "col": 2, "cols": 4 },
+    { "id": "hbase", "label": "HBase", "icon": "hbase.svg", "role": "Low-latency NoSQL", "layer": "data", "col": 3, "cols": 4 },
+
+    { "id": "yarn", "label": "YARN", "icon": "yarn.png", "role": "Resource manager", "layer": "resources", "col": 0, "cols": 1 },
+
+    { "id": "hdfs", "label": "HDFS", "icon": "hdfs.png", "role": "Distributed files", "layer": "foundation", "col": 0, "cols": 2 },
+    { "id": "ozone", "label": "Ozone", "icon": "ozone.png", "showLabel": true, "role": "Object store", "layer": "foundation", "col": 1, "cols": 2 },
+
+    { "id": "knox", "label": "Knox", "icon": "knox.svg", "role": "Gateway & SSO", "bar": "security", "index": 0, "count": 3 },
+    { "id": "ranger", "label": "Ranger", "icon": "ranger.svg", "role": "Authorization", "bar": "security", "index": 1, "count": 3 },
+    { "id": "atlas", "label": "Atlas", "icon": "atlas.svg", "role": "Metadata & lineage", "bar": "security", "index": 2, "count": 3 },
+
+    { "id": "cm", "label": "Cloudera Manager", "icon": "cm.png", "showLabel": true, "role": "Monitor & configure", "bar": "management", "index": 0, "count": 1 }
+  ],
+  "modules": {
+    "00": ["knox", "hue", "cm", "hdfs"],
+    "01": [],
+    "02": ["hdfs"],
+    "03": ["yarn", "spark-history"],
+    "04": ["hue", "hive", "hdfs"],
+    "05": ["hue", "impala", "hive", "hdfs"],
+    "06": ["spark", "yarn", "hdfs", "spark-history", "hive"],
+    "07": ["iceberg", "impala", "hive", "hue", "hdfs"],
+    "08": ["oozie", "hue"],
+    "09": ["livy", "knox", "spark", "yarn"],
+    "10": ["hive", "hue", "hdfs"],
+    "11": ["oozie", "spark", "hive", "yarn"],
+    "12": ["spark"],
+    "13": ["impala"],
+    "14": ["hive", "impala", "spark"],
+    "I1": ["ranger", "hive", "hdfs"],
+    "I2": ["atlas", "hive"]
+  }
+}

@@ -10,12 +10,25 @@ Slide decks (Slidev) for modules of this workshop, and the script that builds th
 ## What gets published
 
 ```
-index.html          overview of all modules: lab links (to GitHub) and a slides icon where a deck exists
+index.html          overview: platform component map plus all modules (lab links to GitHub, slides icon where a deck exists)
+icons/              product logos used by the component map
 slides/oozie/       deck
 slides/livy/        deck
 ```
 
 The overview page is generated from the module table in the root `README.md`. Every `<module>/lab/lab_*.md` is linked to its page on GitHub. The slides icon appears for modules that have a deck.
+
+## Component map
+
+Above the module table the page shows the platform stack (tools, orchestration, engines, data, storage, security, management) as an inline SVG. Clicking a component highlights the modules that use it (several components can be combined); hovering a module row shows its components in the map. Without JavaScript the map is static.
+
+| File | Purpose |
+|------|---------|
+| `site/components.json` | Layers, side bars, components (logo, role, position) and the `modules` object that maps a module ID to its components |
+| `site/map.mjs` | Renders the SVG and holds its styles |
+| `site/icons/` | Logos (local files, no CDN) |
+
+Add a module: add its row to the README table, then list its components under `modules` in `components.json` (the build fails on unknown module IDs or component IDs). Add a component: add an entry under `nodes` and drop the logo into `site/icons/`. A box with `"tech": "hive"` highlights together with the box whose ID is `hive`.
 
 ## Add a deck
 
