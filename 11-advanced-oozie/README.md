@@ -2,14 +2,14 @@
 
 Scheduling and orchestration for the grid monitoring use case: build a small daily pipeline (check the landing folder, summarize meter data in Hive, summarize operator weather in Spark) as an **Oozie workflow**, then start it on a schedule and when the data arrives with **coordinators**.
 
-**Estimated time:** ~110 minutes (workflows ~70 min, coordinators ~30 min, wrap-up ~10 min; optional Hue view and stretch).
+**Estimated time:** ~135 minutes (workflows ~70 min, coordinators ~30 min, wrap-up ~10 min, own application ~25 min; optional Hue view and stretch).
 
 ## Prerequisites
 
 - Recommended: the Hue tour in [08-basics-oozie](../08-basics-oozie/README.md) (same concepts, built in the UI)
 - Module [00-setup](../00-setup/README.md) complete (`check_env.sh` passes)
 - Valid Kerberos ticket (`WORKSHOP_USER` + `kinit`)
-- The `oozie` command on the edge node and the Oozie server URL (from your handout)
+- The `oozie` command on the edge node, the Oozie URL (the Knox address, from your handout) and your password: Oozie is reached through Knox with user name and password, not with Kerberos
 - Hive and Spark must be usable with your account (same rights as in the Hive and Spark labs)
 
 ## Learning goals
@@ -20,6 +20,7 @@ After this module you can:
 - Write and run a workflow with a shell action; find the launcher on YARN and read its log
 - Use **control nodes** (decision, fork, join, kill) and **EL functions** to build a workflow that checks its input and fails with a clear message
 - Run **fs**, **hive2** and **spark3** actions, including the credential that a Kerberos cluster needs for Hive
+- Write your own application with a `spark3` and a `hive2` action (CSV to external table to managed table), deploy it to HDFS and run it with parameters
 - Read job and action states with `oozie job -info`, and **rerun** only the failed part of a workflow
 - Start a workflow with a **time-based coordinator** and explain nominal time and catch-up
 - Start a workflow with a **data-triggered coordinator** using a dataset and a `_SUCCESS` done-flag
@@ -30,7 +31,7 @@ After this module you can:
 | Phase | Content |
 |-------|---------|
 | Concept (trainer) | Where Oozie sits (server, database, launcher, YARN); workflow vs coordinator vs bundle; why a scheduler needs idempotent steps |
-| Core lab | [lab_advanced_oozie.md](lab/lab_advanced_oozie.md) sections 1–9 |
+| Core lab | [lab_advanced_oozie.md](lab/lab_advanced_oozie.md) sections 1–10 (section 10 is the exercise at the end) |
 | Optional | Hue job browser view (end of section 9) and stretch tasks |
 | Self-check | `./11-advanced-oozie/lab/check.sh` |
 

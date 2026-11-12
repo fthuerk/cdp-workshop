@@ -26,7 +26,7 @@ export LIVY_LAB="${WORKSHOP_ROOT}/09-livy"
 export LAB_TMP="/tmp/livy-lab-${WORKSHOP_USER}"
 ```
 
-**Request files.** Livy takes JSON. You write the request bodies yourself with `vim` (open the file, press `i`, type or paste the content, press `Esc`, then `:wq`). The file contents in this lab contain two placeholders you replace with your own values: `<your_user>` (your `WORKSHOP_USER`) and the workshop path `/2026_cdp_workshop` (adjust if yours differs). In `vim`, one command replaces all occurrences: `:%s/<your_user>/alice/g` (use your own name). Check a file for valid JSON with `jq . < "${LAB_TMP}/<file>"`.
+**Request files.** Livy takes JSON. You write the request bodies yourself with `vim` (open the file, type `:set paste` and press Enter, press `i`, type or paste the content, press `Esc`, then `:wq`). Always run `:set paste` before you paste several lines: otherwise `vim` indents every line a bit further than the one before (a staircase), which breaks Python and properties files. Paste mode ends when you leave `vim`. The file contents in this lab contain two placeholders you replace with your own values: `<your_user>` (your `WORKSHOP_USER`) and the workshop path `/2026_cdp_workshop` (adjust if yours differs). In `vim`, one command replaces all occurrences: `:%s/<your_user>/alice/g` (use your own name). Check a file for valid JSON with `jq . < "${LAB_TMP}/<file>"`.
 
 ## What is Livy?
 

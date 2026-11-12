@@ -20,10 +20,9 @@
 
   <action name="summary" cred="hs2-creds">
     <hive2 xmlns="uri:oozie:hive2-action:1.0">
-      <resource-manager>${resourceManager}</resource-manager>
       <name-node>${nameNode}</name-node>
       <jdbc-url>${jdbcURL}</jdbc-url>
-      <script>station_summary.q</script>
+      <script>station_summary.hql</script>
       <param>DB=${database}</param>
       <param>INPUT_DIR=${inputDir}</param>
       <param>RUN_DATE=${runDate}</param>

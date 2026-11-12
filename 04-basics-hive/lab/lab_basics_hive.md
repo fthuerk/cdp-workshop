@@ -690,7 +690,7 @@ Create the file locally with `vim`, with a header like the original CSV:
 vim "/tmp/grid-measurements-changes.csv.${WORKSHOP_USER}"
 ```
 
-Content of the file:
+Content of the file (in `vim`, type `:set paste` and press Enter before you press `i` and paste, otherwise every line is indented further than the one before):
 
 ```csv
 timestamp,station_id,device_id,phase,active_power_kw,reactive_power_kvar,voltage_v,current_a,power_factor,frequency_hz,transformer_load_pct,quality_flag,event_code,comm_status
@@ -929,7 +929,7 @@ DESCRIBE FORMATTED grid_measurements_by_station PARTITION (station_id='TS-101');
 Run SQL non-interactively. Save a statement with a variable to a file and run it with `beeline -f` from the second terminal — the same way a scheduled job would:
 
 ```bash
-vim "/tmp/station-summary.sql.${WORKSHOP_USER}"
+vim "/tmp/station-summary.${WORKSHOP_USER}.hql"
 ```
 
 Content of the file (`${ws_user}` and `${station}` stay as they are; Beeline fills them in):
@@ -941,7 +941,7 @@ SELECT station_id, COUNT(*) AS readings FROM meter_orc WHERE station_id = '${sta
 
 ```bash
 beeline --hivevar ws_user="${WORKSHOP_USER}" --hivevar station=TS-305 \
-  -f "/tmp/station-summary.sql.${WORKSHOP_USER}"
+  -f "/tmp/station-summary.${WORKSHOP_USER}.hql"
 ```
 
 - Join three ways: `grid_measurements_v` + `stations` + the OpenStreetMap context (a new external table for `${WORKSHOP_ROOT}/data/openstreetmap`, copied the same way as in section 9; filter `buffer_m = 250`) to relate peak load to the share of industrial area.  

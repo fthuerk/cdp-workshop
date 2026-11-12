@@ -6,7 +6,6 @@
 
   <action name="weather-daily">
     <spark3 xmlns="uri:oozie:spark3-action:1.0">
-      <resource-manager>${resourceManager}</resource-manager>
       <name-node>${nameNode}</name-node>
       <!-- prepare runs before the job: makes a rerun safe -->
       <prepare>

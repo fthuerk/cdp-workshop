@@ -165,6 +165,8 @@ Align section themes with [concept.md — Didactic pattern](concept.md#didactic-
 - Prefer **direct cluster CLIs** (`hdfs`, `yarn`, `beeline`, `spark-submit`, etc.). See [simplicity.md](simplicity.md).
 - **Export before use:** any variable referenced in a section must appear in the intro or at the start of that section.
 - Quote paths: `"/user/${WORKSHOP_USER}/file"`.
+- **Pasting into `vim`:** wherever a lab asks you to paste several lines into a file with `vim`, tell the reader to type `:set paste` (Enter) before `i`. Otherwise auto-indent turns the text into a staircase. The intro of a lab that creates many files explains it once, long files repeat a short reminder.
+- **SQL files end in `.hql`** (Hive, Beeline and Oozie scripts), not `.sql` or `.q`. Put the user name before the extension: `"/tmp/station-summary.${WORKSHOP_USER}.hql"`.
 - Use **real workshop data** under `${WORKSHOP_ROOT}/data/...`; avoid generic toy datasets (`id,name,value`).
 - **Teach exploration:** when finding trash paths, block locations, or log snippets is the learning goal, give listing commands and a placeholder (e.g. `"<path-to-hosts-in-trash>"`) instead of `awk`/`grep` one-liners that compute the answer.
 - Avoid defensive shell noise in labs (`2>&1 || true`, nested pipes purely for pretty output) unless teaching shell itself.

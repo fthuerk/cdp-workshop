@@ -17,12 +17,17 @@ check() { if "$@"; then echo "[PASS] $*"; else echo "[FAIL] $*"; fail=1; fi }
 
 for f in \
   apps/landing-check/workflow.xml \
-  apps/hive-summary/workflow.xml apps/hive-summary/station_summary.q \
+  apps/hive-summary/workflow.xml apps/hive-summary/station_summary.hql \
   apps/spark-weather/workflow.xml apps/spark-weather/lib/weather_daily.py \
-  apps/meter-daily/workflow.xml apps/meter-daily/station_summary.q apps/meter-daily/lib/weather_daily.py \
+  apps/meter-daily/workflow.xml apps/meter-daily/station_summary.hql apps/meter-daily/lib/weather_daily.py \
   coord/landing-check-coord/coordinator.xml coord/meter-daily-coord/coordinator.xml; do
   check hdfs dfs -test -e "${MODULE_ROOT}/${f}"
 done
+
+# Oozie behind Knox takes user name and password: export WORKSHOP_USER and WORKSHOP_PASSWORD before running this script.
+if [[ -n "${WORKSHOP_PASSWORD:-}" ]]; then
+  oozie() { command oozie "$@" -auth BASIC -username "${WORKSHOP_USER:-${USER}}" -password "${WORKSHOP_PASSWORD}"; }
+fi
 
 # Platform side: needs OOZIE_URL (config.env or environment) and the oozie client on this host.
 if [[ -n "${OOZIE_URL:-}" ]] && command -v oozie >/dev/null 2>&1; then

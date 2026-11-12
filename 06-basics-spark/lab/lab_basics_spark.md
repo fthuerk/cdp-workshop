@@ -655,7 +655,7 @@ Create a pi estimator. It runs in several rounds with a short pause, so the appl
 vim /tmp/pi_lab.py
 ```
 
-Content of the file:
+Content of the file (in `vim`, type `:set paste` and press Enter before you press `i` and paste, otherwise the Python indentation breaks):
 
 ```python
 import random, time

@@ -1,16 +1,16 @@
 # Module 08 — Basics: Oozie in Hue
 
-A guided tour through the Oozie editors in Hue. You build a **workflow**, a **time-based coordinator** and a **data-triggered coordinator** (which loads a daily Hive partition) with the mouse, run them, and then open the generated XML to see what Hue wrote for you. You type no XML in sections 0–5. A final exercise (section 6) goes the other way: you write a small workflow with a Spark and a Hive action by hand, deploy the XML to HDFS and run it with the `oozie` command.
+A guided tour through the Oozie editors in Hue. You build a **workflow**, a **time-based coordinator** and a **data-triggered coordinator** (which loads a daily Hive partition) with the mouse, run them, and then open the generated XML to see what Hue wrote for you. You type no XML.
 
-A whole pipeline written by hand, with Hive and Spark actions, is module [11-advanced-oozie](../11-advanced-oozie/README.md).
+The same pipeline written by hand, with Hive and Spark actions, is module [11-advanced-oozie](../11-advanced-oozie/README.md).
 
-**Estimated time:** ~95 minutes (workflow ~25 min, coordinators ~35 min, wrap-up ~10 min, CLI exercise ~25 min).
+**Estimated time:** ~70 minutes (workflow ~25 min, coordinators ~35 min, wrap-up ~10 min).
 
 ## Prerequisites
 
 - Module [00-setup](../00-setup/README.md) complete (workshop root and sample data exist)
 - Hue URL and login from your handout (the same user as `WORKSHOP_USER`)
-- Sections 0–5 need no terminal. Section 6 (exercise) uses a terminal on the edge node, a valid Kerberos ticket and the Oozie URL from your handout
+- No terminal is required; the optional Kerberos and YARN checks use the edge node
 
 ## Learning goals
 
@@ -22,7 +22,6 @@ After this module you can:
 - Create a **time-based coordinator**, and explain frequency, start/end and nominal time
 - Create a **data-triggered coordinator** with a dataset and a `_SUCCESS` done-flag that runs a Hive action to add a daily partition, and read `coordinator.xml`
 - Follow workflows and coordinator actions in the Job Browser, and kill what you started
-- Write a workflow with a `spark3` and a `hive2` action by hand, deploy it to HDFS and run it with the `oozie` command, with the CSV folder, database and table names as parameters
 
 ## Flow
 
@@ -30,7 +29,6 @@ After this module you can:
 |-------|---------|
 | Concept (trainer) | Server, launcher, workflow vs coordinator; what Hue generates and where it stores it |
 | Core lab | [lab_basics_oozie.md](lab/lab_basics_oozie.md) sections 0–5 |
-| Exercise | Section 6: `oozie` command, `spark3` and `hive2` action, deployment of the XML |
 | Stretch | Fork and join, a second action type (same lab, end) |
 
 ## Screenshots

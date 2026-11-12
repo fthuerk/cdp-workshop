@@ -130,7 +130,7 @@ Create the correction file with `vim`:
 vim "/tmp/grid-measurements-changes.csv.${WORKSHOP_USER}"
 ```
 
-Content of the file:
+Content of the file (in `vim`, type `:set paste` and press Enter before you press `i` and paste, otherwise every line is indented further than the one before):
 
 ```csv
 timestamp,station_id,device_id,phase,active_power_kw,reactive_power_kvar,voltage_v,current_a,power_factor,frequency_hz,transformer_load_pct,quality_flag,event_code,comm_status

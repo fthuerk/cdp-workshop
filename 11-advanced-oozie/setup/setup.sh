@@ -36,7 +36,7 @@ done
 
 # The same script lives in two apps: one source file in the repo, copied here.
 for app in hive-summary meter-daily; do
-  hdfs dfs -put -f "${LOCAL_ASSETS}/common/station_summary.q" "${MODULE_ROOT}/apps/${app}/"
+  hdfs dfs -put -f "${LOCAL_ASSETS}/common/station_summary.hql" "${MODULE_ROOT}/apps/${app}/"
 done
 for app in spark-weather meter-daily; do
   hdfs dfs -mkdir -p "${MODULE_ROOT}/apps/${app}/lib"

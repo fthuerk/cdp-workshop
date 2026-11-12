@@ -22,6 +22,13 @@ pass() { echo "[PASS] $*"; }
 fail_msg() { echo "[FAIL] $*"; fail=1; }
 
 WS_USER="${WORKSHOP_USER:-${USER}}"
+
+# Oozie behind Knox takes user name and password (HTTP Basic); lab section 1 exports WORKSHOP_PASSWORD
+if [[ -n "${WORKSHOP_PASSWORD:-}" ]]; then
+  oozie() { command oozie "$@" -auth BASIC -username "${WS_USER}" -password "${WORKSHOP_PASSWORD}"; }
+else
+  echo "[WARN] WORKSHOP_PASSWORD is not set: oozie commands use no login (needed when Oozie is behind Knox, lab section 1)"
+fi
 OOZIE_HDFS="/user/${WS_USER}/oozie"
 
 # count_jobs <wf|coordinator> <app name> [status]
@@ -43,6 +50,7 @@ check_wf landing-check-wf KILLED 3
 check_wf meter-hive-wf SUCCEEDED 4
 check_wf meter-weather-wf SUCCEEDED 5
 check_wf meter-daily-wf SUCCEEDED 6
+check_wf csv-load-wf SUCCEEDED 10
 
 for coord_name in landing-check-coord meter-daily-coord; do
   n="$(count_jobs coordinator "${coord_name}")"
