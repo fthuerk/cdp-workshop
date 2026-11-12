@@ -218,7 +218,7 @@ function renderIndex(modules, decks, components) {
 <style>
   :root { color-scheme: light dark; --muted: #6b7280; --line: #d1d5db; --accent: #0b6bcb; }
   @media (prefers-color-scheme: dark) { :root { --muted: #9ca3af; --line: #374151; --accent: #6cb2ff; } }
-  body { font: 16px/1.5 system-ui, sans-serif; max-width: 62rem; margin: 2rem auto; padding: 0 1rem; }
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 88rem; margin: 2rem auto; padding: 0 1rem; }
   h1 { margin-bottom: .25rem; }
   p.lead { color: var(--muted); margin-top: 0; }
   table { border-collapse: collapse; width: 100%; }
@@ -235,9 +235,14 @@ function renderIndex(modules, decks, components) {
   .badge.ready { border-color: #16a34a; color: #16a34a; }
   .badge.draft { border-color: #d97706; color: #d97706; }
   footer { margin-top: 1.5rem; font-size: .85rem; color: var(--muted); }
-  h2 { font-size: 1.15rem; margin: 2rem 0 .25rem; }
+  h2 { font-size: 1.15rem; margin: 0 0 .25rem; }
+  .layout { display: grid; gap: 2rem; margin-top: 1.5rem; }
+  /* Wide screens: map and module table side by side; the map stays in view while the table scrolls. */
+  @media (min-width: 72rem) {
+    .layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
+    .map-col { position: sticky; top: 1rem; }
+  }
   .map-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
-  .map-head h2 { margin-top: 2rem; }
   button.reset { font: inherit; font-size: .85rem; color: var(--accent); background: none; border: 1px solid var(--line); border-radius: 6px; padding: .15rem .6rem; cursor: pointer; }
   button.reset[hidden] { display: none; }
   p.status { min-height: 1.5em; margin: .5rem 0 0; font-size: .85rem; color: var(--muted); }
@@ -251,6 +256,8 @@ function renderIndex(modules, decks, components) {
 <body>
 <h1>CDP workshop</h1>
 <p class="lead">Hands-on modules for Cloudera Data Platform. Click a module to open its lab on GitHub; the ${slidesIcon.replace('width="18" height="18"', 'width="14" height="14"')} icon opens the slide deck.</p>
+<div class="layout">
+<section class="map-col">
 <div class="map-head">
 <h2>Platform components</h2>
 <button type="button" class="reset" id="map-reset" hidden>Clear selection</button>
@@ -260,6 +267,8 @@ function renderIndex(modules, decks, components) {
 ${renderMap(components)}
 </div>
 <p class="status" id="map-status" aria-live="polite"></p>
+</section>
+<section class="mod-col">
 <h2>Modules</h2>
 <table>
 <thead><tr><th>ID</th><th>Lab</th><th>Slides</th><th>Track</th></tr></thead>
@@ -267,6 +276,8 @@ ${renderMap(components)}
 ${body}
 </tbody>
 </table>
+</section>
+</div>
 <footer><a href="https://github.com/${slug}">Source on GitHub</a></footer>
 <script>
 ${PAGE_SCRIPT}
