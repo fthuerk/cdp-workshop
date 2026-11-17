@@ -50,6 +50,17 @@ Module 07 uses the module 04 policies (Hive on `{USER}`, HDFS `rwx` on `/warehou
 3. **Spark:** Spark reads and writes the Iceberg files as the participant, so the HDFS policy on the external warehouse folder is what counts. Impala runs as the `impala` user.  
 4. **Compaction (stretch task):** the user who compacts needs `ALL` on the table.
 
+## Kafka policies for module 15 (manual, Ranger UI)
+
+In the **Kafka** service (often `cm_kafka`); not validated. Kerberos user names must reach Ranger as plain short names: check the Kafka setting `sasl.kerberos.principal.to.local.rules` (default rule turns `user@REALM` into `user`). Policies for the workshop users (or the `workshop` group):
+
+1. **Personal topic:** topic `{USER}` (exactly the user name, no pattern), permissions `create`, `describe`, `publish`, `consume`, `delete`, `configure` (alter configs), `alter` (add partitions). Every participant has exactly one topic; creating any other name is refused.
+2. **Consumer group:** consumergroup `{USER}` (exactly the user name), permissions `consume`, `describe`, `delete`. All consumers of the lab, also on the shared topic, run with `--group <user>`, so no pattern for random console-consumer groups is needed.
+3. **Shared topic:** topic `grid-measurements`, permissions `describe` and `consume` only. No `publish` for participants (section 6 of the lab depends on the refusal). `setup.sh` runs as a Kafka admin with all permissions.
+4. **Cluster:** no permission needed for the lab (`describe` on the cluster is only needed to list consumer groups of others).
+
+If the `{USER}` macro is not accepted for the Kafka resources in your Ranger version, add one policy per user (topic and group named like the user), or fall back to wildcards (then users can also touch the topics of others). Hive and HDFS policies are not needed for this module; the lab only reads `${WORKSHOP_ROOT}/data/grid_measurements` (module 00 setup).
+
 ## REST apply (experimental)
 
 ```bash

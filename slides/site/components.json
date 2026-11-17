@@ -56,6 +56,8 @@
     "12": ["spark"],
     "13": ["impala"],
     "14": ["hive", "impala", "spark"],
+    "15": ["kafka", "ranger"],
+    "16": ["spark", "spark-history", "yarn", "livy"],
     "I1": ["ranger", "hive", "hdfs"],
     "I2": ["atlas", "hive"]
   }

@@ -107,6 +107,17 @@ require_admin_hdfs_kinit() {
   admin_kinit_hdfs
 }
 
+# Kafka client settings for Kerberos (SASL_SSL, ticket cache); same content as lab 15 section 0.
+# Usage: write_kafka_client_config FILE
+write_kafka_client_config() {
+  cat > "$1" <<EOF
+security.protocol=SASL_SSL
+sasl.mechanism=GSSAPI
+sasl.kerberos.service.name=kafka
+sasl.jaas.config=com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true;
+EOF
+}
+
 require_hdfs() {
   require_cmd hdfs
   hdfs dfs -ls "${WORKSHOP_ROOT}" >/dev/null 2>&1 || {

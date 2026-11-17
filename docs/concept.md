@@ -74,6 +74,8 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 | **12-advanced-spark** | Spark pipelines | 06, 10 | ~90 min | Multi-source alignment, derived features |
 | **13-advanced-impala** | Impala for analytics | 05, 12 | ~60 min | Aggregations, KPIs for pilot sensors |
 | **14-basics-datatypes** | Data types across engines | 04, 05, 06 | ~40 min | Same raw text cast in Hive, Impala and Spark; overflow, decimals, timestamps, booleans, strings; function and UDF availability; portable cast check |
+| **15-basics-kafka** | Kafka CLI with Kerberos | 01 | ~55 min | Client config with `SASL_SSL`/GSSAPI and ticket cache; topic with partitions; keyed messages by station; live and replayed consumption; consumer group lag and offset reset; topic retention; Ranger denial on a shared topic |
+| **16-basics-spark-history** | Spark History Server | 06 | ~75 min | One Spark application (`pyspark3` or Livy notebook) in nine steps; find jobs, stages and tasks, read SQL / DataFrame plans, shuffle, broadcast vs sort-merge join, skew, cache in the Storage tab, a failed job with task attempts; completed vs incomplete applications; link UI rows back to code with job labels |
 | **I1-basics-ranger** | Ranger (Hive authorization) | 04 | ~30 min | Shared `cdp_workshop` tables; allow/deny; column masking; row-level filter; Ranger audit (policies created live by trainer) |
 | **I2-basics-atlas** | Atlas UI (metadata & lineage) | 04 | ~20 min | Hive tables in Hue; search entities in Atlas; CTAS lineage; classifications with propagation; business glossary term assignment |
 

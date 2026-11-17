@@ -6,6 +6,7 @@ Slide decks (Slidev) for modules of this workshop, and the script that builds th
 |------|--------|
 | [oozie](oozie/README.md) | 08 Basics: Oozie in Hue |
 | [livy](livy/README.md) | 09 Basics: Spark via Livy |
+| [kafka](kafka/README.md) | 15 Basics: Kafka |
 
 ## What gets published
 
@@ -14,6 +15,7 @@ index.html          overview: platform component map plus all modules (lab links
 icons/              product logos used by the component map
 slides/oozie/       deck
 slides/livy/        deck
+slides/kafka/       deck
 ```
 
 The overview page is generated from the module table in the root `README.md`. Every `<module>/lab/lab_*.md` is linked to its page on GitHub. The slides icon appears for modules that have a deck.
