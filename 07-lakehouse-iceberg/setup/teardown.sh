@@ -9,4 +9,4 @@ load_config
 
 log_info "07-lakehouse-iceberg has no shared HDFS folders to remove."
 log_warn "Participant tables live in <user> databases: DROP DATABASE <user> CASCADE as a Hive admin."
-log_warn "Iceberg table folders under /warehouse/tablespace/external/hive/<user>.db/ice_* and meter_part may remain (external tables, depending on external.table.purge): delete them by hand."
+log_warn "Iceberg table folders under /warehouse/tablespace/external/hive/<user>.db/ice_meter may remain (depending on external.table.purge): delete them by hand."

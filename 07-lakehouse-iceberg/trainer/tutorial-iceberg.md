@@ -2,7 +2,7 @@
 
 Trainer-led run-through of Apache Iceberg beyond the participant lab. Part A holds the live demos (concurrency, compaction, governance, drop). Part B goes through the Iceberg functions the lab does not cover (schema and partition evolution, metadata tables, table properties, maintenance, branches and tags, migration). Part C shows the **same table from Impala, Hive, and Spark** and where the three engines behave differently on Cloudera Runtime 7.3.2.
 
-Suggested flow: setup -> Part A demos (A1 after lab section 5, the rest as time allows) -> Part B functions (B1–B10, pick what the audience needs) -> Part C engines (C1–C6).
+Suggested flow: setup -> Part A demos (A1 after lab section 3, the rest as time allows) -> Part B functions (B1–B10, pick what the audience needs) -> Part C engines (C1–C6).
 
 **Status:** not yet run end to end on the target cluster. Statements marked **(verify)** depend on the exact 7.3.2 build or service configuration; confirm them in a dry run and note the result in [notes.md](notes.md#pitfalls). The summary list is in [Version checklist](#version-checklist).
 
@@ -42,7 +42,7 @@ Run **one section at a time** while participants watch. All demos use the throw-
 
 ## A1. Snapshot isolation — a long reader and a concurrent writer
 
-**Goal:** Show that a running query keeps reading its snapshot while the table changes (lab section 5).
+**Goal:** Show that a running query keeps reading its snapshot while the table changes (lab section 3).
 
 Make the reader slow so that you can change the table while it runs. The statement below adds a `sleep` per row; if it finishes too fast, insert the rows of `demo_ice` into itself several times first. In **tab A** start the slow query:
 
@@ -200,7 +200,7 @@ SELECT * FROM ice_func_month WHERE ts >= '2026-02-01' AND ts < '2026-03-01';
 | `BUCKET(n, col)` | hash of the value modulo n — spreads high-cardinality keys |
 | `TRUNCATE(w, col)` | first `w` characters of a string, or integer rounded down to a multiple of `w` |
 
-The query filters on `ts`, not on a partition column: Iceberg maps the predicate to the partition values itself (**hidden partitioning**). There is no extra `month` column that every writer must fill correctly, and no `RECOVER PARTITIONS`. In the Hive-style layout (lab section 1) a wrong value in the partition column puts the row in the wrong folder; here that error class does not exist.
+The query filters on `ts`, not on a partition column: Iceberg maps the predicate to the partition values itself (**hidden partitioning**). There is no extra `month` column that every writer must fill correctly, and no `RECOVER PARTITIONS`. In a Hive-style partitioned external table a wrong value in the partition column puts the row in the wrong folder; here that error class does not exist.
 
 Look at the folders on HDFS: the names (`ts_month=2026-02`, `station_id_bucket=2`) are derived from the spec and are not meant for users to read or write.
 
@@ -344,7 +344,7 @@ Write-audit-publish: write to `branch_audit`, run data-quality checks there, the
 
 ## B9. Migrate existing tables
 
-**Goal:** Turn the plain tables from lab section 0–1 into Iceberg tables.
+**Goal:** Turn plain tables like the lab source `grid_measurements_csv` into Iceberg tables.
 
 | Approach | Command | Copies data? | Notes |
 |----------|---------|--------------|-------|
@@ -378,7 +378,7 @@ CALL system.create_changelog_view(table => 'ice_func', options => map('start-sna
     .load("ice_func").show())
 ```
 
-The incremental **append** read returns only inserted rows (it ignores deletes and overwrites); the **changelog view** also shows updates and deletes. In Impala and Hive the equivalent is a join of two time-travel reads (lab section 6, "Join two snapshots").
+The incremental **append** read returns only inserted rows (it ignores deletes and overwrites); the **changelog view** also shows updates and deletes. In Impala and Hive the equivalent is a join of two time-travel reads (lab section 3, "Join two snapshots").
 
 ---
 
@@ -591,4 +591,4 @@ DROP TABLE IF EXISTS ice_cmp;
 hdfs dfs -ls "${HIVE_EXT}"     # remove leftover folders if external.table.purge was false
 ```
 
-See [notes.md](notes.md) for where these fit in the ~120 minute session (A1 after lab section 5; Part B and C as a second session or a trainer-led extension).
+See [notes.md](notes.md) for where these fit in the ~60 minute session (A1 after lab section 3; Part B and C as a second session or a trainer-led extension).

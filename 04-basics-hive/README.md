@@ -2,7 +2,7 @@
 
 SQL over the grid monitoring pilot data: put external and managed Hive tables on the smart-meter, market, and weather files you met in modules 02 and 03, look at how the files are stored on HDFS, and learn why external tables cannot be changed row by row.
 
-**Estimated time:** ~100 minutes (core ~85 min + stretch). The lab splits cleanly into two blocks — sections 0–5 (external tables, partitions, formats, failed updates) and sections 6–10 (managed tables, SQL basics, a first join, statistics) — if you prefer two shorter sessions. Safe re-runnable loads for external tables (overwrite, rewrite, merge) and Iceberg tables live in the [lakehouse module](../07-lakehouse-iceberg/README.md).
+**Estimated time:** ~100 minutes (core ~85 min + stretch). The lab splits cleanly into two blocks — sections 0–5 (external tables, partitions, formats, failed updates) and sections 6–10 (managed tables, SQL basics, a first join, statistics) — if you prefer two shorter sessions. Row-level changes with Iceberg tables live in the [lakehouse module](../07-lakehouse-iceberg/README.md).
 
 ## Prerequisites
 

@@ -66,7 +66,7 @@ Dependencies: follow the sequence unless you explicitly skip (e.g. Impala-only s
 | **04-basics-hive** | Hive fundamentals | 02, 03 | ~100 min | External tables and partitions on `data/grid_measurements`, ORC/Parquet on HDFS, failed UPDATE/DELETE on external tables, managed ACID tables, SQL basics, a basic join, table statistics |
 | **05-basics-impala** | Impala fundamentals | 01 | ~45 min | Interactive SQL; Hive vs Impala timing; UPDATE/DELETE errors on external tables |
 | **06-basics-spark** | Spark on YARN | 03, 04 | ~90 min | PySpark cleanse/join on meter and weather CSVs; Parquet curated output; `spark-submit`; external table in `{USER}` |
-| **07-lakehouse-iceberg** | Lakehouse with Iceberg | 04, 05 | ~120 min | Idempotent loads by hand vs Iceberg; `UPDATE`/`DELETE`/`MERGE` in Hue/Impala; files on HDFS; time travel, snapshot isolation, rollback; joins |
+| **07-lakehouse-iceberg** | Lakehouse with Iceberg | 04, 05 | ~60 min | Iceberg features: files on HDFS; `UPDATE`/`DELETE`/`MERGE` in Hue/Impala; time travel, snapshot isolation, rollback, expire |
 | **08-basics-oozie** | Oozie in Hue (UI tour) | 03, 04 | ~70 min | Build a workflow, a time-based and a data-triggered coordinator (Hive action adds a daily partition) in the Hue editors; read the generated `workflow.xml` and `coordinator.xml`; follow runs in the Job Browser |
 | **09-basics-livy** | Spark via Livy (REST, Jupyter) | 06 | ~90 min | LDAP login against Knox; Livy session with statements and batch through REST; the same cleanse/join pipeline from a local Jupyter notebook (`sparkmagic`) |
 | **10-advanced-hive** | Advanced Hive SQL | 04 | ~75 min | Complex joins, window functions (rank, lag, running totals), complex types, ROLLUP, WKT geo data on use case |

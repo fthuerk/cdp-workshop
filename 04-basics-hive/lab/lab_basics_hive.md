@@ -597,7 +597,7 @@ You were able to repair it only because the complete source `meter_csv` still ex
 
 **Check question:** An hourly job uses `INSERT INTO` and fails halfway, then the scheduler restarts it. What does the table look like afterwards? Would `INSERT OVERWRITE` fix it, and what new risk does it bring?
 
-**Where to go from here:** `INSERT OVERWRITE` fixes the retry problem for a whole table. Changing or deleting *single rows* in external tables safely (overwrite one partition, rewrite it, drop it, merge by rewriting) takes more work, and it is the reason lakehouse table formats exist. You try both ways side by side in the [lakehouse module](../../07-lakehouse-iceberg/README.md). Next in this lab: **managed** tables, where Hive does the row-level work for you.
+**Where to go from here:** `INSERT OVERWRITE` fixes the retry problem for a whole table. Changing or deleting *single rows* in external tables safely (overwrite one partition, rewrite it, drop it, merge by rewriting) takes more work, and it is the reason lakehouse table formats exist. You see the Iceberg solution in the [lakehouse module](../../07-lakehouse-iceberg/README.md). Next in this lab: **managed** tables, where Hive does the row-level work for you.
 
 ---
 
