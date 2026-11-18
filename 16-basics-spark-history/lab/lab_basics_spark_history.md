@@ -6,7 +6,7 @@ You need two windows side by side: the place where you type Spark code (a termin
 
 | Part | Sections | What you do |
 |------|----------|-------------|
-| **A. Orient** | 0 | Start the application, open the History Server, prepare the labels that link the UI to your code |
+| **A. Orient** | 0 | Start the application, open the History Server, learn what each tab is for |
 | **B. Steps** | 1–9 | One step per section; each ends with a look into the UI |
 | **C. Wrap-up** | 10 | End the application and read it as a *completed* application |
 
@@ -19,7 +19,7 @@ The only block that differs is the one that sets paths (section 0.1). The Histor
 
 **Pasting into `pyspark3`:** after you paste a function (`def ...`) or a loop (`for ...`), press Enter once more so the shell closes it. Inside brackets `( )` the lab never leaves empty lines.
 
-**Screenshots:** every place marked `SCREENSHOT` shows which picture belongs there (file name in [images/](images/)). Your own screen should look similar.
+**Screenshots:** the pictures show how the UI looks; your own screen should look similar. A note marked `SCREENSHOT` names a picture that is still missing (file name in [images/](images/)).
 
 ---
 
@@ -27,7 +27,7 @@ The only block that differs is the one that sets paths (section 0.1). The Histor
 
 ## 0. Start the application and open the History Server
 
-**Goal:** Have a running Spark application, find it in the History Server, and label your code so every UI row can be traced back to it.
+**Goal:** Have a running Spark application, find it in the History Server, and learn what each of its tabs is for.
 
 ### 0.1 Start the application
 
@@ -122,13 +122,11 @@ You should see `adaptive.enabled = false` and `shuffle.partitions = 8`.
 
 Open the **Spark History Server** (URL from your handout, or Cloudera Manager → Spark 3 → *Spark3 History Server Web UI*). The start page lists applications.
 
-> **SCREENSHOT** `images/01-history-app-list.png`: the application list, filtered to your user name, with the column headers visible (App ID, App Name, Started, Completed, Duration, Spark User, Last Updated, Event Log).
-<!-- ![Application list](images/01-history-app-list.png) -->
+<img src="images/01-history-app-list.png" alt="Application list" width="70%">
 
 Your application is **not** in the default list: it is still running, and the default list shows only completed applications. Click **Show incomplete applications** at the bottom, and search for your user name or `spark-history`.
 
-> **SCREENSHOT** `images/02-history-show-incomplete.png`: the link *Show incomplete applications* and your application in the incomplete list (Completed column empty).
-<!-- ![Show incomplete applications](images/02-history-show-incomplete.png) -->
+<img src="images/02-history-show-incomplete.png" alt="Show incomplete applications" width="100%">
 
 Read the columns:
 
@@ -139,16 +137,108 @@ Read the columns:
 
 Click the **App ID** to open the application. The first page is the **Jobs** tab, still empty: you have not run an action yet.
 
-> **SCREENSHOT** `images/03-app-empty-jobs-tab.png`: the Jobs tab of your application before any job, with the tab bar (Jobs, Stages, Storage, Environment, Executors, SQL / DataFrame) visible.
-<!-- ![Empty Jobs tab](images/03-app-empty-jobs-tab.png) -->
+<img src="images/03-app-empty-jobs-tab.png" alt="Empty Jobs tab" width="100%">
 
 **If your application is missing:** wait about 10 seconds and reload (the History Server rescans the event log directory periodically), check that **Show incomplete applications** is on, and compare the id with the one you printed. Ask your instructor if it is still missing after a minute.
 
 **The live UI shows the same pages.** While the application runs, the ResourceManager (YARN UI) links to the Spark UI itself (`application_...` → *ApplicationMaster*). The History Server pages are identical; it just keeps them after the application has ended. In this lab you stay in the History Server.
 
-### 0.3 Label your code so you can find it in the UI
+### 0.3 A map of the UI
 
-Spark names jobs after the place in the Spark source that started them, for example `count at NativeMethodAccessorImpl.java:0`. In PySpark that never points at *your* line. So the lab gives every step a **label**. Two small functions do it. `step()` puts a label on every job that follows; `jobs()` prints the job ids a step has started, so you can look for exactly those numbers in the UI.
+Keep this in mind while you work. Each tab answers one question:
+
+- **Jobs:** one row per **job**, usually one per **action** you ran (`count`, `show`, `collect`, `write`, ...). *Which of my actions was slow? Which one failed?*
+- **Stages:** one row per **stage**, the parts a job is cut into at every shuffle. *Where does the time go? Which stage moves the most data?*
+- **Storage:** every cached DataFrame. *What is cached, how big, how much of it?*
+- **Environment:** every configuration value of this application. *Which settings explain what I see?*
+- **Executors:** the driver and the executor containers. *Who did the work, how much GC, which logs?*
+- **SQL / DataFrame:** one row per DataFrame or SQL query with its **plan as a graph**. *What exactly did Spark run for this line of code?* (Older Spark versions call this tab **SQL**.)
+
+The chain from your code to a number is always the same: **code line → query (SQL / DataFrame tab) → job → stage → task**.
+
+---
+
+# Part B — Nine steps, nine footprints
+
+## 1. A job, its stages and its tasks, and how to find your code
+
+**Goal:** Read one complete job from the Jobs tab down to a single task, and see why you need a label to find *your* code in the UI.
+
+### 1.1 Run an action without any preparation
+
+Define the CSV reader with an explicit schema. Reading is **lazy**: this runs no job.
+
+```python
+meter_schema = (
+    "ts_utc STRING, station_id STRING, device_id STRING, phase STRING, "
+    "active_power_kw DOUBLE, reactive_power_kvar DOUBLE, voltage_v DOUBLE, "
+    "current_a DOUBLE, power_factor DOUBLE, frequency_hz DOUBLE, "
+    "transformer_load_pct DOUBLE, quality_flag STRING, event_code STRING, "
+    "comm_status STRING")
+meter = spark.read.option("header", True).schema(meter_schema).csv(meter_csv)
+```
+
+Now trigger an action. Do not label anything yet: this is what you get when you just type code.
+
+```python
+print(meter.count())
+```
+
+You should see **15** rows. Reload the History Server (wait about 10 seconds if the job is missing).
+
+> **SCREENSHOT** `images/04a-jobs-tab-unlabelled.png`: the Jobs tab with the single row for your `count()`: Job Id `0`, the description `count at NativeMethodAccessorImpl.java:0`, its duration, stages (succeeded/total) and tasks (progress bar), and the event timeline above.
+<!-- ![Jobs tab, unlabelled job](images/04a-jobs-tab-unlabelled.png) -->
+
+**Look at (Jobs tab):**
+
+- The **Description** is `count at NativeMethodAccessorImpl.java:0`. That is Spark's **call site**: the place in the *Spark* code that started the job. `NativeMethodAccessorImpl` is the bridge from Python to Java; it is never a line of your code. Every `count()` reads exactly like this, and a `show()` differs only in the method name.
+- There is no job group: the **Job Id** is just `0`.
+- With one job it is easy to guess that it is yours. With thirty jobs from many cells it is not: **which job belongs to which line of your code?** Keep this question in mind; you will answer it in section 1.3.
+- **Stages: succeeded/total** and **Tasks: succeeded/total**: you ran one `count()`, yet the job has **two stages**. You will see why in a moment.
+- Expand **Event Timeline**: each bar is a job; the green markers show when executors were added. Executors start on demand, so your first job often includes the wait for containers.
+
+### 1.2 Read the two stages
+
+Open the **Stages** tab. The `count()` has two completed stages, **0** and **1**. Click the description of stage 0 to open its **stage page**, then do the same for stage 1.
+
+<img src="images/06-stage0.png" alt="Stage 0" width="48%"> <img src="images/06-stage1.png" alt="Stage 1" width="48%">
+
+*Left: stage 0. Right: stage 1.*
+
+**Look at (stage 0, left):**
+
+- **Input Size / Records: 1620.0 B / 15.** The stage reads the CSV file: 15 records. **Shuffle Write Size / Records: 59.0 B / 1.** It writes just **one record**: the partial count of its single partition.
+- **DAG Visualization**, read from top to bottom: `Scan csv` (the file is read), `WholeStageCodegen (1)` (the partial count, compiled into one function) and, at the bottom, **`Exchange`**. The `Exchange` is where the stage writes its shuffle files. It is the end of the stage.
+- **Summary Metrics for 1 Completed Tasks:** the stage ran **one task**. A task is the unit of work on one **partition** of the data. The 15-row file is tiny, so it is one partition. With a single task min, median and max are equal. From section 4 on they differ, and that is where you spot problems.
+
+**Look at (stage 1, right):**
+
+- **Shuffle Read Size / Records: 59.0 B / 1.** This is exactly what stage 0 wrote. There is **no Input**: the stage does not read a file, it reads the shuffle files of stage 0.
+- **DAG Visualization:** it starts with **`Exchange`** (`ShuffledRowRDD`: the data arrives from stage 0), then `WholeStageCodegen (2)` (the final sum of the partial counts) and `mapPartitionsInternal` (the result goes to the driver).
+- **Total Time Across All Tasks:** 0.9 s for stage 0 against 77 ms for stage 1. Reading and parsing the file is the real work, adding up one number is not.
+
+**What you learn from the two pages together:**
+
+- One action, one job, but **two stages**. Stage 0 counts per partition, stage 1 sums the partial counts. Spark needs two stages because the partial counts must be brought together in one place. That move of data is a **shuffle**, and **every shuffle starts a new stage**.
+- You recognize the boundary in the UI: **Shuffle Write** at the end of one stage, the same amount as **Shuffle Read** at the start of the next one. In the DAG it is the `Exchange` box, once at the bottom of the first stage and once at the top of the second.
+- Both pages show **Associated Job Ids: 0**. The stage belongs to the job; the job id and the stage ids are separate counters, so job 3 can contain stages 5 and 6.
+
+**The same shuffle in the SQL / DataFrame tab.** Open the **SQL / DataFrame** tab and click the query of your `count()` (query 0). It shows the *plan* of the job as a graph, with the row counts Spark measured:
+
+<img src="images/05-sql-plan-s1.png" alt="SQL plan of the count" width="45%">
+
+- `Scan csv`: **15 output rows**, 1 file read, 1620 B read.
+- `HashAggregate` in `WholeStageCodegen (1)`: **1 output row**, the partial count. This is stage 0.
+- `Exchange`: **shuffle records written: 1**, shuffle bytes written 59 B, number of partitions 1. This is the stage boundary; the numbers are the same ones you saw as Shuffle Write and Shuffle Read.
+- `HashAggregate` in `WholeStageCodegen (2)`: **1 output row**, the final sum. This is stage 1.
+
+The stage pages show how the work ran (tasks, time, bytes); the plan shows what Spark decided to do. In section 3 you will compare this graph with the `explain()` output of your own code.
+
+With adaptive execution **on** (the cluster default) the same `count()` would show up as two jobs and a skipped stage: Spark runs stage 0 as a job of its own, looks at the shuffle size, and then runs the rest. You switched it off in section 0 to keep one action = one job. The stretch shows the difference.
+
+### 1.3 Label your code so you can find it in the UI
+
+Spark names jobs after the place in the Spark source that started them. In PySpark that never points at *your* line, as you have just seen. So from now on every step gets a **label**. Two small functions do it: `step()` puts a label on every job that follows, and `jobs()` prints the job ids a step has started, so you can look for exactly those numbers in the UI.
 
 ```python
 from pyspark.sql import functions as F
@@ -171,87 +261,27 @@ def jobs(key):
     print(f"{key} - {ledger[key]}: job ids {ids}")
 ```
 
-You will now see three things everywhere in the UI: the label in the **Description** column (`S1: read csv ...`), the **job ids** your code printed, and the **stage and task counts** that you can predict from your code (for example `getNumPartitions()`).
-
-### 0.4 A map of the UI
-
-Keep this in mind while you work. Each tab answers one question:
-
-- **Jobs:** one row per **job**, usually one per **action** you ran (`count`, `show`, `collect`, `write`, ...). *Which of my actions was slow? Which one failed?*
-- **Stages:** one row per **stage**, the parts a job is cut into at every shuffle. *Where does the time go? Which stage moves the most data?*
-- **Storage:** every cached DataFrame. *What is cached, how big, how much of it?*
-- **Environment:** every configuration value of this application. *Which settings explain what I see?*
-- **Executors:** the driver and the executor containers. *Who did the work, how much GC, which logs?*
-- **SQL / DataFrame:** one row per DataFrame or SQL query with its **plan as a graph**. *What exactly did Spark run for this line of code?* (Older Spark versions call this tab **SQL**.)
-
-The chain from your code to a number is always the same: **code line → query (SQL / DataFrame tab) → job → stage → task**.
-
----
-
-# Part B — Nine steps, nine footprints
-
-## 1. A job, its stages and its tasks
-
-**Goal:** Read one complete job: from the Jobs tab down to a single task.
-
-Create the label, define the CSV reader with an explicit schema, and ask which jobs exist so far:
+Run the **same** `count()` again, now with a label, and ask which job ids the step has started:
 
 ```python
 step("S1", "read csv with explicit schema, count")
-meter_schema = (
-    "ts_utc STRING, station_id STRING, device_id STRING, phase STRING, "
-    "active_power_kw DOUBLE, reactive_power_kvar DOUBLE, voltage_v DOUBLE, "
-    "current_a DOUBLE, power_factor DOUBLE, frequency_hz DOUBLE, "
-    "transformer_load_pct DOUBLE, quality_flag STRING, event_code STRING, "
-    "comm_status STRING")
-meter = spark.read.option("header", True).schema(meter_schema).csv(meter_csv)
-jobs("S1")
-```
-
-The list is empty (`[]`): reading is **lazy**, no job has run. Now trigger an action:
-
-```python
 print(meter.count())
 jobs("S1")
 ```
 
-You should see **15** rows and **one** job id in the list. Reload the History Server (wait about 10 seconds if the job is missing).
+You should see **15** and one job id (`[1]`). Reload the History Server.
 
-> **SCREENSHOT** `images/04-jobs-tab-s1.png`: the Jobs tab with the row `S1: read csv with explicit schema, count`, its duration, stages (succeeded/total) and tasks (progress bar), and the event timeline above.
-<!-- ![Jobs tab after S1](images/04-jobs-tab-s1.png) -->
+<img src="images/04-jobs-tab-s1.png" alt="Jobs tab, labelled and unlabelled" width="100%">
 
 **Look at (Jobs tab):**
 
-- The **Description** is your label, and the **Job Id** equals the id your code printed. The column header shows the job group in brackets: `0 (S1)`.
-- **Stages: succeeded/total** and **Tasks: succeeded/total**: you ran one `count()`, yet the job has **two stages**. You will see why in a moment.
-- Expand **Event Timeline**: each bar is a job; the green markers show when executors were added. Executors start on demand, so your first job often includes the wait for containers.
+- Both rows come from the same `count()`. The call site (`count at NativeMethodAccessorImpl.java:0`) is identical, so **only your label** tells them apart.
+- The new row has your label in the **Description**, the job group in brackets in the **Job Id** column (`1 (S1)`), and the id your code printed. The stages of this job carry the label too: open the **Stages** tab.
+- The second job is usually **faster** than the first: the executors were already running.
 
-Click the job description to open the **job page**.
+From now on you find three things everywhere in the UI: the label in the **Description** column (`S2: ...`), the **job ids** your code printed, and the **stage and task counts** that you can predict from your code (for example `getNumPartitions()`).
 
-> **SCREENSHOT** `images/05-job-detail-dag-s1.png`: the job page with the DAG Visualization expanded (two stage boxes, the Exchange between them) and the stages table below.
-<!-- ![Job page with DAG](images/05-job-detail-dag-s1.png) -->
-
-**Look at (job page):**
-
-- **DAG Visualization:** each box is a **stage**; the arrows show data flowing between stages. Stage 1: `FileScan csv` and a partial aggregate (count per partition). Then an **Exchange** (a shuffle, all partial counts go to one place). Stage 2: the final sum.
-- **Stages table:** note the **stage ids**. Job ids and stage ids are separate counters, so job 3 can contain stages 5 and 6.
-- **Input / Shuffle Write / Shuffle Read** columns: stage 1 reads the file (`Input`) and writes its partial counts (`Shuffle Write`), stage 2 reads them (`Shuffle Read`).
-
-With adaptive execution **on** (the cluster default) the same `count()` would show up as two jobs and a skipped stage: Spark runs stage 1 as a job of its own, looks at the shuffle size, and then runs the rest. You switched it off in section 0 to keep one action = one job. The stretch shows the difference.
-
-Click the description of the first stage to open the **stage page**.
-
-> **SCREENSHOT** `images/06-stage-detail-s1.png`: the stage page with Summary Metrics (min / 25th / median / 75th / max), the Aggregated Metrics by Executor and the task table.
-<!-- ![Stage page](images/06-stage-detail-s1.png) -->
-
-**Look at (stage page):**
-
-- **Tasks table:** one row per task. A task is the unit of work on one **partition** of the data in one executor. The 15-row file is tiny, so there is typically **one task**.
-- **Summary Metrics:** minimum, quartiles and maximum of all tasks for **Duration**, **GC Time**, **Input Size / Records**. With a single task all five columns are equal. From section 4 on they will differ, and that is where you spot problems.
-- **Input Size / Records:** about 15 records (the data rows of the CSV) and the file size in bytes.
-- **Event Timeline** (button *Show Additional Metrics* → *Event Timeline*): the time of a task split into scheduler delay, deserialization, executor computing time and so on. Almost all of it should be tiny here.
-
-**Check question:** Why does a `count()` over 15 rows run as two stages and not one?
+**Check question:** Why does a `count()` over 15 rows run as two stages and not one? And without your label, how would you find the job of one particular cell in an application with fifty jobs?
 
 ---
 
@@ -275,13 +305,12 @@ meter_inferred.printSchema()
 jobs("S2")
 ```
 
-> **SCREENSHOT** `images/07-jobs-tab-s2-inferschema.png`: the Jobs tab with the `S2: read csv with inferSchema` row, expanded call site / details visible if possible.
-<!-- ![inferSchema job](images/07-jobs-tab-s2-inferschema.png) -->
+<img src="images/07-jobs-tab-s2-inferschema.png" alt="inferSchema job" width="100%">
 
 **Look at:**
 
 - Find the `S2` row in the Jobs tab and its stage: it has **Input** (the file is read in full) but no result you ever see.
-- Click the stage, open **+details** under the stage description: the call site there reads like `csv at NativeMethodAccessorImpl.java:0`. This is what *every* job description looked like without your label.
+- Click the stage, open **+details** under the stage description: the call site there reads like `csv at NativeMethodAccessorImpl.java:0`. This is the call site you saw on the unlabelled job in section 1.
 
 On 15 rows this costs milliseconds; on a landing folder with thousands of files it is a full extra pass over the data. That is why the labs use explicit schemas.
 
@@ -398,13 +427,13 @@ print(len(rows), "result rows")
 jobs("S5")
 ```
 
-> **SCREENSHOT** `images/10-job-dag-s5.png`: the job page of S5 with the DAG showing the Exchange between the scan/partial-aggregate stage and the final aggregate stage, and the stages table with Shuffle Write / Shuffle Read.
-<!-- ![Job DAG with shuffle](images/10-job-dag-s5.png) -->
+> **SCREENSHOT** `images/10-stages-tab-s5.png`: the Stages tab with the two stages of S5, showing Shuffle Write on the first and Shuffle Read on the second stage.
+<!-- ![Stages tab with shuffle](images/10-stages-tab-s5.png) -->
 
-**Look at (job page):**
+**Look at (Stages tab):**
 
 - The `Exchange` separates two stages. The first stage has **8 tasks** (your 8 partitions), the second has **8 tasks** too: the 8 shuffle partitions you set in section 0.
-- **Stages table:** the first stage shows **Shuffle Write**, the second shows **Shuffle Read**. Compare the **record counts**: the first stage processed 5,000,000 rows, but it writes only a few dozen. Spark aggregated *within* each partition first (the first `HashAggregate` is the *partial* one) and shuffles only the partial results. That is why a `groupBy` on few keys is cheap even for huge inputs.
+- **Shuffle columns:** the first stage shows **Shuffle Write**, the second shows **Shuffle Read**. Compare the **record counts**: the first stage processed 5,000,000 rows, but it writes only a few dozen. Spark aggregated *within* each partition first (the first `HashAggregate` is the *partial* one) and shuffles only the partial results. That is why a `groupBy` on few keys is cheap even for huge inputs.
 - Find the stage that reads the shuffle and open it. Only 12 different keys (3 stations x 4 hours) are spread over 8 tasks, so the **Shuffle Read Records** differ: some tasks get several keys, a few get none. With the default of 200 shuffle partitions, 188 more tasks would start and almost all would be empty. Adaptive execution exists to merge such tiny partitions at runtime.
 
 Open the **Stages** tab and sort by **Duration**: this is the quickest way to find the slowest stage of a whole application.
@@ -596,7 +625,7 @@ jobs("S9")
 > **SCREENSHOT** `images/16-jobs-tab-failed.png`: the Jobs tab with the section *Failed Jobs* (the S9 job, with its failure reason in the status column).
 <!-- ![Failed job](images/16-jobs-tab-failed.png) -->
 
-**Look at (Jobs tab):** the job is listed under **Failed Jobs**. Click it: a **Failed Stages** section holds the stage, with a short reason. Click the stage.
+**Look at (Jobs tab):** the job is listed under **Failed Jobs**. Open the **Stages** tab: the stage is listed under **Failed Stages**, with a short reason. Click the stage.
 
 > **SCREENSHOT** `images/17-failed-task-attempts.png`: the stage page with the task table: task index 0 with attempts 0, 1, 2, 3 all FAILED and the Errors column with the ValueError, the other three tasks SUCCESS or KILLED.
 <!-- ![Task attempts](images/17-failed-task-attempts.png) -->

@@ -126,7 +126,7 @@ Where the History Server sits and how to read what it shows
   <div class="font-bold text-base">Job</div>
   <div class="mt-1">Work started by an <b>action</b>: <code>count</code>, <code>show</code>, <code>collect</code>, <code>write</code></div>
   <div class="mt-2"><b>Id:</b> 0, 1, 2, ... (own counter)</div>
-  <div><b>UI:</b> <b>Jobs</b> tab, job page with DAG</div>
+  <div><b>UI:</b> <b>Jobs</b> tab</div>
 </div>
 
 <div class="rounded-lg border-2 border-purple-500/60 bg-purple-500/10 p-2">
@@ -172,7 +172,7 @@ Where the History Server sits and how to read what it shows
 
 <div class="border-l-4 border-blue-500 pl-3">
   <div class="font-bold text-base">Jobs</div>
-  <div class="mt-1 opacity-80">Which action was slow or failed? Event timeline, DAG per job.</div>
+  <div class="mt-1 opacity-80">Which action was slow or failed? Job list with status, duration and event timeline.</div>
 </div>
 
 <div class="border-l-4 border-purple-500 pl-3">
@@ -209,7 +209,7 @@ Where the History Server sits and how to read what it shows
 | You see | Where | Usually means |
 |---------|-------|---------------|
 | One task far above the **median** (max is many times median) | Stage → Summary Metrics, task table | **Data skew**: one key holds most rows |
-| Huge **Shuffle Write** | Stages, job page | A shuffle of whole rows, for example a sort-merge join |
+| Huge **Shuffle Write** | Stages tab | A shuffle of whole rows, for example a sort-merge join |
 | **GC time** highlighted red (above about 10 %) | Executors | Memory pressure |
 | **Spill** (memory or disk) | Stage page | Shuffle partitions too big for memory |
 | Thousands of tiny tasks | Stage page | Too many partitions or small files |
@@ -226,7 +226,7 @@ Start at the **Jobs** tab, sort the **Stages** tab by *Duration*, then open the 
 
 # Linking the UI back to your code
 
-PySpark job descriptions look like `count at NativeMethodAccessorImpl.java:0`: they never point at your line. The lab uses four ways to find your code in the UI:
+PySpark job descriptions look like `count at NativeMethodAccessorImpl.java:0`: they never point at your line. In the lab you first run a job **without** any label and see this yourself. Then you use four ways to find your code in the UI:
 
 <div class="grid grid-cols-2 gap-4 mt-4 text-sm">
 
@@ -258,7 +258,7 @@ You start **one** Spark application (`pyspark3` or a Livy notebook) and, after e
 
 | Step | Footprint in the UI |
 |------|---------------------|
-| 1–3 | A job with its stages and tasks; a job you did not ask for; one stage and its plan |
+| 1–3 | A job without and with a label, its stages and tasks; a job you did not ask for; one stage and its plan |
 | 4–5 | Tasks follow partitions; a shuffle splits the job |
 | 6 | Broadcast against sort-merge join, and skew |
 | 7–8 | Cache in the Storage tab; Parquet write and partition pruning |

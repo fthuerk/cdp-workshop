@@ -16,7 +16,7 @@ How to read what Spark did with the grid monitoring pilot data: you run **one** 
 After this module you can:
 
 - Find your application in the History Server, tell **incomplete** from **completed** applications, and explain how the UI is rebuilt from the event log
-- Read a **job** (stages, event timeline, DAG), a **stage** (tasks, summary metrics, shuffle read/write) and a **task** (duration, attempt, error)
+- Read a **job** (status, duration, event timeline), a **stage** (tasks, summary metrics, shuffle read/write) and a **task** (duration, attempt, error)
 - Explain why a `count()` runs in two stages, why a shuffle starts a new stage, and why `inferSchema` adds a job you did not ask for
 - Read the **SQL / DataFrame** plan graph and match its nodes (`FileScan`, `Filter`, `HashAggregate`, `Exchange`, `BroadcastHashJoin`) to `explain()` output
 - Recognize a skewed stage from the min / median / max task times, and compare a broadcast with a sort-merge join
@@ -34,7 +34,7 @@ After this module you can:
 
 ## Screenshots
 
-The lab marks every place for a screenshot with a `SCREENSHOT` note. Put the image files into [lab/images/](lab/images/) under the file name given in the note.
+The lab markdown embeds the screenshots from [lab/images/](lab/images/). A `SCREENSHOT` note marks a picture that is still missing: put the image file into that folder under the file name given in the note. Usernames in screenshots must be blacked out. The sparkmagic notebook contains no screenshots.
 
 ## Admin (before session)
 
