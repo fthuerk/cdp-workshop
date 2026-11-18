@@ -167,7 +167,7 @@ You will now see three things everywhere in the UI: the label in the **Descripti
 
 Keep this in mind while you work. Each tab answers one question:
 
-- **Jobs:** one row per **action** you ran (`count`, `show`, `collect`, `write`, ...). *Which of my actions was slow? Which one failed?*
+- **Jobs:** one row per **job**, usually one per **action** you ran (`count`, `show`, `collect`, `write`, ...). *Which of my actions was slow? Which one failed?*
 - **Stages:** one row per **stage**, the parts a job is cut into at every shuffle. *Where does the time go? Which stage moves the most data?*
 - **Storage:** every cached DataFrame. *What is cached, how big, how much of it?*
 - **Environment:** every configuration value of this application. *Which settings explain what I see?*
@@ -205,29 +205,34 @@ print(meter.count())
 jobs("S1")
 ```
 
-You should see **15** rows and a job id in the list. Reload the History Server (wait about 10 seconds if the job is missing).
+You should see **15** rows and, on this platform, **two** job ids in the list (for example `[0, 1]`): one `count()`, two jobs. The reason follows below. Reload the History Server (wait about 10 seconds if the jobs are missing).
 
-> **SCREENSHOT** `images/04-jobs-tab-s1.png`: the Jobs tab with the row `S1: read csv with explicit schema, count`, its duration, stages (succeeded/total) and tasks (progress bar), and the event timeline above.
+> **SCREENSHOT** `images/04-jobs-tab-s1.png`: the Jobs tab with the two rows `S1: read csv with explicit schema, count`, their durations, stages (succeeded/total) and tasks (progress bar), and the event timeline above.
 <!-- ![Jobs tab after S1](images/04-jobs-tab-s1.png) -->
 
 **Look at (Jobs tab):**
 
-- The **Description** is your label, and the **Job Id** equals the id your code printed.
-- **Stages: succeeded/total** and **Tasks: succeeded/total**: you ran one `count()`, yet the job usually has **two stages**. You will see why in a moment.
+- The **Description** is your label, and the **Job Ids** equal the ids your code printed. The column header shows the job group in brackets: `0 (S1)`.
+- **Stages: succeeded/total** and **Tasks: succeeded/total**: you ran one `count()`, yet there are two jobs. Open the **Stages** tab too: it lists **two completed stages and one skipped stage**. The next paragraphs explain why.
 - Expand **Event Timeline**: each bar is a job; the green markers show when executors were added. Executors start on demand, so your first job often includes the wait for containers.
 
 Click the job description to open the **job page**.
 
-> **SCREENSHOT** `images/05-job-detail-dag-s1.png`: the job page with the DAG Visualization expanded (two stage boxes, the Exchange between them) and the stages table below.
+> **SCREENSHOT** `images/05-job-detail-dag-s1.png`: the job page with the DAG Visualization expanded of the second job (a skipped stage box, the Exchange, the final stage) and the stages table below.
 <!-- ![Job page with DAG](images/05-job-detail-dag-s1.png) -->
 
 **Look at (job page):**
 
-- **DAG Visualization:** each box is a **stage**; the arrows show data flowing between stages. Stage 1: `FileScan csv` and a partial aggregate (count per partition). Then an **Exchange** (a shuffle, all partial counts go to one place). Stage 2: the final sum.
-- **Stages table:** note the **stage ids**. Job ids and stage ids are separate counters, so job 3 can contain stage 5 and 6.
-- **Input / Shuffle Write / Shuffle Read** columns: stage 1 reads the file (`Input`) and writes its partial counts (`Shuffle Write`), stage 2 reads them (`Shuffle Read`).
+Open both jobs one after the other.
 
-Click the description of the first stage to open the **stage page**.
+- **First job:** one stage with `FileScan csv` and a partial aggregate (count per partition). It ends at an **Exchange**: the partial counts are written as shuffle files (**Shuffle Write**).
+- **Second job:** the final sum. It reads the shuffle files of the first job (**Shuffle Read**). Its DAG also contains the stage of the first job again, marked **skipped**: its output already exists, so it is not run a second time. A skipped stage shows the plain call site (`count at NativeMethodAccessorImpl.java:0`) and no label, because it did not run under your group.
+- **Stages table:** note the **stage ids**. Job ids and stage ids are separate counters, so one job can contain stages with other numbers (in the example: job 1 holds the skipped stage 1 and stage 2).
+- **Input / Shuffle Write / Shuffle Read** columns: the first stage reads the file (`Input`) and writes its partial counts (`Shuffle Write`), the last stage reads them (`Shuffle Read`).
+
+**Why two jobs and a skipped stage?** The plan of a `count()` has an `Exchange`. With **adaptive query execution** (AQE, `spark.sql.adaptive.enabled`, the value you printed in section 0), Spark first runs the stage below the `Exchange` as a job of its own, looks at the real size of the shuffle data, and only then plans and runs the rest (that is how it can merge small partitions or change a join). The rest is the second job, and the first stage appears in it as *skipped*. With AQE off, the same `count()` is **one job with two stages** and no skipped stage. In the **SQL / DataFrame** tab you see this as **one query that lists both job ids**, and its plan starts with `AdaptiveSparkPlan`.
+
+Click the description of the stage of the first job to open the **stage page**.
 
 > **SCREENSHOT** `images/06-stage-detail-s1.png`: the stage page with Summary Metrics (min / 25th / median / 75th / max), the Aggregated Metrics by Executor and the task table.
 <!-- ![Stage page](images/06-stage-detail-s1.png) -->
@@ -239,7 +244,7 @@ Click the description of the first stage to open the **stage page**.
 - **Input Size / Records:** about 15 records (the data rows of the CSV) and the file size in bytes.
 - **Event Timeline** (button *Show Additional Metrics* → *Event Timeline*): the time of a task split into scheduler delay, deserialization, executor computing time and so on. Almost all of it should be tiny here.
 
-**Check question:** Why does a `count()` over 15 rows run as two stages and not one?
+**Check question:** Why does one `count()` over 15 rows produce two jobs and a skipped stage? Which setting would give you one job with two stages?
 
 ---
 
@@ -356,13 +361,13 @@ You should see **5000000**.
 - Open the S4 job and its first stage: the task table has **8 tasks**, one per partition. This is how you tie a UI number back to code: you chose `8` in `spark.range(0, n_rows, 1, 8)`.
 - **Summary Metrics:** the eight tasks produce equal slices of the range, so min, median and max **Duration** are close to each other. Keep this picture: it is what *healthy* looks like.
 - **Input Size / Records** is empty for this stage: the data is generated, not read from a file.
-- The second stage of the job has **one task** (summing eight partial counts).
+- The final aggregation (a second job, as in section 1) has **one task**: it sums eight partial counts.
 
 **Check question:** How many tasks would the first stage have if you wrote `spark.range(0, n_rows, 1, 16)`? And what would change in the Summary Metrics?
 
 ---
 
-## 5. A shuffle splits the job
+## 5. A shuffle starts a new stage
 
 **Goal:** Find the stage boundary created by `groupBy` and read the shuffle columns.
 
@@ -391,10 +396,10 @@ jobs("S5")
 
 **Look at (job page):**
 
-- The DAG has (at least) **two stages** connected by the `Exchange`. The first stage has **8 tasks** (your 8 partitions), the second far fewer.
+- The `Exchange` separates two stages. As in section 1, adaptive execution usually runs them as two jobs (compare the ids `jobs("S5")` printed), with the first stage shown as *skipped* in the second job. The first stage has **8 tasks** (your 8 partitions), the second far fewer.
 - **Stages table:** the first stage shows **Shuffle Write**, the second shows **Shuffle Read**. Compare the **record counts**: the first stage processed 5,000,000 rows, but it writes only a few dozen. Spark aggregated *within* each partition first (the first `HashAggregate` is the *partial* one) and shuffles only the partial results. That is why a `groupBy` on few keys is cheap even for huge inputs.
 - Find the stage that reads the shuffle. The `Exchange` was planned for **200** partitions (`spark.sql.shuffle.partitions`, which you printed), but the stage has only a handful of tasks. With **adaptive query execution** (`spark.sql.adaptive.enabled = true`) Spark merges tiny shuffle partitions at runtime. Look for the node `AQEShuffleRead` (older versions: `CustomShuffleReader`) with *coalesced* in the SQL tab. If adaptive execution is off on your cluster, you see 200 tasks instead, most of them with 0 records.
-- You may see **skipped stages** in the job: a stage whose shuffle output already exists is not run again.
+- **Skipped stages** are the stages whose shuffle output already exists: they are not run again.
 
 Open the **Stages** tab and sort by **Duration**: this is the quickest way to find the slowest stage of a whole application.
 
@@ -655,7 +660,7 @@ Fill in the table for the steps below, from the UI (one example is given). Compa
 
 | Step | Job ids (from the ledger) | Stages | Tasks | The number that tells the story |
 |------|---------------------------|--------|-------|---------------------------------|
-| S1 count | | 2 (typically) | | Input records |
+| S1 count | | 2 + 1 skipped (typically) | | Input records |
 | S5 shuffle | | | | Shuffle Write records |
 | S6b sort-merge | | | | max vs median Shuffle Read |
 | S7 cache | | | | Fraction Cached |
@@ -667,7 +672,7 @@ Fill in the table for the steps below, from the UI (one example is given). Compa
 
 ## Stretch (optional)
 
-- Run section 5 again with `spark.conf.set("spark.sql.adaptive.enabled", "false")` and compare the number of tasks of the shuffle-reading stage. Set it back to `"true"` afterwards.
+- Run section 1 and section 5 again with `spark.conf.set("spark.sql.adaptive.enabled", "false")` and compare: number of jobs, skipped stages, and the number of tasks of the shuffle-reading stage. Set it back to `"true"` afterwards.
 - Compare `readings_big.repartition(2)` and `readings_big.repartition(64)` followed by a `count()`: how do **tasks**, **task duration** and **scheduler delay** change?
 - Download the **Event Log** of your application from the application list (or from HDFS as in the Spark basics lab) and find `SparkListenerJobStart`, `SparkListenerStageCompleted` and `SparkListenerTaskEnd` lines: the History Server pages are built from these.
 - Build the query of section 6a again after `spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")`: the plan switches to `SortMergeJoin` without any hint. Reset it with the value you printed in section 0.

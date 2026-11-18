@@ -17,7 +17,7 @@ After this module you can:
 
 - Find your application in the History Server, tell **incomplete** from **completed** applications, and explain how the UI is rebuilt from the event log
 - Read a **job** (stages, event timeline, DAG), a **stage** (tasks, summary metrics, shuffle read/write) and a **task** (duration, attempt, error)
-- Explain why `count()` runs in two stages, why a shuffle splits a job, and why `inferSchema` adds a job you did not ask for
+- Explain why one `count()` shows up as two jobs and a skipped stage (adaptive query execution), why a shuffle starts a new stage, and why `inferSchema` adds a job you did not ask for
 - Read the **SQL / DataFrame** plan graph and match its nodes (`FileScan`, `Filter`, `HashAggregate`, `Exchange`, `BroadcastHashJoin`) to `explain()` output
 - Recognize a skewed stage from the min / median / max task times, and compare a broadcast with a sort-merge join
 - Find a cached DataFrame in the **Storage** tab and a failed job with its task attempts

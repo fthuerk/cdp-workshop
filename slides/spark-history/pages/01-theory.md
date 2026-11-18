@@ -76,15 +76,23 @@ Where the History Server sits and how to read what it shows
 <polyline points="540,230 765,230 765,160" fill="none" stroke="currentColor" stroke-width="1.5" marker-end="url(#sh-arrow)"/>
 <text x="655" y="222" text-anchor="middle" style="font-size:11px">history pages (finished apps)</text>
 <polyline points="135,160 135,230 340,230" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#sh-arrow)"/>
-<text x="140" y="190" style="font-size:11px">live UI, only while running</text>
-<text x="140" y="203" style="font-size:11px">(through the YARN proxy)</text>
+<text x="140" y="190" style="font-size:11px">live UI: served by the driver,</text>
+<text x="140" y="203" style="font-size:11px">YARN only forwards (proxy)</text>
 </svg>
 
-<div class="mt-3 text-sm">
+<div class="grid grid-cols-2 gap-4 mt-2 text-xs">
 
-The driver only **writes**, the History Server only **reads**. They never talk to each other: if the file is there, the UI exists.
+<div class="border-l-4 border-green-500 pl-3">
+  <b>Live Spark UI</b> (while the application runs): a small web server <b>inside the driver</b>. YARN does not host it; the ResourceManager link only <b>forwards</b> to it. The driver is on the edge node with <code>pyspark3</code> (client mode), in a YARN container in cluster mode and in a Livy session. It <b>disappears</b> when the driver exits.
+</div>
+
+<div class="border-l-4 border-blue-500 pl-3">
+  <b>History Server</b> (any time later): the <b>same UI code</b>, fed by <b>replaying the event log</b> instead of live objects. It never talks to the application. After the application ends, the ResourceManager link switches to it.
+</div>
 
 </div>
+
+<div class="mt-2 text-sm text-center">The driver only <b>writes</b>, the History Server only <b>reads</b>: if the file is there, the UI exists.</div>
 
 ---
 
@@ -103,37 +111,56 @@ The driver only **writes**, the History Server only **reads**. They never talk t
 
 ---
 
-# Anatomy: what the UI is built from
+# Anatomy: the levels of an application
 
-<div class="grid grid-cols-4 gap-3 mt-6 text-sm">
+<div class="grid grid-cols-4 gap-2 mt-2 text-xs">
 
-<div class="rounded-lg border-2 border-gray-500/50 p-3">
-  <div class="font-bold text-lg">Application</div>
-  <div class="mt-1">One <code>SparkSession</code>. One id: <code>application_...</code></div>
+<div class="rounded-lg border-2 border-gray-500/50 p-2">
+  <div class="font-bold text-base">Application</div>
+  <div class="mt-1">One <code>SparkSession</code>: everything you run until you end it</div>
+  <div class="mt-2"><b>Id:</b> <code>application_...</code></div>
+  <div><b>UI:</b> the History Server list; all tabs belong to one application</div>
 </div>
 
-<div class="rounded-lg border-2 border-blue-500/60 bg-blue-500/10 p-3">
-  <div class="font-bold text-lg">Job</div>
-  <div class="mt-1">One per <b>action</b>: <code>count</code>, <code>show</code>, <code>collect</code>, <code>write</code></div>
+<div class="rounded-lg border-2 border-blue-500/60 bg-blue-500/10 p-2">
+  <div class="font-bold text-base">Job</div>
+  <div class="mt-1">Work started by an <b>action</b>: <code>count</code>, <code>show</code>, <code>collect</code>, <code>write</code></div>
+  <div class="mt-2"><b>Id:</b> 0, 1, 2, ... (own counter)</div>
+  <div><b>UI:</b> <b>Jobs</b> tab, job page with DAG</div>
 </div>
 
-<div class="rounded-lg border-2 border-purple-500/60 bg-purple-500/10 p-3">
-  <div class="font-bold text-lg">Stage</div>
-  <div class="mt-1">A part of a job. A new stage starts at every <b>shuffle</b> (<code>Exchange</code>)</div>
+<div class="rounded-lg border-2 border-purple-500/60 bg-purple-500/10 p-2">
+  <div class="font-bold text-base">Stage</div>
+  <div class="mt-1">A part of a job that needs <b>no shuffle</b>. A new stage starts at every <code>Exchange</code></div>
+  <div class="mt-2"><b>Id:</b> 0, 1, 2, ... (own counter)</div>
+  <div><b>UI:</b> <b>Stages</b> tab, stage page with Summary Metrics</div>
 </div>
 
-<div class="rounded-lg border-2 border-green-500/60 bg-green-500/10 p-3">
-  <div class="font-bold text-lg">Task</div>
-  <div class="mt-1">One <b>partition</b> in one stage on one executor</div>
+<div class="rounded-lg border-2 border-green-500/60 bg-green-500/10 p-2">
+  <div class="font-bold text-base">Task</div>
+  <div class="mt-1">One <b>partition</b> of a stage, run on one executor. A failed task is retried: new <b>attempt</b></div>
+  <div class="mt-2"><b>Id:</b> task index + attempt</div>
+  <div><b>UI:</b> task table of a stage page</div>
 </div>
 
 </div>
 
-<div class="mt-8 text-sm">
+<div class="mt-3 text-xs text-center opacity-80">
+1 application contains many jobs, a job contains stages, a stage contains tasks (one per partition)
+</div>
 
-- Chain from your code to a number: **code line → query → job → stage → task**
-- **Lazy evaluation:** transformations (`filter`, `select`, `join`) start nothing. Jobs appear only at actions, and Spark also starts some on its own (for example `inferSchema`)
-- **Tasks = partitions**: the number of tasks in a stage is something you can predict from your code
+<div class="mt-3 p-2 rounded bg-blue-500/10 text-sm">
+
+**Example from the lab:** one `count()` with adaptive execution shows **1 application, 2 jobs** (ids 0 and 1), **3 stages** (0 and 2 ran, 1 was *skipped*), and one task per stage for the tiny CSV. Job ids and stage ids are separate counters.
+
+</div>
+
+<div class="mt-3 text-xs">
+
+- **Code to number:** code line → query → job → stage → task
+- **Lazy:** transformations (`filter`, `select`, `join`) start nothing. Jobs appear at actions; Spark also starts some on its own (`inferSchema`)
+- **Tasks = partitions:** you can predict the number of tasks from your code
+- **Adaptive execution (AQE):** runs the stage below a shuffle first as its own job, looks at the real data size, then plans the rest. That is why one action can be **two jobs** and a stage can be **skipped** (its shuffle output already exists)
 
 </div>
 
