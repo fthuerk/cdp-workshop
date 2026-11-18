@@ -26,17 +26,17 @@ Format version 2 is the default, so the table is probably not an Iceberg table c
 
 Impala `UPDATE` and `MERGE` need Cloudera Runtime **7.3.1.500 or later**; check the release notes for `DELETE` on older releases. Ask your instructor which version the cluster runs.
 
-## `MERGE` fails on the `INSERT` column list or on types
+## `Table does not exist: grid_measurements_changes`
 
-The inline source of section 2 must have the same column names as used in the `UPDATE SET` / `INSERT` part (`ts_utc`, `station_id`, `active_power_kw`, `quality_flag`, `comm_status`) and `active_power_kw` must be `DOUBLE` (`CAST(… AS DOUBLE)`). Copy the statement unchanged.
+The change table of section 2 is missing or you are in another database. Run the `CREATE EXTERNAL TABLE` and `INSERT OVERWRITE` statements of section 2 again — they are safe to repeat.
 
 ## `MERGE` fails with a cardinality violation
 
-More than one source row matched the same target row. The inline source of section 2 has four rows with different keys; check that you did not paste a `UNION ALL` branch twice.
+More than one source row matched the same target row. Check `SELECT * FROM grid_measurements_changes;` — exactly four rows with different keys. Use `INSERT OVERWRITE` (not `INSERT INTO`) to fill the table, so a repeated run does not double the rows.
 
 ## `.snapshots`, `.files`, or `.history` is not found
 
-Impala metadata tables need the full name: `<your_user>.ice_meter.snapshots` — database, table, metadata table. In Hue use `${ws_user}.ice_meter.snapshots`. If your release does not support them, use `DESCRIBE HISTORY ice_meter;` and `SHOW FILES IN ice_meter;`.
+Impala metadata tables need the full name: `<your_user>.ice_meter.snapshots` — database, table, metadata table. In Hue use `${ws_user}.ice_meter.snapshots`. `files` is a reserved word and needs backticks: ``${ws_user}.ice_meter.`files` ``. If your release does not support them, use `DESCRIBE HISTORY ice_meter;` and `SHOW FILES IN ice_meter;`.
 
 ## `snap_first` (or `snap_good`) is empty or wrong
 

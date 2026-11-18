@@ -1,0 +1,9 @@
+/* Self-hosted fonts (SIL OFL): no requests to Google Fonts. Latin covers German umlauts, latin-ext the rest of Central Europe. */
+@import '@fontsource/nunito-sans/latin-400.css';
+@import '@fontsource/nunito-sans/latin-600.css';
+@import '@fontsource/nunito-sans/latin-ext-400.css';
+@import '@fontsource/nunito-sans/latin-ext-600.css';
+@import '@fontsource/fira-code/latin-400.css';
+@import '@fontsource/fira-code/latin-600.css';
+@import '@fontsource/fira-code/latin-ext-400.css';
+@import '@fontsource/fira-code/latin-ext-600.css';

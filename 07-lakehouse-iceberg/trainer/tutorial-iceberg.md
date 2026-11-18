@@ -235,7 +235,7 @@ The table now has **two partition specs**. Queries work across both; planning sp
 
 ```sql
 SELECT snapshot_id, committed_at, operation, summary FROM ${ws_user}.ice_func.snapshots;
-SELECT content, file_path, record_count, file_size_in_bytes FROM ${ws_user}.ice_func.files;
+SELECT content, file_path, record_count, file_size_in_bytes FROM ${ws_user}.ice_func.`files`;
 SELECT * FROM ${ws_user}.ice_func.manifests;
 SELECT * FROM ${ws_user}.ice_func.partitions;
 SELECT * FROM ${ws_user}.ice_func.metadata_log_entries;
@@ -246,7 +246,7 @@ Which of these tables each engine exposes differs — see C3. A **small-file hea
 ```sql
 SELECT COUNT(*) AS files, ROUND(AVG(file_size_in_bytes) / 1024, 1) AS avg_kb,
        SUM(CASE WHEN content > 0 THEN 1 ELSE 0 END) AS delete_files
-FROM ${ws_user}.ice_func.files;
+FROM ${ws_user}.ice_func.`files`;
 ```
 
 ## B5. Table properties that matter
@@ -487,7 +487,7 @@ Run the same `UPDATE` three times on three copies of the table and look at `file
 ```sql
 -- Impala:  merge-on-read, always
 UPDATE ice_cmp SET amount = amount + 100 WHERE id = 1;
-SELECT content, file_path, record_count FROM ${ws_user}.ice_cmp.files ORDER BY content;
+SELECT content, file_path, record_count FROM ${ws_user}.ice_cmp.`files` ORDER BY content;
 ```
 
 ```sql
@@ -496,14 +496,14 @@ ALTER TABLE ice_cmp SET TBLPROPERTIES ('write.update.mode'='copy-on-write');
 UPDATE ice_cmp SET amount = amount + 100 WHERE id = 2;       -- rewrites the data file; no delete file
 ALTER TABLE ice_cmp SET TBLPROPERTIES ('write.update.mode'='merge-on-read');
 UPDATE ice_cmp SET amount = amount + 100 WHERE id = 2;       -- adds a delete file
-SELECT content, file_path, record_count FROM default.ice_cmp.files;
+SELECT content, file_path, record_count FROM default.ice_cmp.`files`;
 ```
 
 ```sql
 -- Spark SQL: same properties
 ALTER TABLE ice_cmp SET TBLPROPERTIES ('write.update.mode'='merge-on-read', 'write.merge.mode'='merge-on-read', 'write.delete.mode'='merge-on-read');
 UPDATE ice_cmp SET amount = amount + 100 WHERE id = 3;
-SELECT content, file_path, record_count FROM ice_cmp.files;
+SELECT content, file_path, record_count FROM ice_cmp.`files`;
 ```
 
 What to point out:

@@ -2,7 +2,7 @@
 
 You know external tables from the Hive module: **a folder plus a definition in the Metastore**. Which files belong to the table, what changed, and who may see half-finished work is not tracked anywhere — that is why `UPDATE` and `DELETE` fail on them. **Apache Iceberg** adds the missing layer *inside the table folder*, as metadata files that every engine can read. This lab is about exactly that layer.
 
-The lab uses **two tables**: `grid_measurements_csv` (external, the source) and `ice_meter` (Iceberg, the table you work on). Run the sections in order.
+The lab uses **three small tables**: `grid_measurements_csv` (external, the source), `ice_meter` (Iceberg, the table you work on), and `grid_measurements_changes` (external, a late delivery that you merge in section 2). Run the sections in order.
 
 | Tool | Used for |
 |------|----------|
@@ -108,21 +108,35 @@ hdfs dfs -ls -R "${ICE_META}"
 
 You should see two folders:
 
-- `data/` — Parquet files in one sub-folder per station. These are normal Parquet files.
-- `metadata/` — files that only Iceberg writes: `*.metadata.json` (the table definition), `snap-*.avro` (the **manifest list** of one snapshot) and `*-m0.avro` (the **manifest**, a list of data files with row counts and column statistics).
+| Folder / file | What it is | Content |
+|---------------|-----------|---------|
+| `data/` | The table data | Parquet files, one sub-folder per station (`station_id=TS-101/` …). These are normal Parquet files. |
+| `metadata/` | Written only by Iceberg | The files below |
+| `metadata/*.metadata.json` | **Table metadata** | The table definition: schema, partition spec, list of snapshots. One new file per commit. Plain JSON. |
+| `metadata/snap-*.avro` | **Manifest list** | Lists the manifests of **one snapshot**. Avro (binary). |
+| `metadata/*-m0.avro` | **Manifest** | Lists the data files with row counts and column statistics. Avro (binary). |
 
-Each change to the table writes a **new** `*.metadata.json` and then switches the pointer `metadata_location` in the Metastore to it — that single switch is the commit. Read the newest one; it is plain JSON:
+The chain a reader follows, from the Metastore pointer down to the data:
+
+```text
+Metastore: metadata_location
+   └─ *.metadata.json   (table definition + snapshots)
+        └─ snap-*.avro  (manifest list of one snapshot)
+             └─ *-m0.avro  (manifest: data files + statistics)
+                  └─ data/…/*.parquet
+```
+
+Each change to the table writes a **new** `*.metadata.json` and then switches the pointer `metadata_location` in the Metastore to it — that single switch is the commit. Read the newest one (the highest number in the file name — it is the file `metadata_location` points to). It is plain JSON. Copy its path from the `hdfs dfs -ls` output above and let `jq` format it:
 
 ```bash
-META=$(hdfs dfs -ls "${ICE_META}/metadata" | awk '/metadata.json/ {print $NF}' | sort | tail -1)
-hdfs dfs -cat "${META}" | head -70
+hdfs dfs -cat "<path-of-newest-metadata.json>" | jq .
 ```
 
 Find `format-version`, the `schemas`, the `partition-specs`, and the `snapshots` with `manifest-list` and `summary` (`added-data-files`, `added-records`). The Avro files are binary; read their content with SQL instead. The `files` metadata table lists the data files of the current snapshot:
 
 ```sql
 SELECT content, file_path, record_count, file_size_in_bytes
-FROM ${ws_user}.ice_meter.files;
+FROM ${ws_user}.ice_meter.`files`;
 ```
 
 `content = 0` means a data file. Compare the paths with your `hdfs dfs -ls -R` output.
@@ -157,24 +171,37 @@ hdfs dfs -ls "${ICE_META}/metadata"
 The old data files are **still there**, unchanged. With merge-on-read Iceberg writes small **delete files** next to them (Parquet files that list the file path and row position of every deleted row); an `UPDATE` writes a delete file plus a new data file with the new row versions. Readers combine data and delete files. Ask the `files` table which is which:
 
 ```sql
-SELECT content, file_path, record_count FROM ${ws_user}.ice_meter.files ORDER BY content, file_path;
+SELECT content, file_path, record_count FROM ${ws_user}.ice_meter.`files` ORDER BY content, file_path;
 ```
 
 `content = 1` means a **position delete** file. Every statement also added a `*.metadata.json` file and a snapshot.
 
-Now a `MERGE`. A late delivery corrects two readings (`TS-101` at `08:45`, `TS-204` at `09:00`) and brings two new ones (`09:15` of both stations). The source is an inline query, so no further table is needed:
+Now a `MERGE`. A late delivery corrects two readings (`TS-101` at `08:45`, `TS-204` at `09:00`) and brings two new ones (`09:15` of both stations). First put the delivery into a small **change table** (external, with only the columns that the delivery contains). `INSERT OVERWRITE` makes the step safe to repeat:
+
+```sql
+CREATE EXTERNAL TABLE IF NOT EXISTS grid_measurements_changes (
+  ts_utc STRING,
+  station_id STRING,
+  active_power_kw DOUBLE,
+  quality_flag STRING,
+  comm_status STRING
+)
+STORED AS PARQUET;
+
+INSERT OVERWRITE grid_measurements_changes VALUES
+  ('2026-01-15T08:45:00Z', 'TS-101', 203.9, 'OK', 'ONLINE'),
+  ('2026-01-15T09:15:00Z', 'TS-101', 199.5, 'OK', 'ONLINE'),
+  ('2026-01-15T09:00:00Z', 'TS-204', 111.0, 'OK', 'MAINTENANCE'),
+  ('2026-01-15T09:15:00Z', 'TS-204', 108.9, 'OK', 'MAINTENANCE');
+
+SELECT * FROM grid_measurements_changes ORDER BY station_id, ts_utc;
+```
+
+The `MERGE` matches the change table to `ice_meter` on the key of a reading (`station_id` and `ts_utc`): existing readings are updated, the others are inserted:
 
 ```sql
 MERGE INTO ice_meter AS t
-USING (
-  SELECT '2026-01-15T08:45:00Z' AS ts_utc, 'TS-101' AS station_id, CAST(203.9 AS DOUBLE) AS active_power_kw, 'OK' AS quality_flag, 'ONLINE' AS comm_status
-  UNION ALL
-  SELECT '2026-01-15T09:15:00Z', 'TS-101', CAST(199.5 AS DOUBLE), 'OK', 'ONLINE'
-  UNION ALL
-  SELECT '2026-01-15T09:00:00Z', 'TS-204', CAST(111.0 AS DOUBLE), 'OK', 'MAINTENANCE'
-  UNION ALL
-  SELECT '2026-01-15T09:15:00Z', 'TS-204', CAST(108.9 AS DOUBLE), 'OK', 'MAINTENANCE'
-) AS s
+USING grid_measurements_changes AS s
 ON t.station_id = s.station_id AND t.ts_utc = s.ts_utc
 WHEN MATCHED THEN UPDATE SET
   active_power_kw = s.active_power_kw, quality_flag = s.quality_flag, comm_status = s.comm_status
@@ -348,7 +375,7 @@ If something fails, see [troubleshooting.md](troubleshooting.md).
   INSERT INTO ice_meter (ts_utc, station_id, active_power_kw, ts)
   SELECT '2026-01-15T09:30:00Z', 'TS-101', CAST(190.0 AS DOUBLE), CAST('2026-01-15 09:30:00' AS TIMESTAMP);
 
-  SELECT spec_id, file_path FROM ${ws_user}.ice_meter.files ORDER BY spec_id, file_path;
+  SELECT spec_id, file_path FROM ${ws_user}.ice_meter.`files` ORDER BY spec_id, file_path;
   SELECT COUNT(*) FROM ice_meter WHERE ts >= '2026-01-15 09:00:00';
   ```
 

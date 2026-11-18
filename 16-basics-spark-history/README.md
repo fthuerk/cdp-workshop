@@ -27,7 +27,7 @@ After this module you can:
 
 | Phase | Content |
 |-------|---------|
-| Concept (trainer) | Driver, executors, jobs, stages, tasks; event log and History Server |
+| Concept (trainer) | Driver, executors, jobs, stages, tasks; event log and History Server (slides: [slides/spark-history](../slides/spark-history/README.md), about 10 min) |
 | Core lab | [lab_basics_spark_history.md](lab/lab_basics_spark_history.md) sections 0–10 |
 | Alternative client | [lab/notebooks/spark_history_sparkmagic.ipynb](lab/notebooks/spark_history_sparkmagic.ipynb): the same steps from a laptop notebook via Livy + `sparkmagic` |
 | Stretch | [lab_basics_spark_history.md](lab/lab_basics_spark_history.md) stretch |

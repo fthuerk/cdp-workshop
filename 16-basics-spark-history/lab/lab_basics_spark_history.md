@@ -99,9 +99,13 @@ The **application id** (`application_<number>_<number>`) is the key for everythi
 Also print four settings that change what you will see in the UI. Note the values, you will find them again in the **Environment** tab in section 10:
 
 ```python
+# a core setting: not set explicitly, so Spark's default (4 attempts per task) applies
+print("spark.task.maxFailures =", spark.sparkContext.getConf().get("spark.task.maxFailures", "4 (Spark default)"))
+
+# SQL settings always have a value, the default if nobody changed them
 for key in ["spark.sql.adaptive.enabled", "spark.sql.shuffle.partitions",
-            "spark.sql.autoBroadcastJoinThreshold", "spark.task.maxFailures"]:
-    print(key, "=", spark.conf.get(key, "(not set, Spark default)"))
+            "spark.sql.autoBroadcastJoinThreshold"]:
+    print(key, "=", spark.conf.get(key))
 ```
 
 ### 0.2 Open the History Server and find your application
