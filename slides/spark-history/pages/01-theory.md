@@ -151,7 +151,7 @@ Where the History Server sits and how to read what it shows
 
 <div class="mt-3 p-2 rounded bg-blue-500/10 text-sm">
 
-**Example from the lab:** one `count()` with adaptive execution shows **1 application, 2 jobs** (ids 0 and 1), **3 stages** (0 and 2 ran, 1 was *skipped*), and one task per stage for the tiny CSV. Job ids and stage ids are separate counters.
+**Example from the lab:** one `count()` shows **1 application, 1 job** (id 0), **2 stages** (a partial count per partition, then the final sum after the `Exchange`) and one task per stage for the tiny CSV. Job ids and stage ids are separate counters.
 
 </div>
 
@@ -160,7 +160,7 @@ Where the History Server sits and how to read what it shows
 - **Code to number:** code line → query → job → stage → task
 - **Lazy:** transformations (`filter`, `select`, `join`) start nothing. Jobs appear at actions; Spark also starts some on its own (`inferSchema`)
 - **Tasks = partitions:** you can predict the number of tasks from your code
-- **Adaptive execution (AQE):** runs the stage below a shuffle first as its own job, looks at the real data size, then plans the rest. That is why one action can be **two jobs** and a stage can be **skipped** (its shuffle output already exists)
+- **Adaptive execution (AQE)** is on by default in Spark 3. It runs the stage below a shuffle first as its own job, looks at the real data size, then plans the rest: one action becomes **two jobs** and a stage is **skipped** (its shuffle output already exists). The lab switches it off to keep one action = one job
 
 </div>
 

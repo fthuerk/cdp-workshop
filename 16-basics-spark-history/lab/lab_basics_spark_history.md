@@ -96,7 +96,15 @@ print("event log dir   :", sc.getConf().get("spark.eventLog.dir", "(not set)"))
 
 The **application id** (`application_<number>_<number>`) is the key for everything that follows: it is the YARN application, the folder name of the event log, and the row in the History Server. The **event log dir** is where Spark writes a JSON line for every event (job started, task finished, ...) while your application runs.
 
-Also print four settings that change what you will see in the UI. Note the values, you will find them again in the **Environment** tab in section 10:
+Now set two SQL settings for this lab and print four settings that shape what you will see in the UI. **Adaptive query execution** (AQE) re-plans a query at runtime after every shuffle. That is very useful in production, but it splits jobs, skips stages and merges tasks, which hides the basic structure you want to learn here. So you switch it off (the stretch at the end turns it on again). You also set 8 shuffle partitions: the default of 200 would give 200 mostly empty tasks for this small data.
+
+```python
+# plain plans for the lab: no adaptive execution, 8 shuffle partitions
+spark.conf.set("spark.sql.adaptive.enabled", "false")
+spark.conf.set("spark.sql.shuffle.partitions", "8")
+```
+
+Print the four settings and note the values:
 
 ```python
 # a core setting: not set explicitly, so Spark's default (4 attempts per task) applies
@@ -107,6 +115,8 @@ for key in ["spark.sql.adaptive.enabled", "spark.sql.shuffle.partitions",
             "spark.sql.autoBroadcastJoinThreshold"]:
     print(key, "=", spark.conf.get(key))
 ```
+
+You should see `adaptive.enabled = false` and `shuffle.partitions = 8`.
 
 ### 0.2 Open the History Server and find your application
 
@@ -205,34 +215,31 @@ print(meter.count())
 jobs("S1")
 ```
 
-You should see **15** rows and, on this platform, **two** job ids in the list (for example `[0, 1]`): one `count()`, two jobs. The reason follows below. Reload the History Server (wait about 10 seconds if the jobs are missing).
+You should see **15** rows and **one** job id in the list. Reload the History Server (wait about 10 seconds if the job is missing).
 
-> **SCREENSHOT** `images/04-jobs-tab-s1.png`: the Jobs tab with the two rows `S1: read csv with explicit schema, count`, their durations, stages (succeeded/total) and tasks (progress bar), and the event timeline above.
+> **SCREENSHOT** `images/04-jobs-tab-s1.png`: the Jobs tab with the row `S1: read csv with explicit schema, count`, its duration, stages (succeeded/total) and tasks (progress bar), and the event timeline above.
 <!-- ![Jobs tab after S1](images/04-jobs-tab-s1.png) -->
 
 **Look at (Jobs tab):**
 
-- The **Description** is your label, and the **Job Ids** equal the ids your code printed. The column header shows the job group in brackets: `0 (S1)`.
-- **Stages: succeeded/total** and **Tasks: succeeded/total**: you ran one `count()`, yet there are two jobs. Open the **Stages** tab too: it lists **two completed stages and one skipped stage**. The next paragraphs explain why.
+- The **Description** is your label, and the **Job Id** equals the id your code printed. The column header shows the job group in brackets: `0 (S1)`.
+- **Stages: succeeded/total** and **Tasks: succeeded/total**: you ran one `count()`, yet the job has **two stages**. You will see why in a moment.
 - Expand **Event Timeline**: each bar is a job; the green markers show when executors were added. Executors start on demand, so your first job often includes the wait for containers.
 
 Click the job description to open the **job page**.
 
-> **SCREENSHOT** `images/05-job-detail-dag-s1.png`: the job page with the DAG Visualization expanded of the second job (a skipped stage box, the Exchange, the final stage) and the stages table below.
+> **SCREENSHOT** `images/05-job-detail-dag-s1.png`: the job page with the DAG Visualization expanded (two stage boxes, the Exchange between them) and the stages table below.
 <!-- ![Job page with DAG](images/05-job-detail-dag-s1.png) -->
 
 **Look at (job page):**
 
-Open both jobs one after the other.
+- **DAG Visualization:** each box is a **stage**; the arrows show data flowing between stages. Stage 1: `FileScan csv` and a partial aggregate (count per partition). Then an **Exchange** (a shuffle, all partial counts go to one place). Stage 2: the final sum.
+- **Stages table:** note the **stage ids**. Job ids and stage ids are separate counters, so job 3 can contain stages 5 and 6.
+- **Input / Shuffle Write / Shuffle Read** columns: stage 1 reads the file (`Input`) and writes its partial counts (`Shuffle Write`), stage 2 reads them (`Shuffle Read`).
 
-- **First job:** one stage with `FileScan csv` and a partial aggregate (count per partition). It ends at an **Exchange**: the partial counts are written as shuffle files (**Shuffle Write**).
-- **Second job:** the final sum. It reads the shuffle files of the first job (**Shuffle Read**). Its DAG also contains the stage of the first job again, marked **skipped**: its output already exists, so it is not run a second time. A skipped stage shows the plain call site (`count at NativeMethodAccessorImpl.java:0`) and no label, because it did not run under your group.
-- **Stages table:** note the **stage ids**. Job ids and stage ids are separate counters, so one job can contain stages with other numbers (in the example: job 1 holds the skipped stage 1 and stage 2).
-- **Input / Shuffle Write / Shuffle Read** columns: the first stage reads the file (`Input`) and writes its partial counts (`Shuffle Write`), the last stage reads them (`Shuffle Read`).
+With adaptive execution **on** (the cluster default) the same `count()` would show up as two jobs and a skipped stage: Spark runs stage 1 as a job of its own, looks at the shuffle size, and then runs the rest. You switched it off in section 0 to keep one action = one job. The stretch shows the difference.
 
-**Why two jobs and a skipped stage?** The plan of a `count()` has an `Exchange`. With **adaptive query execution** (AQE, `spark.sql.adaptive.enabled`, the value you printed in section 0), Spark first runs the stage below the `Exchange` as a job of its own, looks at the real size of the shuffle data, and only then plans and runs the rest (that is how it can merge small partitions or change a join). The rest is the second job, and the first stage appears in it as *skipped*. With AQE off, the same `count()` is **one job with two stages** and no skipped stage. In the **SQL / DataFrame** tab you see this as **one query that lists both job ids**, and its plan starts with `AdaptiveSparkPlan`.
-
-Click the description of the stage of the first job to open the **stage page**.
+Click the description of the first stage to open the **stage page**.
 
 > **SCREENSHOT** `images/06-stage-detail-s1.png`: the stage page with Summary Metrics (min / 25th / median / 75th / max), the Aggregated Metrics by Executor and the task table.
 <!-- ![Stage page](images/06-stage-detail-s1.png) -->
@@ -244,7 +251,7 @@ Click the description of the stage of the first job to open the **stage page**.
 - **Input Size / Records:** about 15 records (the data rows of the CSV) and the file size in bytes.
 - **Event Timeline** (button *Show Additional Metrics* → *Event Timeline*): the time of a task split into scheduler delay, deserialization, executor computing time and so on. Almost all of it should be tiny here.
 
-**Check question:** Why does one `count()` over 15 rows produce two jobs and a skipped stage? Which setting would give you one job with two stages?
+**Check question:** Why does a `count()` over 15 rows run as two stages and not one?
 
 ---
 
@@ -361,7 +368,7 @@ You should see **5000000**.
 - Open the S4 job and its first stage: the task table has **8 tasks**, one per partition. This is how you tie a UI number back to code: you chose `8` in `spark.range(0, n_rows, 1, 8)`.
 - **Summary Metrics:** the eight tasks produce equal slices of the range, so min, median and max **Duration** are close to each other. Keep this picture: it is what *healthy* looks like.
 - **Input Size / Records** is empty for this stage: the data is generated, not read from a file.
-- The final aggregation (a second job, as in section 1) has **one task**: it sums eight partial counts.
+- The second stage of the job has **one task** (summing eight partial counts).
 
 **Check question:** How many tasks would the first stage have if you wrote `spark.range(0, n_rows, 1, 16)`? And what would change in the Summary Metrics?
 
@@ -396,10 +403,9 @@ jobs("S5")
 
 **Look at (job page):**
 
-- The `Exchange` separates two stages. As in section 1, adaptive execution usually runs them as two jobs (compare the ids `jobs("S5")` printed), with the first stage shown as *skipped* in the second job. The first stage has **8 tasks** (your 8 partitions), the second far fewer.
+- The `Exchange` separates two stages. The first stage has **8 tasks** (your 8 partitions), the second has **8 tasks** too: the 8 shuffle partitions you set in section 0.
 - **Stages table:** the first stage shows **Shuffle Write**, the second shows **Shuffle Read**. Compare the **record counts**: the first stage processed 5,000,000 rows, but it writes only a few dozen. Spark aggregated *within* each partition first (the first `HashAggregate` is the *partial* one) and shuffles only the partial results. That is why a `groupBy` on few keys is cheap even for huge inputs.
-- Find the stage that reads the shuffle. The `Exchange` was planned for **200** partitions (`spark.sql.shuffle.partitions`, which you printed), but the stage has only a handful of tasks. With **adaptive query execution** (`spark.sql.adaptive.enabled = true`) Spark merges tiny shuffle partitions at runtime. Look for the node `AQEShuffleRead` (older versions: `CustomShuffleReader`) with *coalesced* in the SQL tab. If adaptive execution is off on your cluster, you see 200 tasks instead, most of them with 0 records.
-- **Skipped stages** are the stages whose shuffle output already exists: they are not run again.
+- Find the stage that reads the shuffle and open it. Only 12 different keys (3 stations x 4 hours) are spread over 8 tasks, so the **Shuffle Read Records** differ: some tasks get several keys, a few get none. With the default of 200 shuffle partitions, 188 more tasks would start and almost all would be empty. Adaptive execution exists to merge such tiny partitions at runtime.
 
 Open the **Stages** tab and sort by **Duration**: this is the quickest way to find the slowest stage of a whole application.
 
@@ -457,7 +463,7 @@ jobs("S6b")
 > **SCREENSHOT** `images/13-stage-skew-s6b.png`: the stage page of the S6b stage that reads the shuffle of the big side, with Summary Metrics showing a maximum far above the median for Duration and Shuffle Read Size / Records, and the task table sorted by duration.
 <!-- ![Skewed stage](images/13-stage-skew-s6b.png) -->
 
-**Look at (skew):** open the stage after the shuffle in the sort-merge job. Only three station keys exist, so at most three tasks receive data, and they do **not** receive equal shares: `TS-101` holds 70 % of the rows. In **Summary Metrics**, compare **max** with **median** for **Shuffle Read Size / Records** and for **Duration**. In the task table sort by **Duration** (click the header): the longest task reads about 3.5 million records, the shortest about 0.5 million. This is **data skew**: the stage is as slow as its slowest task, while the other executors wait. A max that is many times the median is the signature to look for in real applications.
+**Look at (skew):** open the stage after the shuffle in the sort-merge job. Only three station keys exist, so at most three tasks receive data, and they do **not** receive equal shares: `TS-101` holds 70 % of the rows. In **Summary Metrics**, compare **max** with **median** for **Shuffle Read Size / Records** and for **Duration**. In the task table sort by **Duration** (click the header): at most three tasks hold data: the largest about 3.5 million records (`TS-101`), the others about 1.0 and 0.5 million (two stations in the same task add up), and the remaining tasks are empty. This is **data skew**: the stage is as slow as its slowest task, while the other executors wait. A max that is many times the median is the signature to look for in real applications.
 
 **Check question:** The broadcast variant needs no shuffle for the join. Why can it not be used when *both* tables are large?
 
@@ -647,7 +653,7 @@ Open the application and go through the application-wide tabs.
 
 Read per executor: **Task Time (GC Time)** (GC above about 10 % of the task time is highlighted in red: the executor was short of memory), **Input**, **Shuffle Read / Write** (how the work was spread) and the **stdout / stderr** links.
 
-**Environment.** Use the search box (`spark.eventLog`, `spark.sql.adaptive`, `spark.sql.shuffle.partitions`, `spark.dynamicAllocation`) and compare with the values you printed in section 0.
+**Environment.** Use the search box (`spark.eventLog`, `spark.sql.adaptive`, `spark.sql.shuffle.partitions`, `spark.dynamicAllocation`). The tab shows the settings the application **started** with: the two values you changed at runtime in section 0 are not changed there (typically `adaptive` true and 200 partitions). The plans in the SQL / DataFrame tab show what really applied (no `AdaptiveSparkPlan` node).
 
 > **SCREENSHOT** `images/20-environment-tab.png`: the Environment tab with the Spark Properties table filtered for `eventLog` or `adaptive`.
 <!-- ![Environment tab](images/20-environment-tab.png) -->
@@ -660,7 +666,7 @@ Fill in the table for the steps below, from the UI (one example is given). Compa
 
 | Step | Job ids (from the ledger) | Stages | Tasks | The number that tells the story |
 |------|---------------------------|--------|-------|---------------------------------|
-| S1 count | | 2 + 1 skipped (typically) | | Input records |
+| S1 count | | 2 | | Input records |
 | S5 shuffle | | | | Shuffle Write records |
 | S6b sort-merge | | | | max vs median Shuffle Read |
 | S7 cache | | | | Fraction Cached |
@@ -672,7 +678,7 @@ Fill in the table for the steps below, from the UI (one example is given). Compa
 
 ## Stretch (optional)
 
-- Run section 1 and section 5 again with `spark.conf.set("spark.sql.adaptive.enabled", "false")` and compare: number of jobs, skipped stages, and the number of tasks of the shuffle-reading stage. Set it back to `"true"` afterwards.
+- Switch adaptive execution on again with `spark.conf.set("spark.sql.adaptive.enabled", "true")` and run sections 1 and 5 once more with new step labels. Compare the number of **jobs** (one `count()` becomes two), the **skipped stage** and the number of tasks of the shuffle-reading stage (with 8 shuffle partitions: usually fewer). The plans now start with `AdaptiveSparkPlan`. Switch it off again afterwards.
 - Compare `readings_big.repartition(2)` and `readings_big.repartition(64)` followed by a `count()`: how do **tasks**, **task duration** and **scheduler delay** change?
 - Download the **Event Log** of your application from the application list (or from HDFS as in the Spark basics lab) and find `SparkListenerJobStart`, `SparkListenerStageCompleted` and `SparkListenerTaskEnd` lines: the History Server pages are built from these.
 - Build the query of section 6a again after `spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")`: the plan switches to `SortMergeJoin` without any hint. Reset it with the value you printed in section 0.
